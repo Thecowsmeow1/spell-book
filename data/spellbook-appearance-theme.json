@@ -1,0 +1,20 @@
+{
+  "app": "spellbook-appearance-theme",
+  "version": 1,
+  "mode": "dark",
+  "colors": {
+    "bg": "#0f1419",
+    "surface": "#1a2332",
+    "surface2": "#243044",
+    "border": "#2d3a4f",
+    "text": "#e7ecf3",
+    "muted": "#8b9bb4",
+    "accent": "#3b82f6",
+    "win": "#60a5fa",
+    "lin": "#34d399",
+    "ws": "#f97316",
+    "rs": "#fffb00",
+    "kb": "#00bfb3",
+    "ar": "#a855f7"
+  }
+}

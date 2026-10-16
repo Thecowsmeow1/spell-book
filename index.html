@@ -1,0 +1,1688 @@
+<!--
+  Spell Book v2
+  A local command reference manager for IT professionals, sysadmins, and hackers.
+-->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Spell Book</title>
+
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <script>
+      // Pick the saved mode before the first paint, so light mode never flashes dark.
+      try {
+        if (localStorage.getItem('spellbook_mode_v1') === 'light') {
+          document.documentElement.dataset.mode = 'light'
+        }
+        const codeTheme = localStorage.getItem('spellbook_code_theme_v1')
+        if (/^[a-z]+$/.test(codeTheme || '') && codeTheme !== 'default') {
+          document.documentElement.dataset.codeTheme = codeTheme
+        }
+      } catch {}
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <nav class="navbar" aria-label="Main">
+      <div class="brand">
+        <img
+          class="brand-icon"
+          src="favicon.png"
+          alt=""
+          width="64"
+          height="64"
+        />
+
+        <h1>Spell Book</h1>
+      </div>
+
+      <div class="nav-links">
+        <a class="nav-link" href="#/" data-page="spellbook">Spell Book</a>
+        <a class="nav-link" href="#/guides" data-page="guides">Guides</a>
+        <a class="nav-link" href="#/templates" data-page="templates"
+          >Templates</a
+        >
+      </div>
+
+      <div class="nav-actions">
+        <button
+          class="btn secondary"
+          id="btn-trash"
+          title="View deleted commands"
+        >
+          Trash (<span id="trash-count">0</span>)
+        </button>
+
+        <button
+          class="btn secondary"
+          id="btn-readme"
+          title="View the Spell Book README"
+        >
+          About
+        </button>
+
+        <button
+          class="btn secondary"
+          id="btn-settings"
+          title="Pretty self explanatory"
+        >
+          Settings
+        </button>
+        <button
+          class="btn secondary icon-btn"
+          id="btn-mode"
+          type="button"
+          title="Switch to light mode"
+          aria-label="Switch to light mode"
+        >
+          <svg
+            class="icon-sun"
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="4" />
+            <path
+              d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+            />
+          </svg>
+          <svg
+            class="icon-moon"
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <div class="page spellbook-page" id="page-spellbook" data-controls="top">
+      <div
+        class="controls-resizer"
+        id="controls-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize the control bar"
+        tabindex="0"
+        title="Drag to resize (double-click to reset)"
+      ></div>
+      <header>
+        <div class="control-sections" id="control-sections">
+          <div class="header-left">
+            <div class="sidebar-count" id="sidebar-count">
+              <div class="count-row">
+                <span id="command-total">0 commands</span>
+                <span
+                  class="command-changes"
+                  aria-label="Changes since last import"
+                >
+                  <span class="added" id="added-command-count">+0</span>
+                  <span class="deleted" id="deleted-command-count">-0</span>
+                </span>
+              </div>
+              <div class="count-row">
+                <span id="script-total">0 scripts</span>
+                <span
+                  class="command-changes"
+                  aria-label="Changes since the last import"
+                >
+                  <span class="added" id="added-script-count">+0</span>
+                  <span class="deleted" id="deleted-script-count">-0</span>
+                </span>
+              </div>
+              <div class="count-row">
+                <span id="term-total">0 terms</span>
+                <span
+                  class="command-changes"
+                  aria-label="Changes since the last import"
+                >
+                  <span class="added" id="added-term-count">+0</span>
+                  <span class="deleted" id="deleted-term-count">-0</span>
+                </span>
+              </div>
+            </div>
+            <div class="layout-switch" aria-label="Layout">
+              <span
+                class="layout-seg"
+                role="group"
+                aria-label="Control bar position"
+              >
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  data-controls-pos="left"
+                  title="Control bar on the left"
+                >
+                  Left
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  data-controls-pos="top"
+                  title="Control bar on top"
+                >
+                  Top
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  data-controls-pos="right"
+                  title="Control bar on the right"
+                >
+                  Right
+                </button>
+              </span>
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-panes"
+                title="Put the table and the details side by side"
+              >
+                Side by side
+              </button>
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-dock"
+                title="Put the table pane in the control bar"
+              >
+                Dock table
+              </button>
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-scratch"
+                title="Hide the scratch pad"
+              >
+                Hide scratch pad
+              </button>
+            </div>
+          </div>
+
+          <div class="controls-section" id="commands-panel">
+            <div class="section-head">
+              <span class="section-heading"
+                ><button
+                  type="button"
+                  class="section-toggle"
+                  id="toggle-commands"
+                  aria-expanded="true"
+                  aria-controls="commands-panel"
+                  title="Fold this section away"
+                >
+                  ▾</button
+                ><span
+                  class="section-title"
+                  id="title-commands"
+                  data-section="commands"
+                  tabindex="0"
+                  title="Double-click to rename (or press F2)"
+                  >Commands</span
+                ></span
+              >
+              <span class="section-actions"
+                ><button
+                  class="btn sm"
+                  id="btn-add"
+                  title="Add a new command (A)"
+                >
+                  + New Command
+                </button>
+                <button
+                  class="btn secondary sm"
+                  id="btn-import"
+                  title="Import commands from a Spell Book commands.txt, JSON or CSV file"
+                >
+                  Import
+                </button>
+                <button
+                  class="btn secondary sm"
+                  id="btn-export"
+                  title="Export commands as TXT, JSON or CSV"
+                >
+                  Export
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-filters-edit-commands"
+                  title="Rename or remove quick filters"
+                >
+                  Edit
+                </button>
+                <input
+                  type="file"
+                  id="import-file"
+                  accept=".txt,.json,.csv,text/plain,application/json,text/csv"
+                  hidden
+              /></span>
+            </div>
+            <div class="filters" id="filters"></div>
+          </div>
+
+          <div class="controls-section scripts-section" id="scripts-panel">
+            <div class="section-head">
+              <span class="section-heading"
+                ><button
+                  type="button"
+                  class="section-toggle"
+                  id="toggle-scripts"
+                  aria-expanded="true"
+                  aria-controls="scripts-panel"
+                  title="Fold this section away"
+                >
+                  ▾</button
+                ><span
+                  class="section-title"
+                  id="title-scripts"
+                  data-section="scripts"
+                  tabindex="0"
+                  title="Double-click to rename (or press F2)"
+                  >Scripts</span
+                ></span
+              >
+              <span class="section-actions">
+                <button type="button" class="btn sm" id="btn-script-new">
+                  + New Script
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-scripts-import"
+                  title="Import saved scripts from a JSON or CSV file"
+                >
+                  Import
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-scripts-export"
+                  title="Export saved scripts as JSON or CSV"
+                >
+                  Export
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-filters-edit-scripts"
+                  title="Rename or remove quick filters"
+                >
+                  Edit
+                </button>
+              </span>
+            </div>
+            <div class="filters scripts-filters" id="scripts-list"></div>
+            <input
+              type="file"
+              id="scripts-import-file"
+              accept=".json,.csv,application/json,text/csv"
+              hidden
+            />
+          </div>
+
+          <div class="controls-section terms-section" id="terms-panel">
+            <div class="section-head">
+              <span class="section-heading"
+                ><button
+                  type="button"
+                  class="section-toggle"
+                  id="toggle-terms"
+                  aria-expanded="true"
+                  aria-controls="terms-panel"
+                  title="Fold this section away"
+                >
+                  ▾</button
+                ><span
+                  class="section-title"
+                  id="title-terms"
+                  data-section="terms"
+                  tabindex="0"
+                  title="Double-click to rename (or press F2)"
+                  >Terms</span
+                ></span
+              >
+              <span class="section-actions">
+                <button type="button" class="btn sm" id="btn-term-new">
+                  + New Term
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-terms-import"
+                  title="Import terms from a JSON or CSV file"
+                >
+                  Import
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-terms-export"
+                  title="Export terms as JSON or CSV"
+                >
+                  Export
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-filters-edit-terms"
+                  title="Rename or remove quick filters"
+                >
+                  Edit
+                </button>
+                <input
+                  type="file"
+                  id="terms-import-file"
+                  accept=".json,.csv,application/json,text/csv"
+                  hidden
+                />
+              </span>
+            </div>
+            <div class="filters terms-filters" id="terms-list"></div>
+          </div>
+        </div>
+        <div
+          class="dock-splitter"
+          id="dock-splitter"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize the sections and the table pane"
+          tabindex="0"
+          title="Drag to resize (double-click to reset)"
+          hidden
+        ></div>
+      </header>
+
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <input
+            type="search"
+            id="search"
+            placeholder="Search commands, descriptions, use cases…"
+            autocomplete="off"
+            title="Search commands (/)"
+          />
+        </div>
+        <div class="tag-filter-wrap">
+          <label for="tag-filter">Tag</label>
+          <input
+            type="text"
+            id="tag-filter"
+            placeholder="Filter by tags, comma separated…"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="active-tags" id="active-tags" hidden></div>
+
+        <button
+          type="button"
+          class="btn secondary sm columns-button"
+          id="btn-columns"
+          title="Show or hide table columns"
+        >
+          Columns
+        </button>
+
+        <div class="tag-suggestions" id="tag-suggestions" hidden></div>
+      </div>
+
+      <div class="main">
+        <div class="table-wrap" id="cmd-list"></div>
+
+        <div
+          class="splitter"
+          id="splitter"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize table and output"
+          tabindex="0"
+          title="Drag to resize (double-click to reset)"
+        ></div>
+
+        <div class="detail-column" id="detail-column">
+          <main class="detail" id="detail">
+            <div class="empty-state">
+              Select a command from the list or use search.
+            </div>
+          </main>
+          <div
+            class="scratch-splitter"
+            id="scratch-splitter"
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize the scratch pad"
+            tabindex="0"
+            title="Drag to resize (double-click to reset)"
+          ></div>
+          <section class="scratchpad" id="scratchpad" aria-label="Scratch pad">
+            <div class="scratchpad-head">
+              <span class="scratchpad-title">Scratch pad</span>
+              <span class="scratchpad-actions">
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-scratch-copy"
+                  title="Copy the scratch pad text"
+                >
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-scratch-clear"
+                  title="Erase the scratch pad"
+                >
+                  Clear
+                </button>
+              </span>
+            </div>
+            <textarea
+              id="scratchpad-text"
+              spellcheck="false"
+              placeholder="Jot anything here: commands in progress, notes, pasted output. It is saved as you type."
+            ></textarea>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <section class="page placeholder-page" id="page-guides" hidden>
+      <h2>Guides</h2>
+      <p>Nothing here yet.</p>
+    </section>
+
+    <section class="page placeholder-page" id="page-templates" hidden>
+      <h2>Templates</h2>
+      <p>Nothing here yet.</p>
+    </section>
+
+    <!-- Script Modal -->
+
+    <div class="modal-overlay" id="script-modal">
+      <div class="modal resizable-modal">
+        <h2 id="script-modal-title">New Script</h2>
+
+        <form id="script-form">
+          <input type="hidden" id="script-id" />
+          <div class="form-group">
+            <label for="script-name">Name *</label>
+            <input
+              type="text"
+              id="script-name"
+              required
+              placeholder="e.g. Disk cleanup"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="script-language">Language</label>
+            <input
+              type="text"
+              id="script-language"
+              list="script-languages"
+              placeholder="PowerShell, Bash, Python…"
+            />
+            <datalist id="script-languages">
+              <option value="PowerShell"></option>
+              <option value="Bash"></option>
+              <option value="Python"></option>
+              <option value="Batch"></option>
+              <option value="SQL"></option>
+            </datalist>
+          </div>
+
+          <div class="form-group">
+            <label for="script-tags">Tags</label>
+            <div id="script-tags-box" data-input-id="script-tags"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="script-body">Script *</label>
+            <textarea
+              id="script-body"
+              class="script-body"
+              required
+              spellcheck="false"
+              placeholder="Paste or write the script here…"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="script-notes">Notes</label>
+            <textarea
+              id="script-notes"
+              placeholder="Anything worth remembering…"
+            ></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn danger"
+              id="btn-script-delete"
+              hidden
+            >
+              Delete
+            </button>
+            <button type="button" class="btn secondary" id="btn-script-copy">
+              Copy
+            </button>
+            <button type="button" class="btn secondary" id="btn-script-cancel">
+              Cancel
+            </button>
+            <button type="submit" class="btn">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Term Modal -->
+
+    <div class="modal-overlay" id="term-modal">
+      <div class="modal resizable-modal">
+        <h2 id="term-modal-title">New Term</h2>
+
+        <form id="term-form">
+          <input type="hidden" id="term-id" />
+          <div class="form-group">
+            <label for="term-name">Term *</label>
+            <input
+              type="text"
+              id="term-name"
+              required
+              placeholder="e.g. Kerberoasting"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="term-category">Category</label>
+            <input
+              type="text"
+              id="term-category"
+              list="term-categories"
+              placeholder="e.g. Active Directory"
+            />
+            <datalist id="term-categories"></datalist>
+          </div>
+
+          <div class="form-group">
+            <label for="term-tags">Tags</label>
+            <div id="term-tags-box" data-input-id="term-tags"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="term-definition">Definition *</label>
+            <textarea
+              id="term-definition"
+              required
+              placeholder="What this term means…"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="term-notes">Notes</label>
+            <textarea
+              id="term-notes"
+              placeholder="Anything worth remembering…"
+            ></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn danger"
+              id="btn-term-delete"
+              hidden
+            >
+              Delete
+            </button>
+            <button type="button" class="btn secondary" id="btn-term-copy">
+              Copy
+            </button>
+            <button type="button" class="btn secondary" id="btn-term-cancel">
+              Cancel
+            </button>
+            <button type="submit" class="btn">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- README Modal -->
+
+    <div class="modal-overlay" id="readme-modal">
+      <div class="modal readme-modal">
+        <div class="readme-header">
+          <h2>Spell Book README</h2>
+
+          <button type="button" class="btn secondary sm" id="btn-readme-close">
+            Close
+          </button>
+        </div>
+
+        <article class="readme-content" id="readme-content">
+          <p class="readme-loading">Loading README…</p>
+        </article>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+
+    <div class="modal-overlay" id="settings-modal">
+      <div class="modal has-sticky-actions">
+        <h2>Appearance Settings</h2>
+
+        <p class="settings-intro">
+          Changes apply live and are saved in this browser.
+        </p>
+
+        <div
+          class="settings-tabs"
+          role="tablist"
+          aria-label="Settings sections"
+        >
+          <button
+            type="button"
+            class="settings-tab active"
+            role="tab"
+            data-tab="appearance"
+            aria-selected="true"
+          >
+            Appearance
+          </button>
+          <button
+            type="button"
+            class="settings-tab"
+            role="tab"
+            data-tab="code"
+            aria-selected="false"
+          >
+            Code Blocks
+          </button>
+          <button
+            type="button"
+            class="settings-tab"
+            role="tab"
+            data-tab="fonts"
+            aria-selected="false"
+          >
+            Fonts
+          </button>
+          <button
+            type="button"
+            class="settings-tab"
+            role="tab"
+            data-tab="categories"
+            aria-selected="false"
+          >
+            Categories
+          </button>
+          <button
+            type="button"
+            class="settings-tab"
+            role="tab"
+            data-tab="data"
+            aria-selected="false"
+          >
+            Data
+          </button>
+        </div>
+
+        <div class="settings-panel" data-panel="appearance">
+          <div class="settings-grid">
+            <label
+              >Background
+              <input
+                class="color-setting"
+                data-key="bg"
+                id="color-bg"
+                type="color"
+            /></label>
+
+            <label
+              >Surface
+              <input
+                class="color-setting"
+                data-key="surface"
+                id="color-surface"
+                type="color"
+            /></label>
+
+            <label
+              >Raised Surface
+              <input
+                class="color-setting"
+                data-key="surface2"
+                id="color-surface2"
+                type="color"
+            /></label>
+
+            <label
+              >Border
+              <input
+                class="color-setting"
+                data-key="border"
+                id="color-border"
+                type="color"
+            /></label>
+
+            <label
+              >Text
+              <input
+                class="color-setting"
+                data-key="text"
+                id="color-text"
+                type="color"
+            /></label>
+
+            <label
+              >Muted Text
+              <input
+                class="color-setting"
+                data-key="muted"
+                id="color-muted"
+                type="color"
+            /></label>
+
+            <label
+              >Accent
+              <input
+                class="color-setting"
+                data-key="accent"
+                id="color-accent"
+                type="color"
+            /></label>
+
+            <label
+              >Windows Badge
+              <input
+                class="color-setting"
+                data-key="win"
+                id="color-win"
+                type="color"
+            /></label>
+
+            <label
+              >Linux Badge
+              <input
+                class="color-setting"
+                data-key="lin"
+                id="color-lin"
+                type="color"
+            /></label>
+
+            <label
+              >Wireshark Badge
+              <input
+                class="color-setting"
+                data-key="ws"
+                id="color-ws"
+                type="color"
+            /></label>
+
+            <!-- ############################################################### -->
+            <label
+              >Kibana Badge
+              <input
+                class="color-setting"
+                data-key="kb"
+                id="color-kb"
+                type="color"
+            /></label>
+
+            <label
+              >Arkime Badge
+              <input
+                class="color-setting"
+                data-key="ar"
+                id="color-ar"
+                type="color"
+            /></label>
+          </div>
+
+          <div class="theme-io-row" data-theme-io="appearance">
+            <button
+              type="button"
+              class="btn secondary sm"
+              id="btn-appearance-import"
+              title="Load an appearance theme file"
+            >
+              Import Appearance Theme
+            </button>
+            <button
+              type="button"
+              class="btn secondary sm"
+              id="btn-appearance-export"
+              title="Save the mode and the 13 colors on this tab"
+            >
+              Export Appearance Theme
+            </button>
+            <input
+              type="file"
+              id="appearance-import-file"
+              accept=".json,application/json"
+              hidden
+            />
+            <span class="form-hint"
+              >Saves the mode (light or dark) and the 13 colors above.</span
+            >
+          </div>
+
+          <div class="settings-data-section">
+            <h3>Layout</h3>
+
+            <fieldset class="layout-options">
+              <legend>Control bar position</legend>
+              <label
+                ><input type="radio" name="controls-position" value="top" />
+                Top</label
+              >
+              <label
+                ><input type="radio" name="controls-position" value="left" />
+                Left</label
+              >
+              <label
+                ><input type="radio" name="controls-position" value="right" />
+                Right</label
+              >
+            </fieldset>
+
+            <fieldset class="layout-options">
+              <legend>Table and details</legend>
+              <label
+                ><input type="radio" name="panes-layout" value="stacked" />
+                Table above details</label
+              >
+              <label
+                ><input type="radio" name="panes-layout" value="side" /> Table
+                beside details</label
+              >
+            </fieldset>
+
+            <fieldset class="layout-options">
+              <legend>Options in the detail pane</legend>
+              <label
+                ><input type="radio" name="options-default" value="expanded" />
+                Expanded</label
+              >
+              <label
+                ><input type="radio" name="options-default" value="collapsed" />
+                Collapsed</label
+              >
+              <span class="form-hint"
+                >Whether the Options section starts open. You can still open or
+                close it for any command.</span
+              >
+            </fieldset>
+
+            <fieldset class="layout-options">
+              <legend>Table pane location</legend>
+              <label
+                ><input type="radio" name="table-dock" value="main" /> In the
+                main area</label
+              >
+              <label
+                ><input type="radio" name="table-dock" value="control" /> In the
+                control bar</label
+              >
+              <span class="form-hint"
+                >"In the control bar" puts the table pane under the sections,
+                with a draggable divider, and the detail pane fills the rest. It
+                takes effect when the control bar is on the left or right.</span
+              >
+            </fieldset>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-panel="code" hidden>
+          <div class="settings-data-section">
+            <h3>Code Blocks</h3>
+
+            <div class="form-group code-theme-row">
+              <label for="code-theme">Code block theme</label>
+              <select id="code-theme">
+                <option value="default">Match app (default)</option>
+                <option value="midnight">Midnight</option>
+                <option value="terminal">Terminal</option>
+                <option value="solarized">Solarized Dark</option>
+                <option value="dracula">Dracula</option>
+                <option value="monokai">Monokai</option>
+                <option value="paper">Paper</option>
+              </select>
+            </div>
+
+            <pre
+              class="cmd code-preview"
+              data-lang="powershell"
+              aria-label="Code block preview"
+            >
+# Find a process on a remote machine
+$name = Read-Host 'Process name'
+Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1</pre>
+            <p class="form-hint">
+              Applies to command templates, generated commands, examples,
+              scripts and the README.
+            </p>
+          </div>
+
+          <div class="settings-data-section">
+            <h3>Syntax Colors</h3>
+            <p class="form-hint">
+              Fine-tune the colors of the chosen code theme. Choosing a
+              different theme, or switching light / dark mode, resets these.
+            </p>
+            <div id="syntax-colors"></div>
+            <div class="syntax-actions">
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-syntax-import"
+                title="Load a code block theme file: the chosen code theme and its 12 syntax colors"
+              >
+                Import Code Theme
+              </button>
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-syntax-export"
+                title="Save the chosen code theme and its 12 syntax colors"
+              >
+                Export Code Theme
+              </button>
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-syntax-reset"
+                title="Back to the code theme's own colors"
+              >
+                Reset Syntax Colors
+              </button>
+              <input
+                type="file"
+                id="syntax-import-file"
+                accept=".json,application/json"
+                hidden
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-panel="fonts" hidden>
+          <div class="settings-data-section">
+            <h3>Fonts</h3>
+            <p class="form-hint">
+              Pick a font for each part of the page. Only a short list of common
+              fonts is offered, and only the typeface changes, so buttons,
+              layout and sizes keep working. Code blocks and the scratch pad use
+              fixed-width fonts only, so columns stay lined up.
+            </p>
+            <div id="font-settings" class="font-settings"></div>
+            <div class="theme-io-row">
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-fonts-reset"
+              >
+                Reset Fonts
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-panel="categories" hidden>
+          <div class="settings-data-section">
+            <h3>Category Colors</h3>
+
+            <p class="form-hint">
+              Give each platform, script language and term category its own
+              color. It colors that category's badge and its quick-filter
+              button.
+            </p>
+
+            <div class="theme-io-row" data-theme-io="categories">
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-categories-import"
+                title="Load a category colors file"
+              >
+                Import Category Colors
+              </button>
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-categories-export"
+                title="Save the category colors on this tab"
+              >
+                Export Category Colors
+              </button>
+              <input
+                type="file"
+                id="categories-import-file"
+                accept=".json,application/json"
+                hidden
+              />
+              <span class="form-hint"
+                >Saves the platform, language and category colors listed
+                below.</span
+              >
+            </div>
+
+            <div id="category-colors"></div>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-panel="data" hidden>
+          <div class="settings-data-section" id="datafile-section">
+            <h3>Linked Data File</h3>
+
+            <p class="form-hint">
+              Link a JSON file to keep all your data and settings (commands,
+              scripts, terms, colors and layout) in one place. It loads
+              automatically when Spell Book opens. Works in Chrome and Edge.
+            </p>
+
+            <p class="datafile-status" id="datafile-status"></p>
+
+            <div class="settings-data-actions">
+              <button type="button" class="btn secondary" id="btn-datafile-new">
+                Create Data File…
+              </button>
+              <button
+                type="button"
+                class="btn secondary"
+                id="btn-datafile-open"
+              >
+                Link Existing File…
+              </button>
+              <button
+                type="button"
+                class="btn"
+                id="btn-datafile-reconnect"
+                hidden
+              >
+                Reconnect
+              </button>
+              <button
+                type="button"
+                class="btn secondary"
+                id="btn-datafile-save"
+              >
+                Save Now
+              </button>
+              <button
+                type="button"
+                class="btn secondary"
+                id="btn-datafile-load"
+              >
+                Load From File
+              </button>
+              <button
+                type="button"
+                class="btn secondary"
+                id="btn-datafile-unlink"
+              >
+                Unlink
+              </button>
+            </div>
+
+            <p class="form-hint">
+              Any browser, including when Spell Book is opened as a local file,
+              can use these instead. <b>Download Backup</b> saves
+              <code>spellbook-data.js</code>; put it in Spell Book's
+              <code>data</code> folder (replace the old one) and it loads
+              automatically whenever Spell Book opens.
+              <b>Restore From File</b> loads such a file (or a
+              <code>.json</code> backup) right now.
+            </p>
+            <div class="settings-data-actions">
+              <button
+                type="button"
+                class="btn secondary"
+                id="btn-datafile-download"
+              >
+                Download Backup
+              </button>
+              <button
+                type="button"
+                class="btn secondary"
+                id="btn-datafile-restore"
+              >
+                Restore From File…
+              </button>
+              <input
+                type="file"
+                id="datafile-restore-file"
+                accept=".js,.json,application/json,text/javascript"
+                hidden
+              />
+            </div>
+
+            <label class="check-row">
+              <input type="checkbox" id="datafile-autosave" />
+              Autosave everything to the data file (shortly after changes, and
+              when you leave)
+            </label>
+          </div>
+
+          <div class="settings-data-section">
+            <h3>Local Data</h3>
+
+            <p>
+              These controls affect only data saved by this browser. They do not
+              delete or modify the <code>data/commands.txt</code> baseline or
+              the <code>data/commands.js</code> backup.
+            </p>
+
+            <div class="settings-data-actions">
+              <button
+                type="button"
+                class="btn secondary"
+                id="btn-clear-commands"
+              >
+                Clear Local Commands
+              </button>
+
+              <button
+                type="button"
+                class="btn secondary"
+                id="btn-clear-settings"
+              >
+                Clear Settings
+              </button>
+
+              <button type="button" class="btn danger" id="btn-clear-all">
+                Reset All Local Data
+              </button>
+            </div>
+
+            <p class="form-hint">
+              Clear Local Commands reloads the
+              <code>data/commands.txt</code> baseline, falling back to
+              <code>data/commands.js</code> if TXT is unavailable. Reset All
+              clears locally saved commands, Trash, and appearance settings.
+            </p>
+          </div>
+        </div>
+
+        <div class="modal-actions sticky-actions">
+          <span class="theme-io">
+            <button
+              type="button"
+              class="btn secondary"
+              id="btn-theme-import"
+              title="Load a full theme file: mode, colors, category colors, code theme and syntax colors"
+            >
+              Import All Themes
+            </button>
+            <button
+              type="button"
+              class="btn secondary"
+              id="btn-theme-export"
+              title="Save everything theme-related in one file: mode, colors, category colors, code theme and syntax colors"
+            >
+              Export All Themes
+            </button>
+            <input
+              type="file"
+              id="theme-import-file"
+              accept=".json,application/json"
+              hidden
+            />
+          </span>
+
+          <button type="button" class="btn secondary" id="btn-settings-reset">
+            Reset Theme Defaults
+          </button>
+
+          <button type="button" class="btn" id="btn-settings-close">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add / Edit Modal -->
+
+    <div class="modal-overlay" id="modal">
+      <div class="modal resizable-modal">
+        <h2 id="modal-title">New Command</h2>
+
+        <form id="cmd-form">
+          <input type="hidden" id="edit-id" />
+          <div class="form-group">
+            <label for="f-title">Title *</label>
+            <input
+              type="text"
+              id="f-title"
+              required
+              placeholder="e.g. Remote WMIC Query"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="f-platform">Platform / Tool *</label>
+            <select id="f-platform" required></select>
+          </div>
+
+          <div class="form-group">
+            <label for="f-tags">Tags</label>
+            <div id="f-tags-box" data-input-id="f-tags"></div>
+
+            <div class="form-hint">
+              Type a tag and press Enter or a comma. Existing tags are suggested
+              as you type, and every tag becomes available in the Tag filter.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="f-desc">Description / Use Case</label>
+
+            <textarea
+              id="f-desc"
+              placeholder="What this command is for…"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="f-cmd">Command Template *</label>
+            <textarea
+              id="f-cmd"
+              required
+              placeholder="Use &lt;placeholder&gt; for variables&#10;e.g. nmap &lt;-sV | -sn | -sT&gt; &lt;target&gt; [-p &lt;ports&gt;] [--script &lt;nse_script&gt; [--script-args &lt;script_args&gt;]] [-oN &lt;output_file&gt;]"
+            ></textarea>
+
+            <div class="form-hint">
+              Use &lt;name&gt; for required placeholders and [name] for optional
+              placeholders. Both become editable fields; optional placeholders
+              are omitted from the generated command until populated. All
+              placeholders must NOT contain whitespace (e.g. spaces, tabs,
+              etc.), e.g. use "&lt;variable_name&gt;", NOT "&lt;variable
+              name&gt;" For dropdown lists, use &lt;option1 | option2 |
+              option3&gt; syntax
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="var-add-first">Variables</label>
+            <div id="var-editor" class="var-editor"></div>
+            <div class="var-editor-actions">
+              <button type="button" class="btn secondary sm" id="btn-var-add">
+                + Add variable
+              </button>
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-var-add-option"
+                title="A man page style option such as -a, --all or -w, --width=COLS"
+              >
+                + Add option
+              </button>
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-var-paste"
+                title="Paste the OPTIONS section of a man page or --help output"
+              >
+                Paste man page options…
+              </button>
+              <button
+                type="button"
+                class="btn secondary sm"
+                id="btn-var-detect"
+                title="Add a variable for every placeholder found in the command template"
+              >
+                Add from template
+              </button>
+            </div>
+            <div class="var-paste" id="var-paste" hidden>
+              <textarea
+                id="var-paste-text"
+                rows="8"
+                spellcheck="false"
+                placeholder="Paste the OPTIONS section of a man page or --help output, for example:&#10;&#10;       -a, --all&#10;              do not ignore entries starting with .&#10;       -w, --width=COLS&#10;              set output width to COLS"
+              ></textarea>
+              <div class="var-paste-actions">
+                <button type="button" class="btn sm" id="btn-var-paste-add">
+                  Add options
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary sm"
+                  id="btn-var-paste-cancel"
+                >
+                  Cancel
+                </button>
+                <span class="var-paste-message" id="var-paste-message"></span>
+              </div>
+            </div>
+            <div class="form-hint" id="var-paste-note"></div>
+            <datalist id="var-info-labels">
+              <option value="Required?"></option>
+              <option value="Position?"></option>
+              <option value="Default value"></option>
+              <option value="Accept pipeline input?"></option>
+              <option value="Accept wildcard characters?"></option>
+            </datalist>
+            <div class="form-hint">
+              Give each variable a type, a description and any extra information
+              (required, position, default value…). Insert puts it into the
+              command template at the cursor, as &lt;name&gt; or the optional
+              [name]. Variables you leave out here are still picked up from the
+              template.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="f-example">Example (optional)</label>
+            <textarea
+              id="f-example"
+              placeholder="Concrete example with real values"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="f-notes">Notes / Tips</label>
+            <textarea
+              id="f-notes"
+              placeholder="Aliases, gotchas, related commands…"
+            ></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" id="btn-cancel">
+              Cancel
+            </button>
+
+            <button type="submit" class="btn" id="btn-save">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Deleted Commands -->
+
+    <div class="modal-overlay" id="trash-modal">
+      <div class="modal trash-modal">
+        <div class="trash-header">
+          <h2>Trash</h2>
+
+          <div class="trash-header-actions">
+            <button type="button" class="btn danger sm" id="btn-empty-trash">
+              Empty Trash
+            </button>
+
+            <button type="button" class="btn secondary sm" id="btn-trash-close">
+              Close
+            </button>
+          </div>
+        </div>
+
+        <div class="trash-list" id="trash-list"></div>
+      </div>
+    </div>
+
+    <!-- Import Preview -->
+
+    <div class="modal-overlay" id="import-manager">
+      <section
+        class="modal import-manager has-sticky-actions"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="im-title"
+      >
+        <h2 id="im-title">Import Manager</h2>
+        <p class="im-file" id="im-file"></p>
+
+        <div class="im-tabs" id="im-tabs" role="tablist"></div>
+
+        <div class="im-toolbar">
+          <span class="im-hint" id="im-hint"></span>
+          <span class="im-tools" id="im-tools">
+            <button type="button" class="btn secondary sm" id="im-select-all">
+              Select all
+            </button>
+            <button type="button" class="btn secondary sm" id="im-select-none">
+              Select none
+            </button>
+          </span>
+        </div>
+
+        <div class="im-list" id="im-list"></div>
+
+        <div class="modal-actions sticky-actions">
+          <span class="im-note" id="im-note"></span>
+          <button type="button" class="btn secondary" id="im-cancel">
+            Cancel
+          </button>
+          <button type="button" class="btn" id="im-apply">Apply</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- README:start -->
+    <!-- prettier-ignore -->
+    <script type="text/x-readme" id="readme-source">
+# Spell Book
+
+A local command reference that runs as a browser-based WebUI. It is built with plain HTML, CSS, and JavaScript, so it can be used without a server or installation.
+
+## Getting Started
+
+1. Open `index.html` in a browser.
+2. Select a platform or tool from the sidebar.
+3. Search for a command, or select one to view its details.
+4. Use the **README** button in the header to view this guide inside the WebUI.
+
+## How Data Works
+
+`data/commands.txt` is the baseline command database. At startup, the app tries to load it first. TXT uses the same `window.SPELLBOOK_COMMANDS = [...]` assignment syntax as the JavaScript backup. If the TXT file is missing or invalid, the app falls back to `data/commands.js`. When opened directly with a `file://` URL, browser security may block fetching TXT, so the JS backup is used; serve the folder locally to load the TXT baseline.
+
+Commands added or edited in the WebUI are saved in the browser's `localStorage`. They do not modify either data file on disk. This keeps the TXT baseline and JS backup intact and allows the WebUI to work in environments where browser developer tools are unavailable.
+
+Use **Export** regularly to create a backup of the current command collection. Use **Import** to load a previously exported file or another compatible command file.
+
+> Important: export your commands before clearing browser data or changing browsers.
+
+## Header Buttons
+
+### Add Command
+
+Creates a new command entry. Use `<placeholder>` values in the command template to create fill-in fields automatically.
+
+### Import
+
+Loads a `.txt` or `.json` command file and previews its impact before applying it. Choose **Replace** to replace the current collection, or **Merge** to add new IDs, update matching IDs from the file, and keep current commands with IDs not in the file. TXT files use the same `window.SPELLBOOK_COMMANDS = [...]` syntax as the `.js` backup. Importing only changes data saved in this browser; it does not overwrite files in `data/`.
+
+### Export
+
+Downloads the current command collection as `commands.txt`. Its contents retain the `window.SPELLBOOK_COMMANDS = [...]` syntax. To use it as the startup dataset, place it at `data/commands.txt`; it will take priority over `data/commands.js`.
+
+### Trash
+
+Deleting a command moves it to **Trash** instead of removing it permanently. Restore commands individually, delete them permanently, or empty the Trash. Trashed commands are saved in this browser and are not included in exports.
+
+### Change Counts
+
+The bottom of the sidebar shows the current filtered command count, plus a green `+N` count for commands added since the last import and a red `-N` count for baseline commands that have been deleted. Restoring a command updates the counts. Before any import, the bundled startup dataset is the baseline; each successful import resets the baseline.
+
+### README
+
+Opens this file inside the WebUI.
+
+### Settings
+
+Provides appearance controls and local-data controls. You can change the theme colors, clear saved commands and Trash, clear saved settings, or reset all local Spell Book data. Clearing commands resets the since-import baseline. Press `Esc` to close Add Command, Edit Command, Settings, README, or Trash without saving an open form.
+
+### Keyboard Shortcuts
+
+- `/` when focus is outside a text field: focus command search.
+- `A` when focus is outside a text field: open Add Command.
+- `Esc`: close an open dialog. The Add/Edit form closes without saving.
+
+## Command Format
+
+Each command is an object in the `window.SPELLBOOK_COMMANDS` array:
+
+```javascript
+{
+  "id": "example-1",
+  "title": "Example Command",
+  "platform": "Windows",
+  "tags": ["example", "help"],
+  "description": "What the command is used for.",
+  "command": "tool <target>",
+  "variables": ["target"],
+  "example": "tool server-01",
+  "notes": "Additional tips or cautions."
+}
+
+```
+
+Supported `platform` values are `Windows`, `Linux`, `Wireshark`, `Routers+Switches`, `Kibana`, and `Arkime`.
+
+## Project Files
+
+```text
+spell-book-v4/
+├── data/
+│   ├── commands.txt   Baseline startup command database
+│   └── commands.js    Backup startup database and fallback
+├── js/
+│   ├── app.js         Command loading, search, editing, import, and export
+│   └── settings.js    Theme and local-data settings
+├── index.html         WebUI structure
+├── styles.css         WebUI appearance
+├── favicon.png        Browser tab icon
+└── README.md          This guide
+```
+
+## Notes
+
+- The browser may block loading `README.md` when `index.html` is opened directly from the filesystem. In that case, open the README separately or run the folder through a local web server.
+- `favicon.png` supplies the book icon shown in the browser tab next to the page title.
+- `data/commands.txt` is the baseline dataset; `data/commands.js` is its backup and startup fallback when TXT is unavailable or invalid. Browser-saved changes take priority after they are created or imported.
+- Keep exported command files somewhere safe so local browser storage is not your only backup.
+
+## Version Info
+
+Created by Isaac Hewitt (hewitti.mil+spellbook@proton.me)
+
+Version 4 -- 20260926
+
+- `index.html`: Added Trash access and its modal, added the added/deleted command indicators beside the sidebar total, and replaced static data script loading with a TXT-first loader that validates the assignment data and falls back to the JS backup. Updated import file selection and button help text for TXT and JSON files; added the import-preview dialog, mode selector, impact summary, and shortcut hints. Updated Settings text to identify TXT as the baseline and JS as the backup.
+
+- `js/app.js`: Added persistent Trash handling with restore, permanent delete, and empty-trash actions; made new IDs account for trashed commands; added persisted since-import added/deleted counts that reset after import; kept exported assignment syntax while exporting `commands.txt`; and made Escape close the command editor, settings, README, Trash, and import preview. Added pre-import impact preview with Replace and Merge-by-ID modes; matching IDs are updated, while unmatched current commands remain on merge. Added `/` search focus and `A` for Add Command outside editable fields, with modal-open guards.
+
+- `index.html`: Updated Search and Add Command tooltips to show the non-browser-conflicting shortcut keys.
+
+- `styles.css`: Added Trash modal/list styling with a narrow-screen layout, import-preview styling, and green/red styling for the change counters.
+
+- `js/settings.js`: Updated Clear Local Commands and Reset All Local Data to remove saved Trash and import-baseline data too; clarified in confirmation prompts that TXT is the baseline, JS is the backup, and neither physical file is modified.
+
+- `README.md`: Updated startup loading to identify TXT as the baseline and JS as the backup/fallback; refreshed import/export, Trash, change-counter, Settings, and keyboard guidance; documented preview and merge behavior and the current shortcuts; updated the project-file listing; and extended this V4 file-by-file change record.
+
+- `data/commands.txt`: Active baseline startup dataset using the existing `window.SPELLBOOK_COMMANDS` assignment format.
+
+- `data/commands.js`: Backup startup dataset and fallback when `data/commands.txt` is unavailable or invalid.
+
+Version 3 -- 20260922
+
+- Added a live filtered-command count to the sidebar.
+- Standardized command IDs and normalized imported command data in `js/app.js`.
+- Improved command-builder placeholder detection so variable inputs match command templates.
+- Added support for the current platform filters, tags, and OS badge styling in the application UI.
+
+Version 2 -- 20260920
+
+- Added more tool/os command filters.
+- Added a favicon.
+- Added Kibana and Arkime platform filters and badges.
+</script>
+    <!-- README:end -->
+    <script>
+      ;(async () => {
+        const loadScript = (src) =>
+          new Promise((resolve, reject) => {
+            const script = document.createElement('script')
+            script.src = src
+            script.onload = resolve
+            script.onerror = () => reject(new Error(`Could not load ${src}`))
+            document.body.appendChild(script)
+          })
+
+        try {
+          const response = await fetch('data/commands.txt')
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const text = await response.text()
+          const match = text.match(
+            /window\.SPELLBOOK_COMMANDS\s*=\s*([\s\S]*?)\s*;?\s*$/,
+          )
+          if (!match) throw new Error('Invalid commands.txt format')
+          const commands = JSON.parse(match[1])
+          if (
+            !Array.isArray(commands) ||
+            !commands.every(
+              (command) =>
+                command &&
+                typeof command === 'object' &&
+                command.id &&
+                command.title &&
+                (command.platform || command.os) &&
+                typeof command.command === 'string',
+            )
+          )
+            throw new Error('Invalid commands.txt data')
+          window.SPELLBOOK_COMMANDS = commands
+        } catch {
+          // Opened as a local file, fetch() is blocked: load the data files as
+          // scripts instead (commands.txt is itself a valid script).
+          for (const file of ['data/commands.txt', 'data/commands.js']) {
+            try {
+              await loadScript(file)
+              if (Array.isArray(window.SPELLBOOK_COMMANDS)) break
+            } catch {}
+          }
+          if (!Array.isArray(window.SPELLBOOK_COMMANDS)) {
+            console.error(new Error('Could not load the command data files'))
+            window.SPELLBOOK_COMMANDS = []
+          }
+        }
+
+        await loadScript('js/datafile.js')
+        // A data/spellbook-data.js file (made by Download Backup) loads on open.
+        try {
+          if (localStorage.getItem('spellbook_filemode_v1') === '1') {
+            await loadScript('data/spellbook-data.js')
+          }
+        } catch {}
+        // Load the linked data file (if any) before the app reads its data.
+        let dataFileResult = { status: 'none' }
+        try {
+          dataFileResult = await window.DataFile.autoload()
+        } catch (error) {
+          console.error(error)
+        }
+        await loadScript('js/highlight.js')
+        await loadScript('js/app.js')
+        await loadScript('js/settings.js')
+        window.DataFile.handleStartup(dataFileResult)
+      })()
+    </script>
+  </body>
+</html>
