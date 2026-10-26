@@ -1,0 +1,23 @@
+{
+  "app": "spellbook-category-colors",
+  "version": 1,
+  "categoryColors": {
+    "commands:powershell": "#2563eb",
+    "commands:bash": "#f1c40f",
+    "commands:wireshark": "#194e74",
+    "commands:cmd": "#00ff00",
+    "commands:kibana": "#00bfb3",
+    "commands:kubernetes": "#326ce5",
+    "commands:docker": "#1d63ed",
+    "commands:cisco": "#009edc",
+    "terms:exploits": "#ec0e0e",
+    "commands:proxmox": "#e57000",
+    "scripts:bash": "#f1c40f",
+    "scripts:powershell": "#2563eb",
+    "scripts:sql": "#cc292b",
+    "scripts:python": "#3776ab",
+    "scripts:batch": "#00ff00",
+    "commands:arkime": "#741344",
+    "commands:git": "#f1502f"
+  }
+}

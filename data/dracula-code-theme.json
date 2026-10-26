@@ -1,0 +1,19 @@
+{
+  "app": "spellbook-syntax-colors",
+  "version": 1,
+  "codeTheme": "dracula",
+  "colors": {
+    "code-bg": "#282a36",
+    "code-fg": "#f8f8f2",
+    "code-border": "#44475a",
+    "tok-comment": "#6272a4",
+    "tok-string": "#f1fa8c",
+    "tok-variable": "#8be9fd",
+    "tok-keyword": "#ff79c6",
+    "tok-function": "#50fa7b",
+    "tok-number": "#bd93f9",
+    "tok-flag": "#ffb86c",
+    "tok-placeholder": "#ffb86c",
+    "tok-operator": "#ff79c6"
+  }
+}
