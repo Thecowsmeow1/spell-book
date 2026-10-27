@@ -2764,3 +2764,12 @@ pre.cmd {
   min-width: 5.5rem;
   text-align: center;
 }
+
+/* Small save timestamp under the stacked quick-save button. */
+.header-left > .data-quick-actions .quick-save-time {
+  font-size: .68rem;
+  line-height: 1.1;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}

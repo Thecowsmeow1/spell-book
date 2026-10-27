@@ -1,20 +1,23 @@
 {
   "app": "spellbook-data",
   "version": 1,
-  "savedAt": "2026-10-25T09:33:05.982Z",
+  "savedAt": "2026-10-27T05:19:36.468Z",
   "storage": {
     "spellbook_trash_v1": "[]",
     "spellbook_panes_v1": "{\"layout\":\"side\"}",
     "spellbook_terms_v1": "[{\"id\":\"term-0001\",\"term\":\"CLI\",\"category\":\"Computing\",\"tags\":[\"terminal\"],\"definition\":\"Command-line interface: a text-based way to interact with software.\",\"notes\":\"\"},{\"id\":\"term-0002\",\"term\":\"JSON\",\"category\":\"Data Formats\",\"tags\":[\"data\"],\"definition\":\"JavaScript Object Notation: a structured, text-based data format.\",\"notes\":\"\"},{\"id\":\"term-0003\",\"term\":\"Exit code\",\"category\":\"Shell\",\"tags\":[\"scripting\"],\"definition\":\"A numeric status returned by a process; zero commonly indicates success.\",\"notes\":\"\"}]",
     "spellbook_scratch_height_v1": "{\"side\":96,\"top\":96}",
-    "spellbook_category_colors_v1": "{\"commands:powershell\":\"#0062ff\",\"commands:bash\":\"#70ffd4\",\"commands:cmd\":\"#00ff00\",\"commands:proxmox\":\"#bd6500\",\"commands:docker\":\"#478eff\",\"commands:kubernetes\":\"#f5fe76\",\"commands:cisco\":\"#efffc2\",\"commands:kibana\":\"#ff00dd\",\"commands:wireshark\":\"#00235c\",\"commands:arkime\":\"#6ba4ff\"}",
+    "spellbook_category_colors_v1": "{\"commands:powershell\":\"#0062ff\",\"commands:cmd\":\"#00a803\",\"commands:bash\":\"#773dbd\",\"commands:proxmox\":\"#c76a00\",\"commands:docker\":\"#70a7ff\",\"commands:cisco\":\"#ffde66\"}",
     "spellbook_layout_v1": "{\"controls\":\"top\"}",
     "spellbook_split_w_v1": "329.34375",
     "spellbook_platform_rename_v1": "1",
-    "cmdref_settings_v1": "{\"accent\":\"#ff4dd8\"}",
+    "spellbook_custom_os_v1": "[\"fdgdfg\"]",
+    "spellbook_hidden_filters_v1": "{\"commands\":[\"fdgdfg\"]}",
+    "cmdref_settings_v1": "{\"accent\":\"#e13bf7\"}",
     "spellbook_import_baseline_v1": "[\"bash-0001\",\"bash-0002\",\"powershell-0001\"]",
     "spellbook_baseline_scripts_v1": "[]",
-    "spellbook_commands_v1": "[{\"id\":\"bash-0001\",\"title\":\"List files\",\"platform\":\"Bash\",\"tags\":[\"filesystem\",\"listing\"],\"description\":\"List files including hidden entries.\",\"command\":\"ls -la\",\"variables\":[],\"variableDetails\":[],\"example\":\"ls -la /tmp\",\"notes\":\"Use -h for human-readable sizes.\"},{\"id\":\"bash-0002\",\"title\":\"Find text in files\",\"platform\":\"Bash\",\"tags\":[\"search\"],\"description\":\"Search recursively for text.\",\"command\":\"grep -R \\\"<pattern>\\\" <directory>\",\"variables\":[\"pattern\",\"directory\"],\"variableDetails\":[],\"example\":\"grep -R \\\"TODO\\\" .\",\"notes\":\"Quote search patterns.\"},{\"id\":\"powershell-0001\",\"title\":\"List processes\",\"platform\":\"PowerShell\",\"tags\":[\"processes\"],\"description\":\"Display running processes.\",\"command\":\"Get-Process\",\"variables\":[],\"variableDetails\":[],\"example\":\"Get-Process | Sort-Object CPU -Descending\",\"notes\":\"\"}]",
-    "spellbook_baseline_terms_v1": "[\"term-0001\",\"term-0002\",\"term-0003\"]"
+    "spellbook_commands_v1": "[{\"id\":\"bash-0001\",\"title\":\"List files\",\"platform\":\"Bash\",\"tags\":[\"filesystem\",\"listing\"],\"description\":\"List files including hidden entries.\",\"command\":\"ls -la\",\"variables\":[],\"variableDetails\":[],\"example\":\"ls -la /tmp\",\"notes\":\"Use -h for human-readable sizes.\"},{\"id\":\"bash-0002\",\"title\":\"Find text in files\",\"platform\":\"Bash\",\"tags\":[\"search\"],\"description\":\"Search recursively for text.\",\"command\":\"grep -R \\\"<pattern>\\\" <directory>\",\"variables\":[\"pattern\",\"directory\"],\"variableDetails\":[],\"example\":\"grep -R \\\"TODO\\\" .\",\"notes\":\"Quote search patterns.\"},{\"id\":\"powershell-0001\",\"title\":\"List processes\",\"platform\":\"PowerShell\",\"tags\":[\"processes\"],\"description\":\"Display running processes.\",\"command\":\"Get-Process\",\"variables\":[],\"variableDetails\":[],\"example\":\"Get-Process | Sort-Object CPU -Descending\",\"notes\":\"\"},{\"id\":\"arkime-0000\",\"title\":\"fasd\",\"platform\":\"Arkime\",\"tags\":[],\"description\":\"adf\",\"command\":\"asdf\",\"variables\":[],\"variableDetails\":[],\"example\":\"\",\"notes\":\"\"}]",
+    "spellbook_baseline_terms_v1": "[\"term-0001\",\"term-0002\",\"term-0003\"]",
+    "spellbook_mode_v1": "dark"
   }
 }

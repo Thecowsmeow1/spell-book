@@ -986,6 +986,13 @@ if (window.DataFile) {
       link.classList.toggle('quick-link-active', linked)
       link.setAttribute('aria-label', linked ? `Linked to ${state.name}; click to reconnect` : 'Link a data file')
       link.title = linked ? `Linked: ${state.name} (click to reconnect)` : 'Link an existing Spell Book data file'
+      const saveTime = document.getElementById('quick-save-time')
+      if (saveTime) {
+        saveTime.textContent = state.lastSaved && linked
+          ? `Saved ${state.lastSaved.toLocaleTimeString()}`
+          : 'Not saved'
+        saveTime.title = state.lastSaved && linked ? `Last saved: ${state.lastSaved.toLocaleString()}` : 'No linked-file save recorded this session'
+      }
     } catch (error) {
       console.error('Could not read data-file link status:', error)
     }
