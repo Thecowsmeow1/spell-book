@@ -286,6 +286,53 @@ document.querySelectorAll("input[name='options-default']").forEach((radio) => {
   })
 })
 
+// ─── Quick filter selection ───────────────────────────────────────────
+const filterSelectionRadios = document.querySelectorAll(
+  "input[name='filter-selection']",
+)
+function syncFilterSelectionRadios() {
+  filterSelectionRadios.forEach((radio) => {
+    radio.checked =
+      radio.value === (multiFilterEnabled() ? 'multiple' : 'single')
+  })
+}
+filterSelectionRadios.forEach((radio) => {
+  radio.addEventListener('change', () =>
+    setMultiFilterEnabled(radio.value === 'multiple'),
+  )
+})
+syncFilterSelectionRadios()
+
+// ─── Back and Forward buttons ─────────────────────────────────────────
+// Shown by default; stored as 'hidden' only when turned off. Hiding them only
+// hides the buttons: the history is still kept, so turning them back on works.
+const NAV_HISTORY_KEY = 'spellbook_nav_history_v1'
+const navHistoryRadios = document.querySelectorAll("input[name='nav-history']")
+function navHistoryShown() {
+  try {
+    return localStorage.getItem(NAV_HISTORY_KEY) !== 'hidden'
+  } catch {
+    return true
+  }
+}
+function applyNavHistory() {
+  const shown = navHistoryShown()
+  document.querySelector('.nav-history').hidden = !shown
+  navHistoryRadios.forEach((radio) => {
+    radio.checked = radio.value === (shown ? 'show' : 'hide')
+  })
+}
+navHistoryRadios.forEach((radio) => {
+  radio.addEventListener('change', () => {
+    try {
+      if (radio.value === 'show') localStorage.removeItem(NAV_HISTORY_KEY)
+      else localStorage.setItem(NAV_HISTORY_KEY, 'hidden')
+    } catch {}
+    applyNavHistory()
+  })
+})
+applyNavHistory()
+
 // ─── Fonts ────────────────────────────────────────────────────────────
 // Each part of the page can use its own font. Only the typeface changes, and
 // only from a fixed list of common fonts (each ends in a generic family, so
@@ -986,6 +1033,13 @@ if (window.DataFile) {
       link.classList.toggle('quick-link-active', linked)
       link.setAttribute('aria-label', linked ? `Linked to ${state.name}; click to reconnect` : 'Link a data file')
       link.title = linked ? `Linked: ${state.name} (click to reconnect)` : 'Link an existing Spell Book data file'
+      const saveTime = document.getElementById('quick-save-time')
+      if (saveTime) {
+        saveTime.textContent = state.lastSaved && linked
+          ? `Saved ${state.lastSaved.toLocaleTimeString()}`
+          : 'Not saved'
+        saveTime.title = state.lastSaved && linked ? `Last saved: ${state.lastSaved.toLocaleString()}` : 'No linked-file save recorded this session'
+      }
     } catch (error) {
       console.error('Could not read data-file link status:', error)
     }
@@ -1452,6 +1506,10 @@ function applyScratchpad() {
   const pad = document.getElementById('scratchpad')
   const button = document.getElementById('btn-scratch')
   const visible = scratchVisible()
+  // Settings → Layout & Theme → Scratch pad
+  document.querySelectorAll("input[name='scratch-visible']").forEach((radio) => {
+    radio.checked = radio.value === (visible ? 'show' : 'hide')
+  })
   pad.hidden = !visible
   document.getElementById('scratch-splitter').hidden = !visible
   if (button) {
@@ -1498,6 +1556,9 @@ function setScratchVisible(visible) {
   document
     .getElementById('btn-scratch')
     .addEventListener('click', () => setScratchVisible(!scratchVisible()))
+  document.querySelectorAll("input[name='scratch-visible']").forEach((radio) => {
+    radio.addEventListener('change', () => setScratchVisible(radio.value === 'show'))
+  })
 }
 
 // ─── Local data controls ─────────────────────────────────────────────
@@ -1533,6 +1594,10 @@ document.getElementById('btn-clear-settings').addEventListener('click', () => {
   localStorage.removeItem('spellbook_hidden_filters_v1')
   localStorage.removeItem('spellbook_hidden_columns_v1')
   localStorage.removeItem('spellbook_modal_size_v1')
+  setMultiFilterEnabled(true)
+  syncFilterSelectionRadios()
+  localStorage.removeItem(NAV_HISTORY_KEY)
+  applyNavHistory()
   localStorage.removeItem(SCRATCH_VISIBLE_KEY)
   localStorage.removeItem(SCRATCH_HEIGHT_KEY)
   applyScratchpad()

@@ -1,0 +1,221 @@
+/* Sealed Tomes (js/sealed-tomes.js): the Compendium panel and the Sealed Tomes view. */
+.env-panel {
+  flex: none;
+  padding: 0.4rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.env-summary {
+  color: var(--muted);
+  cursor: pointer;
+}
+.env-status {
+  margin-bottom: 0.3rem;
+  color: var(--muted);
+}
+.env-vars {
+  margin-top: 0.5rem;
+}
+.env-vars-help {
+  margin-bottom: 0.4rem;
+  color: var(--muted);
+}
+.env-var-rows {
+  margin-bottom: 0.2rem;
+}
+.env-var-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+.env-var-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr 1.2fr 1.6fr 1.6rem;
+  gap: 0.4rem;
+  align-items: center;
+}
+.env-var-header {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.env-var-row input {
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.env-var-row input.env-var-name {
+  font-family: var(--mono);
+}
+.env-var-remove {
+  width: 1.6rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+.env-var-remove:hover {
+  color: var(--danger);
+}
+
+.sealed-pane {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: row;
+}
+.sealed-pane[hidden] {
+  display: none;
+}
+/* The Sealed Tomes tab is open: the tree and editor give way to it, and no
+   tome tab looks selected. */
+.notes-page.sealed-open #notes-body {
+  display: none;
+}
+.notes-page.sealed-open .notes-tabs .notes-tab[aria-selected='true'] {
+  background: none;
+  border-color: transparent;
+  color: var(--muted);
+  font-weight: 400;
+}
+.sealed-list-pane {
+  flex: 0 0 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+.sealed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem;
+}
+.sealed-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.sealed-item:hover {
+  background: color-mix(in srgb, var(--accent), transparent 90%);
+}
+.sealed-item.selected {
+  background: color-mix(in srgb, var(--accent), transparent 80%);
+}
+.sealed-item-path {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.sealed-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.sealed-empty {
+  display: none;
+  margin: auto;
+  max-width: 28rem;
+  text-align: center;
+  color: var(--muted);
+}
+.sealed-pane.is-empty .sealed-empty {
+  display: block;
+}
+.sealed-pane.is-empty .sealed-head,
+.sealed-pane.is-empty .sealed-body-wrap,
+.sealed-pane.is-empty .sealed-list-pane {
+  display: none;
+}
+.sealed-head {
+  flex: none;
+  padding: 0.8rem 1.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.sealed-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.sealed-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.3rem;
+}
+.sealed-path {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.sealed-body-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Read-only: cards can't be removed from a sealed note. */
+.sealed-body .note-command-remove {
+  display: none;
+}
+
+/* Environment table at the top of a sealed note. */
+.sealed-body-wrap {
+  padding: 1rem 1.5rem 3rem;
+}
+.sealed-env {
+  margin-bottom: 1.2rem;
+}
+.sealed-env h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+.sealed-env-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.sealed-env-table th,
+.sealed-env-table td {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+.sealed-env-table th {
+  background: var(--surface);
+  font-weight: 600;
+}
+.sealed-env-table td:nth-child(2) {
+  width: 38%;
+}
+.sealed-env-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.25rem 0.45rem;
+  background: var(--code-bg);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--code-fg, var(--text));
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.sealed-env-input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+.sealed-env-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.sealed-body {
+  padding: 0;
+  overflow: visible;
+}

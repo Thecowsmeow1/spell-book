@@ -20,7 +20,7 @@ let selectedId = null
 let searchQuery = ''
 let sortKey = 'title'
 let sortDir = 1
-let currentPage = 'spellbook' // 'spellbook' | 'guides' | 'templates'
+let currentPage = 'spellbook' // 'spellbook' | 'notes' (the Compendium)
 let currentView = 'commands' // 'commands' | 'scripts'
 
 const STORAGE_KEY = 'spellbook_commands_v1'
@@ -1428,10 +1428,39 @@ function sortCommands(list) {
 
 // Quick filters are multi-select: clicking one turns it on or off, several can
 // be on at once (an entry matching any of them is shown), and All clears them.
+// Settings → Layout & Theme: quick filters allow several at once (the default)
+// or one at a time. Stored as 'single' only when turned off.
+const MULTI_FILTER_KEY = 'spellbook_multi_filter_v1'
+function multiFilterEnabled() {
+  try {
+    return localStorage.getItem(MULTI_FILTER_KEY) !== 'single'
+  } catch {
+    return true
+  }
+}
+function setMultiFilterEnabled(enabled) {
+  try {
+    if (enabled) localStorage.removeItem(MULTI_FILTER_KEY)
+    else localStorage.setItem(MULTI_FILTER_KEY, 'single')
+  } catch {}
+  if (!enabled) {
+    // Keep the most recently chosen filter in each group.
+    currentFilters = currentFilters.slice(-1)
+    currentScriptLangs = currentScriptLangs.slice(-1)
+    currentTermCategories = currentTermCategories.slice(-1)
+  }
+  renderList()
+  renderDetail()
+}
 function toggleSelection(list, value) {
-  return list.some((v) => sameText(v, value))
-    ? list.filter((v) => !sameText(v, value))
-    : [...list, value]
+  if (list.some((v) => sameText(v, value))) {
+    return list.filter((v) => !sameText(v, value))
+  }
+  return multiFilterEnabled() ? [...list, value] : [value]
+}
+function addToSelection(list, value) {
+  if (list.includes(value)) return list
+  return multiFilterEnabled() ? [...list, value] : [value]
 }
 
 // Marks the buttons inside a quick-filter grid as toggles (for screen readers
@@ -1443,7 +1472,9 @@ function markFilterToggles(container, selector, allValue = 'all') {
     btn.title =
       value === allValue
         ? 'Show everything (clears the selected filters)'
-        : 'Click to turn this filter on or off'
+        : multiFilterEnabled()
+          ? 'Click to turn this filter on or off'
+          : 'Click to show only this filter (click again to clear it)'
   })
 }
 
@@ -1791,10 +1822,10 @@ function renderPlatformControls() {
       (o) => o.toLowerCase() === name.toLowerCase(),
     )
     if (existing) {
-      if (!currentFilters.includes(existing)) currentFilters.push(existing)
+      currentFilters = addToSelection(currentFilters, existing)
     } else {
       saveCustomPlatforms([...getCustomPlatforms(), name])
-      currentFilters.push(name)
+      currentFilters = addToSelection(currentFilters, name)
     }
     renderList()
     renderDetail()
@@ -1974,26 +2005,9 @@ function renderList() {
   })
 }
 
-// ─── Render detail ────────────────────────────────────────────────────
-function renderDetail() {
-  if (currentView === 'terms') {
-    renderTermDetail()
-    return
-  }
-  if (currentView === 'scripts') {
-    renderScriptDetail()
-    return
-  }
-  const el = document.getElementById('detail')
-  const cmd = commands.find((c) => c.id === selectedId)
-  if (!cmd) {
-    el.innerHTML = `
-      <div class="empty-state">
-        Select a command from the list or use search.
-      </div>
-    `
-    return
-  }
+// ─── Command variable fields ──────────────────────────────────────────
+// Shared by the Spell Book detail pane and the command cards in notes.
+function getCommandFields(cmd) {
   const templateFields = getTemplateFields(cmd.command)
   const fields = []
   const addedFieldKeys = new Set()
@@ -2031,90 +2045,168 @@ function renderDetail() {
       addedFieldKeys.add(field.key)
     }
   })
-  const getFieldLabel = (field) => {
-    if (field.type === 'toggle') {
-      return `${escapeHtml(field.flag)} <span style="opacity:0.72">(switch)</span>`
-    }
-    if (field.type === 'optional') {
-      return `[${escapeHtml(field.name)}]`
-    }
-    if (field.type === 'choice') {
-      return `
-        ${escapeHtml(field.raw)}
-        <span style="opacity:0.72">(select one)</span>
-      `
-    }
-    if (field.type === 'conditionalChoice') {
-      return `
-        ${escapeHtml(field.raw)}
-        <span style="opacity:0.72">(optional group; select one)</span>
-      `
-    }
-    if (field.type === 'conditional') {
-      return `
-        &lt;${escapeHtml(field.name)}&gt;
-        <span style="opacity:0.72">(optional group)</span>
-      `
-    }
-    return `&lt;${escapeHtml(field.name)}&gt;`
+  return fields
+}
+
+function commandFieldLabel(field) {
+  if (field.type === 'toggle') {
+    return `${escapeHtml(field.flag)} <span style="opacity:0.72">(switch)</span>`
   }
-  const getFieldControl = (field, index) => {
-    if (field.type === 'toggle') {
-      return `
-        <label class="toggle-control">
-          <input type="checkbox" id="var-${index}" data-var="${escapeHtml(field.key)}" />
-          include <code>${escapeHtml(field.flag)}</code>
-        </label>
-      `
-    }
-    if (field.type === 'choice' || field.type === 'conditionalChoice') {
-      return `
-        <select
-          id="var-${index}"
-          data-var="${escapeHtml(field.key)}"
-        >
-          <option value="">Select an option…</option>
-          ${field.options
-            .map(
-              (option) => `
-            <option value="${escapeHtml(option)}">
-              ${escapeHtml(option)}
-            </option>
-          `,
-            )
-            .join('')}
-        </select>
-      `
-    }
+  if (field.type === 'optional') {
+    return `[${escapeHtml(field.name)}]`
+  }
+  if (field.type === 'choice') {
     return `
-      <input
-        type="text"
-        id="var-${index}"
-        data-var="${escapeHtml(field.key)}"
-        placeholder="${escapeHtml(field.name)}"
-      />
+      ${escapeHtml(field.raw)}
+      <span style="opacity:0.72">(select one)</span>
     `
   }
+  if (field.type === 'conditionalChoice') {
+    return `
+      ${escapeHtml(field.raw)}
+      <span style="opacity:0.72">(optional group; select one)</span>
+    `
+  }
+  if (field.type === 'conditional') {
+    return `
+      &lt;${escapeHtml(field.name)}&gt;
+      <span style="opacity:0.72">(optional group)</span>
+    `
+  }
+  return `&lt;${escapeHtml(field.name)}&gt;`
+}
+
+function commandFieldControl(field, id) {
+  if (field.type === 'toggle') {
+    return `
+      <label class="toggle-control">
+        <input type="checkbox" id="${id}" data-var="${escapeHtml(field.key)}" />
+        include <code>${escapeHtml(field.flag)}</code>
+      </label>
+    `
+  }
+  if (field.type === 'choice' || field.type === 'conditionalChoice') {
+    return `
+      <select
+        id="${id}"
+        data-var="${escapeHtml(field.key)}"
+      >
+        <option value="">Select an option…</option>
+        ${field.options
+          .map(
+            (option) => `
+          <option value="${escapeHtml(option)}">
+            ${escapeHtml(option)}
+          </option>
+        `,
+          )
+          .join('')}
+      </select>
+    `
+  }
+  return `
+    <input
+      type="text"
+      id="${id}"
+      data-var="${escapeHtml(field.key)}"
+      placeholder="${escapeHtml(field.name)}"
+    />
+  `
+}
+
+// idPrefix keeps ids unique when several commands share a page.
+function commandFieldsHtml(cmd, fields, idPrefix) {
+  return fields
+    .map((field, index) => {
+      const detail = variableDetailFor(cmd, field.name)
+      return `
+        <div class="var-field">
+          <label for="${idPrefix}${index}" ${detail?.description ? `title="${escapeHtml(detail.description)}"` : ''}>
+            ${commandFieldLabel(field)}
+            ${detail?.type ? `<span class="var-field-type">${escapeHtml(detail.type)}</span>` : ''}
+          </label>
+          ${commandFieldControl(field, `${idPrefix}${index}`)}
+          ${detail?.description ? `<div class="var-field-desc">${escapeHtml(detail.description)}</div>` : ''}
+        </div>
+      `
+    })
+    .join('')
+}
+
+// Reads a field group back into the values buildGeneratedCommand expects.
+function readCommandFieldValues(controls) {
+  const values = {}
+  controls.forEach((control) => {
+    values[control.dataset.var] =
+      control.type === 'checkbox'
+        ? control.checked
+          ? '1'
+          : ''
+        : control.value
+  })
+  return values
+}
+
+// ─── "Linked in n notes" ──────────────────────────────────────────────
+// Fills the #note-links slot in the detail pane. window.NoteLinks comes from
+// js/notes.js, which loads after this file and calls this once it is ready.
+function renderNoteLinks() {
+  const slot = document.getElementById('note-links')
+  if (!slot || !window.NoteLinks) return
+  const [kind, id] =
+    currentView === 'scripts'
+      ? ['script', selectedScriptId]
+      : currentView === 'terms'
+        ? ['term', selectedTermId]
+        : ['command', selectedId]
+  const links = window.NoteLinks.find(kind, id)
+  slot.innerHTML = links.length
+    ? `<div class="section note-links">
+        <h3>Linked in ${links.length} note${links.length === 1 ? '' : 's'}</h3>
+        <ul>
+          ${links
+            .map(
+              (link) => `
+            <li>
+              <a href="#/compendium/${encodeURIComponent(link.nodeId)}/${kind}/${encodeURIComponent(id)}">${escapeHtml(link.name)}</a>
+              ${link.parents ? `<span class="note-links-path">in ${escapeHtml(link.parents)}</span>` : ''}
+            </li>`,
+            )
+            .join('')}
+        </ul>
+      </div>`
+    : ''
+}
+
+// ─── Render detail ────────────────────────────────────────────────────
+function renderDetail() {
+  scheduleLocationCheck()
+  if (currentView === 'terms') {
+    renderTermDetail()
+    return
+  }
+  if (currentView === 'scripts') {
+    renderScriptDetail()
+    return
+  }
+  const el = document.getElementById('detail')
+  const cmd = commands.find((c) => c.id === selectedId)
+  if (!cmd) {
+    el.innerHTML = `
+      <div class="empty-state">
+        Select a command from the list or use search.
+      </div>
+    `
+    return
+  }
+  const fields = getCommandFields(cmd)
   let varsHtml = ''
   if (fields.length) {
     varsHtml = `
       <div class="section">
         <h3>Variables – fill to generate ready-to-run command</h3>
         <div class="vars-grid" id="vars-grid">
-          ${fields
-            .map(
-              (field, index) => `
-            <div class="var-field">
-              <label for="var-${index}" ${variableDetailFor(cmd, field.name)?.description ? `title="${escapeHtml(variableDetailFor(cmd, field.name).description)}"` : ''}>
-                ${getFieldLabel(field)}
-                ${variableDetailFor(cmd, field.name)?.type ? `<span class="var-field-type">${escapeHtml(variableDetailFor(cmd, field.name).type)}</span>` : ''}
-              </label>
-              ${getFieldControl(field, index)}
-              ${variableDetailFor(cmd, field.name)?.description ? `<div class="var-field-desc">${escapeHtml(variableDetailFor(cmd, field.name).description)}</div>` : ''}
-            </div>
-          `,
-            )
-            .join('')}
+          ${commandFieldsHtml(cmd, fields, 'var-')}
         </div>
         <div class="filled-cmd">
           <h3 style="margin-top:1rem">Generated Command</h3>
@@ -2176,24 +2268,18 @@ function renderDetail() {
     `
         : ''
     }
+    <div id="note-links"></div>
     <div class="detail-actions">
       <button class="btn secondary sm" id="btn-edit">Edit</button>
       <button class="btn danger sm" id="btn-delete">Delete</button>
     </div>
   `
+  renderNoteLinks()
   // ─── Variable live substitution ─────────────────────────────────────
   if (fields.length) {
     const controls = el.querySelectorAll('#vars-grid input, #vars-grid select')
     const updateGeneratedCommand = () => {
-      const values = {}
-      controls.forEach((control) => {
-        values[control.dataset.var] =
-          control.type === 'checkbox'
-            ? control.checked
-              ? '1'
-              : ''
-            : control.value
-      })
+      const values = readCommandFieldValues(controls)
       // The highlighter escapes the text; copying still reads textContent, so
       // the command is copied exactly as shown.
       document.getElementById('generated-code').innerHTML = highlightCode(
@@ -2242,6 +2328,123 @@ function renderDetail() {
   })
 }
 
+// ─── Highlighted code fields ──────────────────────────────────────────
+// Gives a <textarea> live syntax colors: a highlighted copy sits behind it, and
+// the textarea's own text is transparent, so typing, selection and undo stay
+// the browser's. The copy takes its font, padding and wrapping from the
+// textarea, follows its scrolling, and redraws when the value changes, whether
+// typed or set from code. Used by the command template, example and script.
+const TEXTAREA_VALUE = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')
+const MIRRORED_STYLES = [
+  'fontFamily',
+  'fontSize',
+  'fontWeight',
+  'lineHeight',
+  'letterSpacing',
+  'tabSize',
+  'whiteSpace',
+  'wordBreak',
+  'overflowWrap',
+  'paddingTop',
+  'paddingRight',
+  'paddingBottom',
+  'paddingLeft',
+  'borderTopWidth',
+  'borderRightWidth',
+  'borderBottomWidth',
+  'borderLeftWidth',
+  'borderRadius',
+]
+
+function attachCodeHighlighting(area, languageOf, { template = false, grow = false, languageInput } = {}) {
+  const field = document.createElement('div')
+  field.className = 'code-field'
+  const view = document.createElement('pre')
+  view.className = 'code-field-view'
+  view.setAttribute('aria-hidden', 'true')
+  const code = document.createElement('code')
+  view.appendChild(code)
+  area.before(field)
+  field.append(view, area)
+  area.classList.add('code-field-input')
+  area.spellcheck = false
+
+  const fit = () => {
+    const style = getComputedStyle(area)
+    MIRRORED_STYLES.forEach((prop) => {
+      view.style[prop] = style[prop]
+    })
+    if (grow) {
+      // Grow with the text instead of scrolling, so a scrollbar never
+      // narrows the textarea and makes it wrap differently from the copy.
+      area.style.height = 'auto'
+      area.style.height = `${area.scrollHeight + area.offsetHeight - area.clientHeight}px`
+    }
+    view.scrollTop = area.scrollTop
+    view.scrollLeft = area.scrollLeft
+  }
+  let fitQueued = false
+  const queueFit = () => {
+    if (fitQueued) return
+    fitQueued = true
+    // After the current task, so a value set just before its dialog opens is
+    // measured once the dialog is showing.
+    queueMicrotask(() => {
+      fitQueued = false
+      fit()
+    })
+  }
+  const render = () => {
+    const text = TEXTAREA_VALUE.get.call(area)
+    // Something after a trailing newline, or the copy's last line collapses.
+    code.innerHTML =
+      highlightCode(text, languageOf(), { template }) +
+      (text === '' || text.endsWith('\n') ? ' ' : '')
+    queueFit()
+  }
+
+  // Values set from code (opening the editor, Insert <name>) redraw too.
+  Object.defineProperty(area, 'value', {
+    configurable: true,
+    get() {
+      return TEXTAREA_VALUE.get.call(this)
+    },
+    set(value) {
+      TEXTAREA_VALUE.set.call(this, value)
+      render()
+    },
+  })
+  area.addEventListener('input', render)
+  area.addEventListener('scroll', () => {
+    view.scrollTop = area.scrollTop
+    view.scrollLeft = area.scrollLeft
+  })
+  area.addEventListener('focus', queueFit)
+  new ResizeObserver(queueFit).observe(area)
+  if (languageInput) {
+    languageInput.addEventListener('input', render)
+    languageInput.addEventListener('change', render)
+  }
+  render()
+  return render
+}
+
+attachCodeHighlighting(
+  document.getElementById('f-cmd'),
+  () => document.getElementById('f-platform').value,
+  { template: true, grow: true, languageInput: document.getElementById('f-platform') },
+)
+attachCodeHighlighting(
+  document.getElementById('f-example'),
+  () => document.getElementById('f-platform').value,
+  { grow: true, languageInput: document.getElementById('f-platform') },
+)
+attachCodeHighlighting(
+  document.getElementById('script-body'),
+  () => document.getElementById('script-language').value,
+  { languageInput: document.getElementById('script-language') },
+)
+
 // ─── Modal ────────────────────────────────────────────────────────────
 function openModal(existing = null) {
   renderPlatformControls()
@@ -2275,6 +2478,28 @@ function openModal(existing = null) {
 
 function closeModal() {
   document.getElementById('modal').classList.remove('open')
+  cancelEntryModal('command')
+}
+
+// Lets another page reuse the Command, Script and Term editors. The Compendium
+// (js/notes.js) passes { onSave(entry), onCancel() } so what you build there
+// lands in the note, and passes `existing` to edit an entry from a card. Each
+// close function runs onCancel unless a save took the hooks first.
+const entryModalHooks = {}
+function openEntryModalWithHooks(kind, hooks, existing = null) {
+  entryModalHooks[kind] = hooks
+  if (kind === 'command') openModal(existing)
+  if (kind === 'script') openScriptModal(existing)
+  if (kind === 'term') openTermModal(existing)
+}
+function takeEntryModalHooks(kind) {
+  const hooks = entryModalHooks[kind]
+  entryModalHooks[kind] = null
+  return hooks
+}
+function cancelEntryModal(kind) {
+  const hooks = takeEntryModalHooks(kind)
+  if (hooks && hooks.onCancel) hooks.onCancel()
 }
 
 function renderTrash() {
@@ -2464,10 +2689,12 @@ document.getElementById('cmd-form').addEventListener('submit', (e) => {
   }
   selectedId = id
   save()
+  const hooks = takeEntryModalHooks('command')
   closeModal()
   renderPlatformControls()
   renderList()
   renderDetail()
+  if (hooks && hooks.onSave) hooks.onSave(entry)
 })
 
 // ─── CSV import helpers ───────────────────────────────────────────────
@@ -3099,12 +3326,10 @@ function renderScriptControls() {
     unhideFilter('scripts', name)
     const existing = getLangList().find((l) => sameText(l, name))
     if (existing) {
-      if (!currentScriptLangs.includes(existing)) {
-        currentScriptLangs.push(existing)
-      }
+      currentScriptLangs = addToSelection(currentScriptLangs, existing)
     } else {
       saveCustomLangs([...getCustomLangs(), name])
-      currentScriptLangs.push(name)
+      currentScriptLangs = addToSelection(currentScriptLangs, name)
     }
     currentView = 'scripts'
     renderList()
@@ -3257,11 +3482,13 @@ function renderScriptDetail() {
         ? `<div class="section"><h3>Notes</h3><div class="notes" id="script-notes-text" style="white-space: pre-wrap"></div></div>`
         : ''
     }
+    <div id="note-links"></div>
     <div class="detail-actions">
       <button class="btn secondary sm" id="btn-script-edit">Edit</button>
       <button class="btn danger sm" id="btn-script-remove">Delete</button>
     </div>
   `
+  renderNoteLinks()
   // textContent keeps the script literal and safe.
   bindTagEditor(script, saveScripts)
   // Highlighted for display; Copy uses the script text itself.
@@ -3322,6 +3549,7 @@ function openScriptModal(existing = null) {
 
 function closeScriptModal() {
   document.getElementById('script-modal').classList.remove('open')
+  cancelEntryModal('script')
 }
 
 document
@@ -3357,7 +3585,9 @@ document.getElementById('script-form').addEventListener('submit', (e) => {
   }
   renderList()
   renderDetail()
+  const hooks = takeEntryModalHooks('script')
   closeScriptModal()
+  if (hooks && hooks.onSave) hooks.onSave(entry)
 })
 
 document
@@ -3565,12 +3795,10 @@ function renderTermControls() {
     unhideFilter('terms', name)
     const existing = getCategoryList().find((c) => sameText(c, name))
     if (existing) {
-      if (!currentTermCategories.includes(existing)) {
-        currentTermCategories.push(existing)
-      }
+      currentTermCategories = addToSelection(currentTermCategories, existing)
     } else {
       saveCustomCategories([...getCustomCategories(), name])
-      currentTermCategories.push(name)
+      currentTermCategories = addToSelection(currentTermCategories, name)
     }
     currentView = 'terms'
     renderList()
@@ -3716,12 +3944,14 @@ function renderTermDetail() {
         ? `<div class="section"><h3>Notes</h3><div class="notes" id="term-notes-text" style="white-space: pre-wrap"></div></div>`
         : ''
     }
+    <div id="note-links"></div>
     <div class="detail-actions">
       <button class="btn secondary sm" id="btn-term-copy-detail">Copy</button>
       <button class="btn secondary sm" id="btn-term-edit">Edit</button>
       <button class="btn danger sm" id="btn-term-remove">Delete</button>
     </div>
   `
+  renderNoteLinks()
   bindTagEditor(term, saveTerms)
   document.getElementById('term-text').textContent = term.definition
   if (term.notes) {
@@ -3779,6 +4009,7 @@ function openTermModal(existing = null) {
 
 function closeTermModal() {
   document.getElementById('term-modal').classList.remove('open')
+  cancelEntryModal('term')
 }
 
 document
@@ -3814,7 +4045,9 @@ document.getElementById('term-form').addEventListener('submit', (e) => {
   }
   renderList()
   renderDetail()
+  const hooks = takeEntryModalHooks('term')
   closeTermModal()
+  if (hooks && hooks.onSave) hooks.onSave(entry)
 })
 
 document
@@ -5938,12 +6171,63 @@ renderList()
 // ─── Pages (navigation bar) ───────────────────────────────────────────
 const PAGE_TITLES = {
   spellbook: 'Spell Book',
-  guides: 'Guides',
-  templates: 'Templates',
+  notes: 'Compendium',
+}
+
+// Opens one command, script or term in the Spell Book page: selects it, and
+// clears the filters only when they would hide it. Used by the routes below.
+function revealEntry(kind, id) {
+  const entry = {
+    command: {
+      view: 'commands',
+      all: commands,
+      shown: getFiltered,
+      select: () => (selectedId = id),
+      clear: () => (currentFilters = []),
+    },
+    script: {
+      view: 'scripts',
+      all: scripts,
+      shown: getFilteredScripts,
+      select: () => (selectedScriptId = id),
+      clear: () => (currentScriptLangs = []),
+    },
+    term: {
+      view: 'terms',
+      all: terms,
+      shown: getFilteredTerms,
+      select: () => (selectedTermId = id),
+      clear: () => (currentTermCategories = []),
+    },
+  }[kind]
+  if (!entry.all.some((item) => item.id === id)) return
+  currentView = entry.view
+  entry.select()
+  if (!entry.shown().some((item) => item.id === id)) {
+    searchQuery = ''
+    document.getElementById('search').value = ''
+    entry.clear()
+    tagSelections[entry.view] = []
+  }
+  renderList()
+  renderDetail()
+  const row = document.querySelector(
+    `#cmd-list [data-id="${CSS.escape(id)}"]`,
+  )
+  if (row) row.scrollIntoView({ block: 'nearest' })
 }
 
 function showPage() {
-  const requested = location.hash.replace(/^#\/?/, '')
+  const route = location.hash.replace(/^#\/?/, '')
+  // #/command/<id>, #/script/<id> and #/term/<id> are the links in notes point to;
+  // #/compendium/<node>/... opens one note, and js/notes.js handles the rest of
+  // it. #/notes is the Compendium's old address, kept so saved links still work.
+  const entryRoute = route.match(/^(command|script|term)\/(.+)$/)
+  const requested = entryRoute
+    ? 'spellbook'
+    : /^(notes|compendium)(\/|$)/.test(route)
+      ? 'notes'
+      : route
   currentPage = Object.hasOwn(PAGE_TITLES, requested) ? requested : 'spellbook'
   Object.keys(PAGE_TITLES).forEach((page) => {
     document.getElementById(`page-${page}`).hidden = page !== currentPage
@@ -5961,8 +6245,137 @@ function showPage() {
   if (currentPage === 'spellbook') {
     if (window.restoreSplitHeight) window.restoreSplitHeight()
     if (window.restoreControlsWidth) window.restoreControlsWidth()
+    renderNoteLinks()
   }
+  if (entryRoute) {
+    try {
+      revealEntry(entryRoute[1], decodeURIComponent(entryRoute[2]))
+    } catch {}
+  }
+  scheduleLocationCheck()
 }
+
+// ─── Back and Forward buttons ─────────────────────────────────────────
+// The app's own history of what you looked at: a Spell Book entry (or list) or
+// a Compendium note. Choosing an entry or note doesn't change the address, so
+// the browser's Back can't do this. Kept for the visit only. `var`, because
+// renderDetail() runs during startup before this part of the file does.
+var backStack = []
+var forwardStack = []
+var shownLocation = null
+var locationCheck = null
+var restoringLocation = false
+const BACK_LIMIT = 50
+
+function currentLocation() {
+  if (currentPage === 'notes') {
+    return window.NotesNav ? { page: 'notes', ...window.NotesNav.current() } : null
+  }
+  const id =
+    currentView === 'scripts'
+      ? selectedScriptId
+      : currentView === 'terms'
+        ? selectedTermId
+        : selectedId
+  return { page: 'spellbook', view: currentView, id: id || null }
+}
+
+const sameLocation = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+const entriesFor = (view) =>
+  view === 'scripts' ? scripts : view === 'terms' ? terms : commands
+
+// Called by anything that may change what's shown. Runs once after the
+// current task, so the in-between steps of one navigation aren't recorded.
+// Going somewhere new (not by Back or Forward) clears the Forward history,
+// as in a browser.
+function scheduleLocationCheck() {
+  if (locationCheck) return
+  locationCheck = setTimeout(() => {
+    locationCheck = null
+    const now = currentLocation()
+    if (!now) return
+    if (!restoringLocation && shownLocation && !sameLocation(now, shownLocation)) {
+      backStack.push(shownLocation)
+      if (backStack.length > BACK_LIMIT) backStack.shift()
+      forwardStack = []
+    }
+    restoringLocation = false
+    shownLocation = now
+    updateHistoryButtons()
+  }, 0)
+}
+
+function locationExists(loc) {
+  if (loc.page === 'notes') return Boolean(window.NotesNav && window.NotesNav.exists(loc))
+  return !loc.id || entriesFor(loc.view).some((item) => item.id === loc.id)
+}
+
+function describeLocation(loc) {
+  if (loc.page === 'notes') return window.NotesNav.describe(loc)
+  const entry = loc.id && entriesFor(loc.view).find((item) => item.id === loc.id)
+  if (entry) return `“${entry.title || entry.name || entry.term || 'Untitled'}”`
+  return `the ${{ commands: 'Commands', scripts: 'Scripts', terms: 'Terms' }[loc.view] || 'Spell Book'} list`
+}
+
+function updateHistoryButtons() {
+  ;[
+    [backStack, 'btn-back', 'Back'],
+    [forwardStack, 'btn-forward', 'Forward'],
+  ].forEach(([stack, id, label]) => {
+    // Skip places that no longer exist, such as a deleted command.
+    while (stack.length && !locationExists(stack[stack.length - 1])) stack.pop()
+    const button = document.getElementById(id)
+    const target = stack[stack.length - 1]
+    button.disabled = !target
+    button.title = target ? `${label} to ${describeLocation(target)}` : label
+    button.setAttribute('aria-label', button.title)
+  })
+}
+
+// Shows a recorded place without recording the move itself.
+function showLocation(target) {
+  restoringLocation = true
+  if (target.page === 'notes') {
+    if (currentPage !== 'notes') {
+      history.pushState(null, '', '#/compendium')
+      showPage()
+    }
+    window.NotesNav.open(target)
+  } else {
+    if (currentPage !== 'spellbook') {
+      if (window.NotesNav) window.NotesNav.flush()
+      history.pushState(null, '', '#/')
+      showPage()
+    }
+    const kind = { commands: 'command', scripts: 'script', terms: 'term' }[target.view]
+    if (target.id) {
+      revealEntry(kind, target.id)
+    } else {
+      currentView = target.view
+      if (target.view === 'scripts') selectedScriptId = null
+      else if (target.view === 'terms') selectedTermId = null
+      else selectedId = null
+      renderList()
+      renderDetail()
+    }
+  }
+  scheduleLocationCheck()
+}
+
+// Moves one step through history: from one stack to the other.
+function stepHistory(from, to) {
+  updateHistoryButtons()
+  const target = from.pop()
+  if (!target) return
+  if (shownLocation) to.push(shownLocation)
+  showLocation(target)
+}
+document.getElementById('btn-back').addEventListener('click', () =>
+  stepHistory(backStack, forwardStack),
+)
+document.getElementById('btn-forward').addEventListener('click', () =>
+  stepHistory(forwardStack, backStack),
+)
 
 window.addEventListener('hashchange', showPage)
 showPage()

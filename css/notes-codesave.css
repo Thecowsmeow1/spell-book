@@ -1,0 +1,9 @@
+/* "Save as" menu on code blocks (js/notes-codesave.js). Matches .note-code-lang. */
+.note-code-save {
+  padding: 0.15rem 0.35rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.78rem;
+}

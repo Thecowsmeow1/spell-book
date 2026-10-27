@@ -1,0 +1,30 @@
+/* Callout boxes in notes (js/notes-callouts.js). Uses the theme variables from styles.css. */
+.notes-editor .note-callout {
+  position: relative;
+  margin: 0 0 0.75rem;
+  padding: 0.7rem 0.9rem 0.7rem 2.4rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.notes-editor .note-callout::before {
+  content: 'i';
+  position: absolute;
+  left: 0.8rem;
+  top: 0.8rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  box-sizing: border-box;
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+  color: var(--accent);
+  font: italic 700 0.7rem/1 Georgia, serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  pointer-events: none;
+}
+.notes-editor .note-callout > :last-child {
+  margin-bottom: 0;
+}

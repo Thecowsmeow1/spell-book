@@ -4,7 +4,7 @@
 -->
 <!--
   File contract: this document owns the DOM only. Behavior is delegated to
-  js/app.js, js/settings.js, js/datafile.js, and js/highlight.js below.
+  js/app.js, js/settings.js, js/notes.js, js/datafile.js, and js/highlight.js below.
   Button ids are the public wiring points used by those files; keep an id
   stable when changing its visible label or layout.
 -->
@@ -15,7 +15,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Spell Book</title>
-<link href="favicon.png" rel="icon" type="image/png"/>
+<link href="icons/bookSB256BW.png" rel="icon" type="image/png"/>
 <script>
       // Pick the saved mode before the first paint, so light mode never flashes dark.
       try {
@@ -29,6 +29,10 @@
       } catch {}
     </script>
 <link href="styles.css" rel="stylesheet"/>
+<link href="css/notes-callouts.css" rel="stylesheet"/>
+<link href="css/sealed-tomes.css" rel="stylesheet"/>
+<link href="css/entry-tables.css" rel="stylesheet"/>
+<link href="css/notes-codesave.css" rel="stylesheet"/>
 </head>
 <body>
 <!-- Main navigation: hash links switch pages in js/app.js; action buttons
@@ -36,13 +40,16 @@
           by app.js/settings.js. -->
 <nav aria-label="Main" class="navbar">
 <div class="brand">
-<img alt="" class="brand-icon" height="64" src="favicon.png" width="64"/>
-<h1>Spell Book</h1>
+<img alt="" class="brand-icon" height="64" src="icons/bookSB256BW.png" width="64"/>
+<!-- <h1>Spell Book</h1> -->
+</div>
+<div class="nav-history">
+<button aria-label="Back" class="btn secondary icon-btn" disabled="" id="btn-back" title="Back" type="button"><svg aria-hidden="true" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg></button>
+<button aria-label="Forward" class="btn secondary icon-btn" disabled="" id="btn-forward" title="Forward" type="button"><svg aria-hidden="true" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
 </div>
 <div class="nav-links">
 <a class="nav-link" data-page="spellbook" href="#/">Spell Book</a>
-<a class="nav-link" data-page="guides" href="#/guides">Guides</a>
-<a class="nav-link" data-page="templates" href="#/templates">Templates</a>
+<a class="nav-link" data-page="notes" href="#/compendium">Compendium</a>
 </div>
 <div class="nav-actions">
 <button class="btn secondary" id="btn-trash" title="View deleted commands">
@@ -98,6 +105,7 @@
 <div class="data-quick-actions" aria-label="Data file shortcuts">
 <button class="btn secondary sm" id="btn-quick-link" type="button" title="Link an existing Spell Book data file">Link</button>
 <button class="btn secondary sm" id="btn-quick-save" type="button" title="Save linked data file, or download a backup">Save</button>
+<span id="quick-save-time" class="quick-save-time" aria-live="polite">Not saved</span>
 </div>
 <div aria-label="Legacy layout controls" class="layout-switch" hidden="">
 <span aria-label="Control bar position" class="layout-seg" role="group">
@@ -238,13 +246,107 @@
 </div>
 </div>
 </div>
-<section class="page placeholder-page" hidden="" id="page-guides">
-<h2>Guides</h2>
-<p>Nothing here yet.</p>
-</section>
-<section class="page placeholder-page" hidden="" id="page-templates">
-<h2>Templates</h2>
-<p>Nothing here yet.</p>
+<!-- Notes page: a CherryTree style node tree and rich text editor. js/notes.js
+          owns everything here and saves to spellbook_notes_v1. -->
+<section class="page notes-page" hidden="" id="page-notes">
+<div class="notes-tabbar">
+<div aria-label="Tomes" class="notes-tabs" id="notes-tabs" role="tablist"></div>
+<button class="notes-tab notes-tab-add" id="notes-add-tome" title="Start a new tome: a separate tree of notes" type="button">+ Tome</button>
+</div>
+<div class="notes-body" id="notes-body">
+<aside aria-label="Note tree" class="notes-tree-pane">
+<div class="notes-tree-tools">
+<button class="btn sm" id="notes-add-node" title="Add a node after the selected one" type="button">+ Node</button>
+<button class="btn secondary sm" id="notes-add-child" title="Add a node inside the selected one" type="button">+ Subnode</button>
+<button class="btn secondary sm" id="notes-delete-node" title="Delete the selected node and everything inside it (Delete key)" type="button">Delete</button>
+</div>
+<input aria-label="Search notes" class="notes-tree-search" id="notes-tree-search" placeholder="Search this tome…" type="search"/>
+<div aria-label="Search scope" class="notes-scope" role="group">
+<button aria-pressed="true" class="notes-scope-btn active" id="notes-scope-all" title="Search and show every note in this tome" type="button">Whole tome</button>
+<button aria-pressed="false" class="notes-scope-btn" id="notes-scope-branch" title="Search and show only the selected node and its subnodes" type="button">This branch</button>
+<button aria-pressed="false" class="notes-scope-btn" id="notes-scope-tomes" title="Search and show every tome in the Compendium" type="button">All tomes</button>
+</div>
+<div class="notes-scope-label" hidden="" id="notes-scope-label">
+<span id="notes-scope-path"></span>
+<button aria-label="Search the whole tome" class="notes-scope-clear" id="notes-scope-clear" title="Search the whole tome" type="button">×</button>
+</div>
+<ul aria-label="Notes" class="notes-tree" id="notes-tree" role="tree"></ul>
+</aside>
+<div aria-label="Resize the note tree" aria-orientation="vertical" class="notes-splitter" id="notes-splitter" role="separator" tabindex="0" title="Drag to resize (double-click to reset)"></div>
+<div class="notes-editor-pane" id="notes-editor-pane">
+<div class="notes-empty" id="notes-empty">
+<p>This tome is empty.</p>
+<button class="btn" id="notes-empty-add" type="button">+ Add your first node</button>
+</div>
+<input aria-label="Node name" class="notes-title" id="notes-title" placeholder="Node name" type="text"/>
+<div class="notes-sealed-bar" hidden="" id="notes-sealed-bar" role="status">
+<svg aria-hidden="true" fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><rect height="11" rx="2" width="16" x="4" y="11"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+<span id="notes-sealed-text"></span>
+<button class="btn secondary sm" id="notes-unseal" type="button">Unseal</button>
+</div>
+<div aria-controls="notes-editor" aria-label="Text formatting" class="notes-toolbar" id="notes-toolbar" role="toolbar">
+<button aria-label="Undo" class="notes-tool" data-cmd="undo" title="Undo (Ctrl+Z)" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-3"></path></svg></button>
+<button aria-label="Redo" class="notes-tool" data-cmd="redo" title="Redo (Ctrl+Y)" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="m15 14 5-5-5-5"></path><path d="M20 9H10a6 6 0 0 0 0 12h3"></path></svg></button>
+<span class="notes-tool-sep"></span>
+<select aria-label="Paragraph style" class="notes-format" id="notes-format" title="Paragraph style">
+<option value="p">Normal</option>
+<option value="h1">Heading 1</option>
+<option value="h2">Heading 2</option>
+<option value="h3">Heading 3</option>
+<option value="pre">Code block</option>
+<option value="blockquote">Quote</option>
+</select>
+<span class="notes-tool-sep"></span>
+<button aria-label="Bold" class="notes-tool" data-cmd="bold" title="Bold (Ctrl+B)" type="button"><b>B</b></button>
+<button aria-label="Italic" class="notes-tool" data-cmd="italic" title="Italic (Ctrl+I)" type="button"><i>I</i></button>
+<button aria-label="Underline" class="notes-tool" data-cmd="underline" title="Underline (Ctrl+U)" type="button"><u>U</u></button>
+<button aria-label="Strikethrough" class="notes-tool" data-cmd="strikeThrough" title="Strikethrough" type="button"><s>S</s></button>
+<button aria-label="Inline code" class="notes-tool" id="notes-inline-code" title="Inline code: a short piece of code inside a sentence" type="button"><code>&lt;/&gt;</code></button>
+<button aria-label="Code block" class="notes-tool" id="notes-code-block" title="Code block: several lines of code with syntax colors" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2" width="18" x="3" y="4"></rect><path d="m7 9 3 3-3 3"></path><path d="M12 15h5"></path></svg></button>
+<label class="notes-tool notes-color" title="Text color"><span aria-hidden="true">A</span><input aria-label="Text color" id="notes-fore" type="color" value="#f87171"/></label>
+<label class="notes-tool notes-color" title="Highlight color"><span aria-hidden="true" class="notes-color-hl">A</span><input aria-label="Highlight color" id="notes-back" type="color" value="#854d0e"/></label>
+<button aria-label="Clear formatting" class="notes-tool" data-cmd="removeFormat" title="Clear formatting" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M5 5h14"></path><path d="M12 5 9 19"></path><path d="m15 14 5 5"></path><path d="m20 14-5 5"></path></svg></button>
+<span class="notes-tool-sep"></span>
+<button aria-label="Bulleted list" class="notes-tool" data-cmd="insertUnorderedList" title="Bulleted list" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M9 6h11M9 12h11M9 18h11"></path><path d="M4 6h.01M4 12h.01M4 18h.01"></path></svg></button>
+<button aria-label="Numbered list" class="notes-tool" data-cmd="insertOrderedList" title="Numbered list" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M10 6h10M10 12h10M10 18h10"></path><path d="M4 4h1v5"></path><path d="M3.5 15.5c.5-1 2.5-1 2.5.3 0 1-2.5 1.7-2.5 3.2h2.5"></path></svg></button>
+<button aria-label="Decrease indent" class="notes-tool" data-cmd="outdent" title="Decrease indent" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M11 6h9M11 12h9M11 18h9"></path><path d="m7 8-4 4 4 4"></path></svg></button>
+<button aria-label="Increase indent" class="notes-tool" data-cmd="indent" title="Increase indent" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M11 6h9M11 12h9M11 18h9"></path><path d="m3 8 4 4-4 4"></path></svg></button>
+<span class="notes-tool-sep"></span>
+<button aria-label="Align left" class="notes-tool" data-cmd="justifyLeft" title="Align left" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M4 6h16M4 12h10M4 18h13"></path></svg></button>
+<button aria-label="Align center" class="notes-tool" data-cmd="justifyCenter" title="Align center" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M4 6h16M7 12h10M6 18h12"></path></svg></button>
+<button aria-label="Align right" class="notes-tool" data-cmd="justifyRight" title="Align right" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M4 6h16M10 12h10M7 18h13"></path></svg></button>
+<span class="notes-tool-sep"></span>
+<button aria-label="Insert link" class="notes-tool" id="notes-link" title="Insert link (Ctrl+K). Ctrl+click a link in a note to open it." type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"></path><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"></path></svg></button>
+<button aria-label="Insert table" class="notes-tool" id="notes-table" title="Insert table" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="1" width="18" x="3" y="4"></rect><path d="M3 10h18M3 15h18M9 4v16M15 4v16"></path></svg></button>
+<button aria-label="Insert horizontal line" class="notes-tool" data-cmd="insertHorizontalRule" title="Insert horizontal line" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M3 12h18"></path></svg></button>
+<span class="notes-tool-sep"></span>
+<button class="btn sm" data-insert="command" title="Search your commands or build a new one, and put it in this note" type="button">Insert Command</button>
+<button class="btn sm" data-insert="script" title="Search your scripts or write a new one, and put it in this note" type="button">Insert Script</button>
+<button class="btn sm" data-insert="term" title="Search your terms or add a new one, and link it at the cursor" type="button">Insert Term</button>
+</div>
+<div aria-controls="notes-editor" aria-label="Table" class="notes-table-tools" hidden="" id="notes-table-tools" role="toolbar">
+<span class="notes-table-tools-label">Table:</span>
+<button class="btn secondary sm" data-table-action="row-above" type="button">+ Row above</button>
+<button class="btn secondary sm" data-table-action="row-below" type="button">+ Row below</button>
+<button class="btn secondary sm" data-table-action="col-left" type="button">+ Column left</button>
+<button class="btn secondary sm" data-table-action="col-right" type="button">+ Column right</button>
+<button class="btn secondary sm" data-table-action="del-row" type="button">Delete row</button>
+<button class="btn secondary sm" data-table-action="del-col" type="button">Delete column</button>
+<button class="btn secondary sm" data-table-action="del-table" type="button">Delete table</button>
+</div>
+<div aria-label="Search matches in this note" class="notes-find-bar" hidden="" id="notes-find-bar" role="toolbar">
+<span aria-live="polite" id="notes-find-status"></span>
+<button aria-label="Previous match" class="notes-tool" id="notes-find-prev" title="Previous match (Shift+Enter in the search box)" type="button">↑</button>
+<button aria-label="Next match" class="notes-tool" id="notes-find-next" title="Next match (Enter in the search box)" type="button">↓</button>
+</div>
+<div aria-label="Note text" aria-multiline="true" class="notes-editor" contenteditable="true" id="notes-editor" role="textbox" spellcheck="false"></div>
+<div class="notes-status">
+<span class="notes-path" id="notes-path"></span>
+<span id="notes-words"></span>
+<span aria-live="polite" id="notes-saved"></span>
+</div>
+</div>
+</div>
 </section>
 <!-- Script modal: btn-script-new opens it; app.js saves/deletes/copies the
           record and persists it under spellbook_scripts_v1. -->
@@ -406,17 +508,45 @@
 <legend>Control bar position</legend>
 <label><input name="controls-position" type="radio" value="top"/><img alt="" class="layout-preview" loading="lazy" src="icons/Rows-Layout.png"/>
                 Top</label>
-<label><input name="controls-position" type="radio" value="left"/><img alt="" class="layout-preview" loading="lazy" src="icons/1L2R-Layout.png"/>
+<label><input name="controls-position" type="radio" value="left"/><img alt="" class="layout-preview" loading="lazy" src="icons/2L1R-Layout-%20thick.png"/>
                 Left</label>
-<label><input name="controls-position" type="radio" value="right"/><img alt="" class="layout-preview" loading="lazy" src="icons/2L1R-Layout.png"/>
+<label><input name="controls-position" type="radio" value="right"/><img alt="" class="layout-preview" loading="lazy" src="icons/2L1R-Layout-thick-mirrored.png"/>
                 Right</label>
 </fieldset>
 <fieldset class="layout-options">
 <legend>Table and details</legend>
-<label><input name="panes-layout" type="radio" value="stacked"/><img alt="" class="layout-preview" loading="lazy" src="icons/1L2RH-Layout.png"/>
+<label><input name="panes-layout" type="radio" value="stacked"/><img alt="" class="layout-preview" loading="lazy" src="icons/Rows-Layout.png"/>
                 Table above details</label>
-<label><input name="panes-layout" type="radio" value="side"/><img alt="" class="layout-preview" loading="lazy" src="icons/1L2R-Layout-thick.png"/> Table
+<label><input name="panes-layout" type="radio" value="side"/><img alt="" class="layout-preview" loading="lazy" src="icons/Side-Layout.png"/> Table
                 beside details</label>
+</fieldset>
+<fieldset class="layout-options">
+<legend>Back and Forward buttons</legend>
+<label><input name="nav-history" type="radio" value="show"/>
+                Show</label>
+<label><input name="nav-history" type="radio" value="hide"/>
+                Hide</label>
+<span class="form-hint">The ← and → buttons beside the logo, which go back and
+                forward through the commands, scripts, terms and notes you've viewed.</span>
+</fieldset>
+<fieldset class="layout-options">
+<legend>Scratch pad</legend>
+<label><input name="scratch-visible" type="radio" value="show"/>
+                Show</label>
+<label><input name="scratch-visible" type="radio" value="hide"/>
+                Hide</label>
+<span class="form-hint">The note area under the Spell Book's detail pane. Its text
+                is kept while it's hidden.</span>
+</fieldset>
+<fieldset class="layout-options">
+<legend>Quick filters</legend>
+<label><input name="filter-selection" type="radio" value="multiple"/>
+                Select several at once</label>
+<label><input name="filter-selection" type="radio" value="single"/>
+                Select one at a time</label>
+<span class="form-hint">Applies to the Command, Script and Term filter buttons.
+                Several at once shows entries matching any selected filter, such as
+                PowerShell + CMD.</span>
 </fieldset>
 <fieldset class="layout-options">
 <legend>Options in the detail pane</legend>
@@ -622,6 +752,37 @@ Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1<
 </div>
 </div>
 </div>
+<!-- Insert Command / Script / Term dialog: js/notes.js searches the loaded entries,
+          and its New button opens the same editor the Spell Book page uses. -->
+<div aria-labelledby="notes-cmd-heading" aria-modal="true" class="modal-overlay" id="notes-cmd-modal" role="dialog">
+<div class="modal notes-cmd-dialog">
+<h2 id="notes-cmd-heading">Insert Command</h2>
+<div class="notes-cmd-search-row">
+<input aria-controls="notes-cmd-results" aria-label="Search commands" id="notes-cmd-search" type="search"/>
+<button class="btn" id="notes-cmd-new" type="button">+ New Command</button>
+</div>
+<div aria-label="Results" class="notes-cmd-results" id="notes-cmd-results" role="listbox"></div>
+<div class="modal-actions">
+<span class="form-hint notes-cmd-count" id="notes-cmd-count"></span>
+<button class="btn secondary" id="notes-cmd-cancel" type="button">Cancel</button>
+</div>
+</div>
+</div>
+<!-- Notes confirm/input dialog: replaces window.confirm and prompt, which some
+          browsers and embedded panes answer "no" to without showing anything. -->
+<div aria-labelledby="notes-ask-title" aria-modal="true" class="modal-overlay" id="notes-ask" role="alertdialog">
+<div class="modal notes-ask-dialog">
+<h2 id="notes-ask-title"></h2>
+<p class="notes-ask-message" id="notes-ask-message"></p>
+<div id="notes-ask-extra"></div>
+<input aria-labelledby="notes-ask-title" class="notes-ask-input" hidden="" id="notes-ask-input" type="text"/>
+<p class="notes-ask-error" id="notes-ask-error"></p>
+<div class="modal-actions">
+<button class="btn secondary" id="notes-ask-cancel" type="button">Cancel</button>
+<button class="btn" id="notes-ask-ok" type="button">OK</button>
+</div>
+</div>
+</div>
 <!-- Command editor: app.js validates the form, builds placeholder metadata,
           then saves the command in spellbook_commands_v1. -->
 <div class="modal-overlay" id="modal">
@@ -783,7 +944,7 @@ e.g. nmap &lt;-sV | -sn | -sT&gt; &lt;target&gt; [-p &lt;ports&gt;] [--script &l
 <script id="readme-source" type="text/x-readme">
 # Spell Book
 
-**Version 6 — 20261025**
+**Version 7 — 20261105**
 
 Spell Book is a local-first reference for commands, scripts, and technical terminology. It runs in a browser using HTML, CSS, and JavaScript, without an account, database server, or installation. Open `index.html` directly to use it. Some file-linking features depend on browser support.
 
@@ -794,8 +955,20 @@ Spell Book is a local-first reference for commands, scripts, and technical termi
 3. Select **Spell Book** at the top. Choose a Command, Script, or Term filter and browse or search entries.
 4. Click **+ New Command**, **+ New Script**, or **+ New Term**, or press **A** outside an input to choose what to create.
 5. Use **Link** and **Save** in the sidebar to manage a linked data file or download a backup. Export individual collections separately when needed.
+6. Select **Compendium** to keep notes; see **Compendium** below.
 
-The **Guides** and **Templates** top-level pages are placeholders in this release; they do not yet contain a completed guide or template system.
+## Compendium
+
+The **Compendium** keeps CherryTree style notes: a tree of nodes on the left and a text editor on the right. Notes are saved in the browser as you type and are included in linked data files and backups.
+
+- **Tomes:** notes are grouped into tomes, shown as tabs above the tree. **+ Tome** starts a new one; double-click a tab to rename it, or right-click it to rename, seal or delete it. Guides and templates live here as tomes.
+- **Nodes:** **+ Node** and **+ Subnode** add notes, and dragging a node moves it. Right-click a node for more, including **Move Up/Down** and **Move In/Out a Level**. Arrow keys move through the tree, **F2** renames and **Delete** deletes.
+- **Editor:** headings, bold, italic, underline, strikethrough, colors, lists, alignment, links, horizontal lines and tables. Inline code (`</>`) is for a short piece of code inside a sentence. The code block button, or **Code block** in the paragraph style list, adds a block of code with a language picker and the same syntax colors as the Spell Book.
+- **Insert Command, Insert Script, Insert Term:** a command card shows the command's variable fields and generated command; values typed into it are saved with that card in that note only. A script card shows the script, and a term becomes a link in the text. Cards have **Edit**, which opens the Spell Book's edit window without leaving the note, and **View in Spell Book**. Each Spell Book entry lists the notes that use it under **Linked in n notes**.
+- **Sealing:** right-click a node and choose **Seal Branch** to make it and everything inside it read-only, or **Seal Tome** on a tab for a whole tome. Sealed notes can't be typed in, renamed, moved or deleted, and their command fields are locked. **Unseal** makes them editable again. Seals guard against accidental edits; anyone can unseal.
+- **Search:** the search box covers the open tome, **This branch** (the selected node and its subnodes) or **All tomes**. Matches are highlighted in the open note; Enter and Shift+Enter, or the arrows beside the count, jump between them.
+
+The **←** and **→** buttons beside the logo go back to whatever you were looking at before (the previous command, script, term or note, on either page) and forward again. Settings → Layout & Theme can hide them, and the Scratch pad too.
 
 ## Commands, Scripts, and Terms
 
@@ -844,7 +1017,7 @@ Shortcuts should not override normal typing in input fields.
 
 Deleted entries may be moved to **Trash**, where supported, so they can be restored or permanently removed. Green `+N` and red `-N` indicators track changes relative to the applicable import/baseline state. A `(N shown)` counter is a view/filter indicator, not a count of newly added records. Import operations can reset the change baseline.
 
-## Project Files (Version 5)
+## Project Files (Version 7)
 
 ```text
 spell-book-experimental/
@@ -854,6 +1027,7 @@ spell-book-experimental/
 ├── js/
 │   ├── app.js                 Commands, scripts, terms, imports, filters
 │   ├── settings.js            Settings and backup controls
+│   ├── notes.js               Compendium: tomes, notes editor, sealing
 │   ├── datafile.js            Linked JSON storage, backup and restore
 │   └── highlight.js           Syntax highlighting
 ├── data/
@@ -872,9 +1046,30 @@ The bundled JSON files seed a fresh browser over HTTP(S). On `file://`, the opti
 
 ## About This README
 
-This documentation is currently embedded in `index.html` as `<script id="readme-source" type="text/x-readme">`. The **About** dialog reads that embedded text. There is no separate `README.md` in this archive, and no fetch of a Markdown file is required to display this guide from `file://`.
+This documentation is currently embedded in `index.html` as `<script id="readme-source" type="text/x-readme">`. The **About** dialog reads that embedded text. `README.md` holds the same text for reading outside the app; keep the two in step. No fetch of a Markdown file is required to display this guide from `file://`.
 
 ## Version History
+
+Version 7 -- 20261105
+
+Summary: added the Compendium (a notes page with tomes, sealing, Spell Book links and highlighted code), Back and Forward buttons, live syntax colors in the command and script editors, three new settings, a new logo, and light mode readability fixes. The Guides and Templates pages were removed; guides and templates now live in the Compendium as tomes.
+
+- `js/notes.js` (new): The Compendium page. Tome tabs; a node tree with add, rename, delete, drag and drop, a right-click menu and keyboard control; and a rich text editor with formatting, colors, lists, links, tables, inline code and highlighted code blocks with a language picker. Insert Command, Insert Script and Insert Term add cards and links that point to the Spell Book; command cards keep their variable values per note, and cards have **Edit** and **View in Spell Book** buttons. Branches and whole tomes can be sealed (read-only) and unsealed. Search covers the open tome, the selected branch or all tomes, highlights matches in the open note and jumps between them. Everything pasted, dropped or loaded passes through an HTML allowlist sanitizer. Notes autosave to `spellbook_notes_v1`; notes from before tomes are moved into a tome named "Notes" without loss.
+- `js/app.js`: **Linked in n notes** on command, script and term details. Links into the app (`#/command/<id>`, `#/script/<id>`, `#/term/<id>`, `#/compendium/<node>/...`; the old `#/notes` address still works). Back and Forward history across both pages. A setting for selecting one quick filter at a time or several. The New and Edit windows can be opened from the Compendium, for new entries or existing ones. Live syntax colors in the Command Template, Example and Script fields, following the platform or language field. The Guides and Templates pages were removed.
+- `js/settings.js`: New Layout & Theme settings for **Quick filters** (several at once or one at a time), **Back and Forward buttons** (show or hide) and **Scratch pad** (show or hide; its hide button had been unreachable since Version 5 hid the old layout toolbar). Resetting settings restores all three.
+- `index.html`: Compendium navigation and page, the Insert picker, an in-app confirm/input dialog (the browser's own dialogs are unreliable in some embedded browsers), table tools, the search match bar and the sealed-note bar. Back and Forward buttons, the new settings, and the new logo and browser tab icon (`icons/bookSB256BW.png`). New preview icons for the Layout settings (`icons/Side-Layout.png` and `icons/2L1R-Layout-thick-mirrored.png`). Guides and Templates removed. The embedded README matches this file.
+- `styles.css`: Styles for the Compendium (tabs, tree, editor, cards, code blocks, sealed notes, search highlights) and for the highlighted code fields. Light mode fixes: grey buttons now use the theme's text color, and accent-colored text (links, headings) is automatically darkened through the new `--accent-text` color so it stays readable on white. **View in Spell Book** is a button, **+ Tome** looks like a tab, and the tab bar no longer shows a stray scrollbar.
+- `README.md` and `DEVELOPER_NOTES.md`: Documented the Compendium, its storage format, links, sealing, Back and Forward, and the highlighted code fields; added this entry.
+- `.claude/launch.json` (new, development only): starts a local preview server with `python -m http.server 8765`.
+
+Known limitations in Version 7:
+
+- Notes saved by Version 7 use a new format that older versions can't read; keep a backup before opening the same browser data with an older copy.
+- Nodes can't be moved from one tome to another yet.
+- Seals prevent accidental edits but are not security; anyone can unseal.
+- Undoing a table edit can occasionally leave an extra blank line.
+- The Spell Book's own Delete buttons still use the browser's confirm dialog.
+- Not yet tested when opening `index.html` directly from disk (`file://`); tested over a local web server.
 
 Version 6 -- 20261025
 
@@ -890,7 +1085,7 @@ Version 5 -- 20261025
 
 - `js/settings.js` and `styles.css`: Updated Settings startup behavior and linked-file button status; enlarged and vertically stacked Link/Linked and Save controls at the right of the sidebar counters.
 
-- Preserved the embedded README, existing storage formats, and import/export workflows. Guides, Notes, and import ID-collision improvements remain future work.
+- Preserved the embedded README, existing storage formats, and import/export workflows. Guides and import ID-collision improvements remain future work.
 
 Version 4 -- 20260926
 
@@ -982,6 +1177,12 @@ Version 2 -- 20260920
   await loadScript('js/highlight.js')
   await loadScript('js/app.js')
   await loadScript('js/settings.js')
+  await loadScript('js/entry-tables.js')
+  await loadScript('js/notes-codelang.js')
+  await loadScript('js/notes.js')
+  await loadScript('js/notes-callouts.js')
+  await loadScript('js/notes-codesave.js')
+  await loadScript('js/sealed-tomes.js')
   window.DataFile.handleStartup(result)
 })()
 </script>
