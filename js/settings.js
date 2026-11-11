@@ -901,7 +901,7 @@ if (window.DataFile) {
     .getElementById('btn-datafile-download')
     .addEventListener('click', () => {
       downloadFile(
-        'spellbook-data.json',
+        window.DataFile.backupName('spellbook-data', 'json'),
         window.DataFile.exportText(),
         'application/json;charset=utf-8',
       )

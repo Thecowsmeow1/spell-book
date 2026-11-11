@@ -426,6 +426,15 @@ window.DataFile = (() => {
     setFlag(UNSAVED_KEY, false)
     lastSaved = new Date()
     notify()
+  // Backup file names carry the time they were made: DDMMMYYYY_HH-MM-SS,
+  // for example spellbook-data_11Nov2026_12-40-05.json (colons are not allowed in file names)
+  function backupName(base, extension, when = new Date()) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const two = (n) => String(n).padStart(2, '0')
+    const stamp = `${two(when.getDate())}${months[when.getMonth()]}${when.getFullYear()}_${two(when.getHours())}-${two(when.getMinutes())}-${two(when.getSeconds())}`
+    return `${base}_${stamp}.${extension}`
+  }
+
     return { name: handle.name }
   }
 
@@ -523,7 +532,7 @@ window.DataFile = (() => {
             primary: true,
             run: async (banner) => {
               downloadFile(
-                'spellbook-data.json',
+                backupName('spellbook-data', 'json'),
                 exportText(),
                 'application/json;charset=utf-8',
               )
@@ -625,3 +634,4 @@ window.DataFile = (() => {
     },
   }
 })()
+    backupName,
