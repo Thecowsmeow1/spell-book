@@ -1130,12 +1130,17 @@ Version 2 -- 20260920
     document.body.appendChild(script)
   })
   await loadScript('js/datafile.js')
+  // Optional database backend: only when served over http(s), and ignored if
+  // the remote-db folder is not there.
+  if (/^https?:$/.test(location.protocol)) {
+    try { await loadScript('remote-db/client.js') } catch {}
+  }
   // A linked JSON file, when authorized, takes priority over bundled examples.
   let result = {status: 'none'}
   try { result = await window.DataFile.autoload() }
   catch (error) { console.error(error) }
   // Linked file is authoritative when loaded. Never replace unsaved local changes.
-  const linkedAuthoritative = ['loaded', 'local-newer', 'needs-permission'].includes(result.status)
+  const linkedAuthoritative = result.authoritative || ['loaded', 'local-newer', 'needs-permission'].includes(result.status)
   const hasSavedRecords = ['spellbook_commands_v1','spellbook_scripts_v1','spellbook_terms_v1']
     .some(key => localStorage.getItem(key) !== null)
   if (!linkedAuthoritative && !hasSavedRecords) {

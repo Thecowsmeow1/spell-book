@@ -55,6 +55,9 @@ window.DataFile = (() => {
   let applying = false // true while the file is being copied into storage
   let tracking = false // changes only count once the app has started
   let saving = Promise.resolve()
+  // Optional database adapter (remote-db/client.js); see useRemote() below
+  let remote = null
+  const remoteActive = () => Boolean(remote && remote.active())
   const listeners = new Set()
 
   // ── handle storage (IndexedDB); replaceable for tests
@@ -230,6 +233,11 @@ window.DataFile = (() => {
   // Runs before the app starts: loads the linked file (when it can be read
   // without asking) into this browser's storage.
   async function autoload() {
+    // A running Spell Book database server takes priority over files.
+    if (remote) {
+      const fromRemote = await remote.autoload()
+      if (fromRemote && fromRemote.status !== 'remote-off') return fromRemote
+    }
     // A generated data script takes priority when the app is opened directly
     // from disk. The picker-backed link is the HTTP/secure-context path.
     // JSON snapshots are loaded through the linked-file picker or HTTP startup loader.
@@ -316,6 +324,7 @@ window.DataFile = (() => {
     clearTimeout(timer)
     timer = null
     saving = saving.then(async () => {
+      if (remoteActive()) return remote.save()
       const handle = await currentHandle()
       if (!handle) return false
       try {
@@ -344,15 +353,15 @@ window.DataFile = (() => {
   function schedule() {
     // Debounce writes: typing in a form may produce many storage events, but
     // the file should be written once after the user pauses.
-    if (!autosaveOn()) return
+    if (!autosaveOn() && !remoteActive()) return
     dirty = true
     clearTimeout(timer)
-    timer = setTimeout(save, SAVE_DELAY)
+    timer = setTimeout(save, remoteActive() ? remote.delay : SAVE_DELAY)
   }
 
   // Saves right away if there are unsaved changes (also used before leaving).
   function flush() {
-    return dirty && autosaveOn() ? save() : saving
+    return dirty && (remoteActive() || autosaveOn()) ? save() : saving
   }
 
   // Any change to Spell Book's saved data is remembered as unsaved and
@@ -362,7 +371,9 @@ window.DataFile = (() => {
     // startup/internal writes and keys that do not belong in the data file.
     if (!tracking || storage !== window.localStorage) return
     if (applying || !isDataKey(key)) return
-    if (getFlag(LINKED_KEY) || getFlag(FILEMODE_KEY)) setFlag(UNSAVED_KEY, true)
+    if (remoteActive() || getFlag(LINKED_KEY) || getFlag(FILEMODE_KEY)) {
+      setFlag(UNSAVED_KEY, true)
+    }
     schedule()
   }
   Storage.prototype.setItem = function (key, value) {
@@ -395,6 +406,7 @@ window.DataFile = (() => {
       autosave: autosaveOn(),
       lastSaved,
       lastError,
+      remote: remote ? remote.state() : null,
     }
   }
 
@@ -414,6 +426,15 @@ window.DataFile = (() => {
     return { name: handle.name, data }
   }
 
+  // Backup file names carry the time they were made: DDMMMYYYY_HH-MM-SS,
+  // for example spellbook-data_11Nov2026_12-40-05.json (colons are not allowed in file names)
+  function backupName(base, extension, when = new Date()) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const two = (n) => String(n).padStart(2, '0')
+    const stamp = `${two(when.getDate())}${months[when.getMonth()]}${when.getFullYear()}_${two(when.getHours())}-${two(when.getMinutes())}-${two(when.getSeconds())}`
+    return `${base}_${stamp}.${extension}`
+  }
+
   // Creates a new file, links it and writes the current data into it.
   async function linkNew() {
     const handle = await window.showSaveFilePicker({
@@ -426,15 +447,6 @@ window.DataFile = (() => {
     setFlag(UNSAVED_KEY, false)
     lastSaved = new Date()
     notify()
-  // Backup file names carry the time they were made: DDMMMYYYY_HH-MM-SS,
-  // for example spellbook-data_11Nov2026_12-40-05.json (colons are not allowed in file names)
-  function backupName(base, extension, when = new Date()) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    const two = (n) => String(n).padStart(2, '0')
-    const stamp = `${two(when.getDate())}${months[when.getMonth()]}${when.getFullYear()}_${two(when.getHours())}-${two(when.getMinutes())}-${two(when.getSeconds())}`
-    return `${base}_${stamp}.${extension}`
-  }
-
     return { name: handle.name }
   }
 
@@ -507,6 +519,7 @@ window.DataFile = (() => {
   function handleStartup(result) {
     tracking = true
     if (!result) return
+    if (remote && remote.handleStartup(result)) return
     if (result.status === 'needs-permission') {
       showBanner(
         `Your data file "${result.name}" needs permission before it can load.`,
@@ -610,8 +623,59 @@ window.DataFile = (() => {
     return data
   }
 
+  // Lets remote-db/client.js store the data in a database. The adapter gets
+  // these helpers so change tracking and banners stay in this file.
+  function useRemote(factory) {
+    remote = factory({
+      UNSAVED_KEY,
+      snapshot,
+      applyToStorage,
+      getFlag,
+      setFlag,
+      showBanner,
+      closeBanner,
+      notify,
+      // Writes a per-browser setting without counting it as a data change
+      // (null removes it). Its key is kept out of the data file.
+      setLocal(key, value) {
+        LOCAL_ONLY.add(key)
+        try {
+          if (value === null) nativeRemove.call(localStorage, key)
+          else nativeSet.call(localStorage, key, value)
+        } catch {}
+      },
+      // Sets or removes (null) one saved value without counting it as a change.
+      setData(key, value) {
+        applying = true
+        try {
+          if (value === null) localStorage.removeItem(key)
+          else localStorage.setItem(key, value)
+        } finally {
+          applying = false
+        }
+      },
+      schedule,
+      markSaved() {
+        dirty = false
+        setFlag(UNSAVED_KEY, false)
+        lastSaved = new Date()
+        lastError = ''
+        notify()
+      },
+      setError(message) {
+        lastError = message
+        notify()
+      },
+      info: () => ({ lastSaved, lastError }),
+    })
+    ;(remote.localKeys || []).forEach((key) => LOCAL_ONLY.add(key))
+    return remote
+  }
+
   return {
     supported,
+    useRemote,
+    backupName,
     exportText,
     exportScript,
     importText,
@@ -634,4 +698,3 @@ window.DataFile = (() => {
     },
   }
 })()
-    backupName,
