@@ -329,7 +329,7 @@
       </div>
       <div class="note-code-body">
         <pre aria-hidden="true" class="cmd note-code-view"><code></code></pre>
-        <textarea aria-label="Code" class="note-code-input" rows="1" placeholder="Type or paste code…" spellcheck="false"></textarea>
+        <textarea aria-label="Code" class="note-code-input" rows="1" placeholder="Type or paste code… (press Enter twice or Esc to leave the block)" spellcheck="false"></textarea>
       </div>`
     const input = pre.querySelector('.note-code-input')
     input.value = text
@@ -339,8 +339,29 @@
     renderCodeView(pre)
   }
 
+  // Pasted text often wraps its <pre> in a <div> or <p>. A code block has to
+  // sit directly in the note, so such a <pre> is lifted out, splitting its
+  // wrappers around it. Pre elements inside lists, tables, quotes, cards and
+  // boxes stay where they are.
+  function liftCodeBlocks() {
+    editor.querySelectorAll('pre').forEach((pre) => {
+      if (pre.parentElement === editor || pre.classList.contains('note-code')) return
+      if (pre.closest('.note-code, .note-command, .note-callout, li, td, th, blockquote')) return
+      let node = pre
+      while (node.parentElement && node.parentElement !== editor) {
+        const parent = node.parentElement
+        const rest = parent.cloneNode(false)
+        while (node.nextSibling) rest.append(node.nextSibling)
+        parent.after(node)
+        if (rest.textContent.trim() || rest.querySelector('img, br, pre')) node.after(rest)
+        if (!parent.textContent.trim() && !parent.querySelector('img, pre')) parent.remove()
+      }
+    })
+  }
+
   // Turns every top-level <pre> that isn't drawn yet into a code block.
   function drawCodeBlocks() {
+    liftCodeBlocks()
     const drawn = []
     editor.querySelectorAll(':scope > pre').forEach((pre) => {
       if (pre.querySelector(':scope > .note-code-head')) return
@@ -411,15 +432,50 @@
     refreshMatches()
   }
 
+  // Moves the caret to the paragraph after a code block (adding one when the
+  // block is last or is followed by another block or card).
+  function exitCodeBlock(block) {
+    let next = block.nextElementSibling
+    if (!next || next.matches('pre.note-code, .note-command')) {
+      next = document.createElement('p')
+      next.innerHTML = '<br>'
+      block.after(next)
+    }
+    editor.focus()
+    const range = document.createRange()
+    range.selectNodeContents(next)
+    range.collapse(true)
+    setRange(range)
+    afterEdit()
+  }
+
   // Keys inside a code block: Tab indents, and the arrow keys leave the block
-  // from its first or last line, so it never traps the caret.
+  // from its first or last line, so it never traps the caret. Enter on an empty
+  // last line (Enter twice at the end), Ctrl+Enter and Escape also leave it.
   function codeBlockKeydown(e) {
     const input = e.target
     const block = input.closest('pre.note-code')
     const ctrl = e.ctrlKey || e.metaKey
+    const atEmptyLastLine =
+      input.selectionStart === input.selectionEnd &&
+      input.selectionEnd === input.value.length &&
+      input.value.endsWith('\n')
     if (ctrl && e.key.toLowerCase() === 's') {
       e.preventDefault()
       flush()
+    } else if (
+      e.key === 'Escape' ||
+      (e.key === 'Enter' && ctrl) ||
+      (e.key === 'Enter' && !e.shiftKey && !e.altKey && !input.readOnly && atEmptyLastLine)
+    ) {
+      e.preventDefault()
+      // The empty line that Enter would have left behind is not part of the code.
+      if (atEmptyLastLine && !input.readOnly) {
+        input.value = input.value.replace(/\n$/, '')
+        renderCodeView(block)
+        markDirty()
+      }
+      exitCodeBlock(block)
     } else if (e.key === 'Tab' && !e.shiftKey && !input.readOnly) {
       e.preventDefault()
       document.execCommand('insertText', false, '    ')

@@ -23,7 +23,7 @@
     if (/^\s*@?echo\s|%\w+%|^\s*rem\s|^\s*set\s+\w+=/im.test(text)) return 'batch'
     if (/\bselect\b[\s\S]+\bfrom\b/i.test(text)) return 'sql'
     if (
-      /^\s*(sudo|apt|apt-get|echo|export|cd|ls|cat|grep|kubectl|systemctl|curl|chmod|docker)\b|\$\(|^\s*(if|for|while)\b.*;\s*(then|do)\b/m.test(
+      /^\s*(sudo|apt|apt-get|echo|export|cd|ls|cat|grep|kubectl|systemctl|curl|chmod|docker|git|ssh|scp|rsync|tar|mkdir|chown|wget|npm|npx|journalctl)\b|\$\(|^\s*(if|for|while)\b.*;\s*(then|do)\b/m.test(
         text,
       )
     ) {
