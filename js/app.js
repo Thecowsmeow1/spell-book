@@ -5514,6 +5514,19 @@ const trimText = (v) => (typeof v === 'string' ? v.trim() : '')
 
 // A value variable has a name and type; an option has a short and/or long flag
 // and optionally the name of the argument it takes.
+// Options are always listed alphabetically (by long name, else short name,
+// ignoring the dashes and case), however they were added.
+const optionSortKey = (o) =>
+  (o.long || o.short || o.name || '').replace(/^-+/, '')
+const sortOptions = (options) =>
+  [...options].sort(
+    (a, b) =>
+      optionSortKey(a).localeCompare(optionSortKey(b), undefined, {
+        sensitivity: 'base',
+        numeric: true,
+      }) || (a.short || '').localeCompare(b.short || ''),
+  )
+
 function sanitizeVariableDetails(list) {
   if (!Array.isArray(list)) return []
   const out = []
@@ -5554,7 +5567,10 @@ function sanitizeVariableDetails(list) {
       out.push(detail)
     }
   })
-  return out
+  return [
+    ...out.filter((d) => d.kind !== 'option'),
+    ...sortOptions(out.filter((d) => d.kind === 'option')),
+  ]
 }
 
 const isOption = (detail) => detail.kind === 'option'
@@ -6092,7 +6108,7 @@ function optionsDefaultOpen() {
 function variableReferenceHtml(cmd) {
   const details = cmd.variableDetails || []
   const values = details.filter((d) => !isOption(d))
-  const options = details.filter(isOption)
+  const options = sortOptions(details.filter(isOption))
   const infoHtml = (d) => {
     const info = d.info
       .filter((i) => i.value || i.label)
