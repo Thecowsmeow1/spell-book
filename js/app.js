@@ -2911,122 +2911,10 @@ function scriptsToCsv(list) {
   )
 }
 
-// Small popup menu under a button; closes on pick, outside click or Esc.
-function showExportMenu(anchor, options) {
-  document.querySelectorAll('.export-menu').forEach((m) => m.remove())
-  const menu = document.createElement('div')
-  menu.className = 'export-menu'
-  const rect = anchor.getBoundingClientRect()
-  menu.style.top = `${rect.bottom + 4}px`
-  menu.style.right = `${Math.max(4, window.innerWidth - rect.right)}px`
-  const close = () => {
-    menu.remove()
-    document.removeEventListener('pointerdown', onOutside, true)
-    document.removeEventListener('keydown', onKey, true)
-  }
-  const onOutside = (e) => {
-    if (!menu.contains(e.target)) close()
-  }
-  const onKey = (e) => {
-    if (e.key === 'Escape') close()
-  }
-  options.forEach(({ label, run }) => {
-    const item = document.createElement('button')
-    item.type = 'button'
-    item.textContent = label
-    item.addEventListener('click', () => {
-      close()
-      run()
-    })
-    menu.appendChild(item)
-  })
-  document.body.appendChild(menu)
-  document.addEventListener('pointerdown', onOutside, true)
-  document.addEventListener('keydown', onKey, true)
-  menu.querySelector('button').focus()
-}
-
 // ─── Import / Export ─────────────────────────────────────────────────
-// Browsers cannot silently overwrite data/commands.js on disk. Import replaces
-// the active Spell Book dataset in this browser; Export produces a replacement
-// commands.txt with the same assignment syntax as data/commands.js.
-// Button ids btn-import, btn-export, btn-scripts-import/export, and
-// btn-terms-import/export enter this section from index.html.
-const importFile = document.getElementById('import-file')
-
-document.getElementById('btn-import').addEventListener('click', () => {
-  importFile.value = ''
-  importFile.click()
-})
-
-importFile.addEventListener('change', async () => {
-  const file = importFile.files && importFile.files[0]
-  if (!file) return
-  try {
-    const text = await file.text()
-    let imported
-    if (file.name.toLowerCase().endsWith('.json')) {
-      imported = JSON.parse(text)
-    } else if (file.name.toLowerCase().endsWith('.csv')) {
-      imported = commandsFromCsv(text)
-    } else {
-      // Accept the exact TXT format exported by this Spell Book:
-      // window.SPELLBOOK_COMMANDS = [ ... ];
-      const match = text.match(
-        /window\.SPELLBOOK_COMMANDS\s*=\s*([\s\S]*?)\s*;?\s*$/,
-      )
-      if (!match)
-        throw new Error(
-          'This .txt file does not define window.SPELLBOOK_COMMANDS.',
-        )
-      imported = JSON.parse(match[1])
-    }
-    if (!Array.isArray(imported))
-      throw new Error('Imported data must be an array of commands.')
-    if (
-      !imported.every(
-        (c) =>
-          c &&
-          typeof c === 'object' &&
-          c.id &&
-          c.title &&
-          (c.platform || c.os) &&
-          typeof c.command === 'string',
-      )
-    ) {
-      throw new Error(
-        'One or more command entries are missing required fields.',
-      )
-    }
-    openImportManager('commands', file.name, imported.map(cleanImportedCommand))
-  } catch (err) {
-    alert('Import failed: ' + err.message)
-  }
-})
-
-document.getElementById('btn-export').addEventListener('click', (e) => {
-  showExportMenu(e.currentTarget, [
-    {
-      label: 'JSON (commands.json)',
-      run: () =>
-        downloadFile(
-          'commands.json',
-          JSON.stringify(commands, null, 2) + '\n',
-          'application/json;charset=utf-8',
-        ),
-    },
-    {
-      label: 'CSV (commands.csv)',
-      run: () =>
-        downloadFile(
-          'commands.csv',
-          commandsToCsv(commands),
-          'text/csv;charset=utf-8',
-        ),
-    },
-  ])
-})
-
+// Import and export live in js/transfer.js (the Import / Export Manager in the
+// header). It parses files and hands command, script and term lists to the
+// Import Manager below through openImportManager(); applyImportSession() applies them.
 // Keyboard: Esc closes open dialogs. Slash and A are intentionally guarded so
 // typing in a form field never triggers navigation or a new-record modal.
 function closeQuickCreate() {
@@ -3608,56 +3496,6 @@ document.getElementById('btn-script-copy').addEventListener('click', (e) => {
     })
 })
 
-document.getElementById('btn-scripts-export').addEventListener('click', (e) => {
-  showExportMenu(e.currentTarget, [
-    {
-      label: 'JSON (scripts.json)',
-      run: () =>
-        downloadFile(
-          'scripts.json',
-          JSON.stringify(scripts, null, 2) + '\n',
-          'application/json;charset=utf-8',
-        ),
-    },
-    {
-      label: 'CSV (scripts.csv)',
-      run: () =>
-        downloadFile(
-          'scripts.csv',
-          scriptsToCsv(scripts),
-          'text/csv;charset=utf-8',
-        ),
-    },
-  ])
-})
-
-const scriptsImportFile = document.getElementById('scripts-import-file')
-document.getElementById('btn-scripts-import').addEventListener('click', () => {
-  scriptsImportFile.value = ''
-  scriptsImportFile.click()
-})
-scriptsImportFile.addEventListener('change', async () => {
-  const file = scriptsImportFile.files && scriptsImportFile.files[0]
-  if (!file) return
-  try {
-    const text = await file.text()
-    const imported = file.name.toLowerCase().endsWith('.csv')
-      ? scriptsFromCsv(text)
-      : JSON.parse(text)
-    if (
-      !Array.isArray(imported) ||
-      !imported.every(
-        (s) => s && typeof s.name === 'string' && typeof s.body === 'string',
-      )
-    ) {
-      throw new Error('Expected an array of scripts with a name and body.')
-    }
-    openImportManager('scripts', file.name, imported.map(cleanImportedScript))
-  } catch (err) {
-    alert('Script import failed: ' + err.message)
-  }
-})
-
 // ─── Terms (glossary) ─────────────────────────────────────────────────
 const TERMS_KEY = 'spellbook_terms_v1'
 const CUSTOM_CATEGORIES_KEY = 'spellbook_custom_categories_v1'
@@ -4101,53 +3939,6 @@ function termsToCsv(list) {
     ]),
   )
 }
-
-document.getElementById('btn-terms-export').addEventListener('click', (e) => {
-  showExportMenu(e.currentTarget, [
-    {
-      label: 'JSON (terms.json)',
-      run: () =>
-        downloadFile(
-          'terms.json',
-          JSON.stringify(terms, null, 2) + '\n',
-          'application/json;charset=utf-8',
-        ),
-    },
-    {
-      label: 'CSV (terms.csv)',
-      run: () =>
-        downloadFile('terms.csv', termsToCsv(terms), 'text/csv;charset=utf-8'),
-    },
-  ])
-})
-
-const termsImportFile = document.getElementById('terms-import-file')
-document.getElementById('btn-terms-import').addEventListener('click', () => {
-  termsImportFile.value = ''
-  termsImportFile.click()
-})
-termsImportFile.addEventListener('change', async () => {
-  const file = termsImportFile.files && termsImportFile.files[0]
-  if (!file) return
-  try {
-    const text = await file.text()
-    const imported = file.name.toLowerCase().endsWith('.csv')
-      ? termsFromCsv(text)
-      : JSON.parse(text)
-    if (
-      !Array.isArray(imported) ||
-      !imported.every(
-        (t) =>
-          t && typeof t.term === 'string' && typeof t.definition === 'string',
-      )
-    ) {
-      throw new Error('Expected an array of terms with a term and definition.')
-    }
-    openImportManager('terms', file.name, imported.map(cleanImportedTerm))
-  } catch (err) {
-    alert('Term import failed: ' + err.message)
-  }
-})
 
 for (const kind of ['commands', 'scripts', 'terms']) {
   document
@@ -5032,9 +4823,25 @@ function openImportManager(kind, fileName, incoming) {
   document.getElementById('import-manager').classList.add('open')
 }
 
+// Reviews waiting their turn (queued by js/transfer.js). Each entry is either
+// { kind, fileName, incoming } for the Import Manager or { run } for a step.
+const importQueue = []
+function nextInImportQueue() {
+  while (importQueue.length) {
+    const next = importQueue.shift()
+    if (next.run) {
+      next.run()
+      continue
+    }
+    openImportManager(next.kind, next.fileName, next.incoming)
+    return
+  }
+}
+
 function closeImportManager() {
   document.getElementById('import-manager').classList.remove('open')
   importSession = null
+  nextInImportQueue()
 }
 
 // Brings the ticked items into your data.

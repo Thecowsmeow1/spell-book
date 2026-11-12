@@ -42,6 +42,7 @@
 <link href="css/sealed-tomes.css" rel="stylesheet"/>
 <link href="css/entry-tables.css" rel="stylesheet"/>
 <link href="css/notes-codesave.css" rel="stylesheet"/>
+<link href="css/transfer.css" rel="stylesheet"/>
 </head>
 <body>
 <!-- Main navigation: hash links switch pages in js/app.js; action buttons
@@ -61,6 +62,9 @@
 <a class="nav-link" data-page="notes" href="#/compendium">Compendium</a>
 </div>
 <div class="nav-actions">
+<button class="btn secondary" id="btn-transfer" title="Import or export only the parts you choose" type="button">
+          Import / Export
+        </button>
 <button class="btn secondary" id="btn-trash" title="View deleted commands">
           Trash (<span id="trash-count">0</span>)
         </button>
@@ -139,8 +143,7 @@
               </button>
 </div>
 </div>
-<!-- Commands controls: btn-add opens the editor; btn-import/export
-            use hidden file/download flows; filters are rendered by app.js. -->
+<!-- Commands controls: btn-add opens the editor; filters are rendered by app.js. Import and export are in the header (js/transfer.js). -->
 <div class="controls-section" id="commands-panel">
 <div class="section-head">
 <span class="section-heading"><button aria-controls="commands-panel" aria-expanded="true" class="section-toggle" id="toggle-commands" title="Fold this section away" type="button">
@@ -148,20 +151,14 @@
 <span class="section-actions"><button class="btn sm" id="btn-add" title="Add a new command (A)">
                   + New Command
                 </button>
-<button class="btn secondary sm" id="btn-import" title="Import commands from a JSON or CSV file (legacy TXT also supported)">
-                  Import
-                </button>
-<button class="btn secondary sm" id="btn-export" title="Export commands as TXT, JSON or CSV">
-                  Export
-                </button>
 <button class="btn secondary sm" id="btn-filters-edit-commands" title="Rename or remove quick filters" type="button">
                   Edit
                 </button>
-<input accept=".txt,.json,.csv,text/plain,application/json,text/csv" hidden="" id="import-file" type="file"/></span>
+</span>
 </div>
 <div class="filters" id="filters"></div>
 </div>
-<!-- Scripts controls: app.js owns the form, import/export, and list. -->
+<!-- Scripts controls: app.js owns the form and list. -->
 <div class="controls-section scripts-section" id="scripts-panel">
 <div class="section-head">
 <span class="section-heading"><button aria-controls="scripts-panel" aria-expanded="true" class="section-toggle" id="toggle-scripts" title="Fold this section away" type="button">
@@ -170,21 +167,14 @@
 <button class="btn sm" id="btn-script-new" type="button">
                   + New Script
                 </button>
-<button class="btn secondary sm" id="btn-scripts-import" title="Import saved scripts from a JSON or CSV file" type="button">
-                  Import
-                </button>
-<button class="btn secondary sm" id="btn-scripts-export" title="Export saved scripts as JSON or CSV" type="button">
-                  Export
-                </button>
 <button class="btn secondary sm" id="btn-filters-edit-scripts" title="Rename or remove quick filters" type="button">
                   Edit
                 </button>
 </span>
 </div>
 <div class="filters scripts-filters" id="scripts-list"></div>
-<input accept=".json,.csv,application/json,text/csv" hidden="" id="scripts-import-file" type="file"/>
 </div>
-<!-- Terms controls: app.js owns the form, import/export, and list. -->
+<!-- Terms controls: app.js owns the form and list. -->
 <div class="controls-section terms-section" id="terms-panel">
 <div class="section-head">
 <span class="section-heading"><button aria-controls="terms-panel" aria-expanded="true" class="section-toggle" id="toggle-terms" title="Fold this section away" type="button">
@@ -193,16 +183,9 @@
 <button class="btn sm" id="btn-term-new" type="button">
                   + New Term
                 </button>
-<button class="btn secondary sm" id="btn-terms-import" title="Import terms from a JSON or CSV file" type="button">
-                  Import
-                </button>
-<button class="btn secondary sm" id="btn-terms-export" title="Export terms as JSON or CSV" type="button">
-                  Export
-                </button>
 <button class="btn secondary sm" id="btn-filters-edit-terms" title="Rename or remove quick filters" type="button">
                   Edit
                 </button>
-<input accept=".json,.csv,application/json,text/csv" hidden="" id="terms-import-file" type="file"/>
 </span>
 </div>
 <div class="filters terms-filters" id="terms-list"></div>
@@ -501,16 +484,7 @@
 <!-- ############################################################### -->
 
 
-</div><div class="theme-io-row" data-theme-io="appearance">
-<button class="btn secondary sm" id="btn-appearance-import" title="Load an appearance theme file" type="button">
-              Import Appearance Theme
-            </button>
-<button class="btn secondary sm" id="btn-appearance-export" title="Save the mode and the 13 colors on this tab" type="button">
-              Export Appearance Theme
-            </button>
-<input accept=".json,application/json" hidden="" id="appearance-import-file" type="file"/>
-<span class="form-hint">Import or export application theme colors and light/dark mode.</span>
-</div>
+</div><p class="form-hint">Save or load these colors and the light/dark mode with <strong>Import / Export</strong> in the top bar.</p>
 <div class="settings-data-section">
 <h3>Layout</h3>
 <fieldset class="layout-options">
@@ -585,17 +559,7 @@
 <div class="settings-data-section">
 <h3>Individual Category Colors</h3>
 <p class="form-hint">Set a distinct color for each command platform, script language, or term category. These colors apply to both badges and filter buttons.</p>
-<div class="theme-io-row" data-theme-io="categories">
-<button class="btn secondary sm" id="btn-categories-import" title="Load a category colors file" type="button">
-                Import Category Colors
-              </button>
-<button class="btn secondary sm" id="btn-categories-export" title="Save the category colors on this tab" type="button">
-                Export Category Colors
-              </button>
-<input accept=".json,application/json" hidden="" id="categories-import-file" type="file"/>
-<span class="form-hint">Saves the platform, language and category colors listed
-                below.</span>
-</div>
+<p class="form-hint">Save or load these colors with <strong>Import / Export</strong> in the top bar.</p>
 <div id="category-colors"></div>
 </div>
 </div>
@@ -633,16 +597,9 @@ Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1<
             </p>
 <div id="syntax-colors"></div>
 <div class="syntax-actions">
-<button class="btn secondary sm" id="btn-syntax-import" title="Load a code block theme file: the chosen code theme and its 12 syntax colors" type="button">
-                Import Code Theme
-              </button>
-<button class="btn secondary sm" id="btn-syntax-export" title="Save the chosen code theme and its 12 syntax colors" type="button">
-                Export Code Theme
-              </button>
 <button class="btn secondary sm" id="btn-syntax-reset" title="Back to the code theme's own colors" type="button">
                 Reset Syntax Colors
               </button>
-<input accept=".json,application/json" hidden="" id="syntax-import-file" type="file"/>
 </div>
 </div>
 </div>
@@ -666,7 +623,7 @@ Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1<
 </div>
 </div>
 <!-- Categories tab: settings.js calls category helpers in app.js and
-             serializes the result through the theme import/export buttons. -->
+             serializes the result through the Import / Export Manager (js/transfer.js). -->
 
 <!-- Data tab: settings.js renders status and calls window.DataFile for
              linked-file actions; fallback download/restore uses file inputs. -->
@@ -744,13 +701,6 @@ Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1<
 </div>
 <div class="modal-actions sticky-actions">
 <span class="theme-io">
-<button class="btn secondary" id="btn-theme-import" title="Load a full theme file: mode, colors, category colors, code theme and syntax colors" type="button">
-              Import All Themes
-            </button>
-<button class="btn secondary" id="btn-theme-export" title="Save everything theme-related in one file: mode, colors, category colors, code theme and syntax colors" type="button">
-              Export All Themes
-            </button>
-<input accept=".json,application/json" hidden="" id="theme-import-file" type="file"/>
 </span>
 <button class="btn secondary" id="btn-settings-reset" type="button">
             Reset Theme Defaults
@@ -920,6 +870,35 @@ e.g. nmap &lt;-sV | -sn | -sT&gt; &lt;target&gt; [-p &lt;ports&gt;] [--script &l
 </div>
 <!-- Import preview: app.js compares the selected file with local data and
           changes storage only after the Apply button is pressed. -->
+<div class="modal-overlay" id="transfer-manager">
+<section aria-labelledby="tm-title" aria-modal="true" class="modal transfer-manager has-sticky-actions" role="dialog">
+<h2 id="tm-title">Import / Export Manager</h2>
+<div class="im-tabs" id="tm-tabs" role="tablist">
+<button aria-selected="true" class="im-tab active" data-tm-tab="export" role="tab" type="button">Export</button>
+<button aria-selected="false" class="im-tab" data-tm-tab="import" role="tab" type="button">Import</button>
+</div>
+<div id="tm-export-pane">
+<p class="im-hint">Tick what to save. Use <em>Choose items</em> to pick individual commands, scripts, terms or tomes.</p>
+<div class="tm-list" id="tm-export-list"></div>
+</div>
+<div hidden="" id="tm-import-pane">
+<p class="im-hint">Open a Spell Book export file, or an older commands, scripts, terms or theme file (JSON, CSV or TXT). Then tick which parts to bring in.</p>
+<div class="tm-file-row">
+<button class="btn secondary" id="tm-choose-file" type="button">Choose file…</button>
+<span class="im-file" id="tm-file-name">No file chosen</span>
+<input accept=".json,.csv,.txt,application/json,text/csv,text/plain" hidden="" id="tm-file" type="file"/>
+</div>
+<div class="tm-list" id="tm-import-list"></div>
+</div>
+<div class="modal-actions sticky-actions">
+<span class="im-note" id="tm-note"></span>
+<label class="tm-format" id="tm-format-label">Format
+<select id="tm-format"><option value="json">One file (.json)</option><option value="csv">CSV files (commands, scripts, terms)</option></select></label>
+<button class="btn secondary" id="tm-close" type="button">Close</button>
+<button class="btn" id="tm-go" type="button">Export</button>
+</div>
+</section>
+</div>
 <div class="modal-overlay" id="import-manager">
 <section aria-labelledby="im-title" aria-modal="true" class="modal import-manager has-sticky-actions" role="dialog">
 <h2 id="im-title">Import Manager</h2>
@@ -985,7 +964,7 @@ The **←** and **→** buttons beside the logo go back to whatever you were loo
 - **Scripts** store a name, required language, tags, script body, and notes. Their language filters are independent of command platforms.
 - **Terms** store a term, required category, tags, definition, and notes. Their category filters are independent of command platforms and script languages.
 
-Use the **Import**, **Export**, and **Edit** controls in each repository's section. Import/export of a single repository is different from backing up the entire application state. Review the import preview before applying changes; matching IDs can be treated as updates by existing import workflows. Importing records does not automatically rewrite the source files in the `data/` directory.
+Use **Import / Export** in the top bar to save or load only the parts you choose (commands, scripts, terms, Compendium tomes, colors and groups of settings), and the **Edit** control in each repository's section. Import/export of a single repository is different from backing up the entire application state. Review the import preview before applying changes; matching IDs can be treated as updates by existing import workflows. Importing records does not automatically rewrite the source files in the `data/` directory.
 
 ### Filters, Tags, and Search
 
@@ -1197,6 +1176,7 @@ Version 2 -- 20260920
   await loadScript('js/notes-callouts.js')
   await loadScript('js/notes-codesave.js')
   await loadScript('js/sealed-tomes.js')
+  await loadScript('js/transfer.js')
   window.DataFile.handleStartup(result)
 })()
 </script>

@@ -2596,6 +2596,70 @@
   }
   window.NoteLinks = { find: findLinks }
 
+  // Used by js/transfer.js (Import / Export Manager). Sealed tomes travel as
+  // they are stored, still sealed.
+  const countNodes = (list) => list.reduce((n, node) => n + 1 + countNodes(node.children), 0)
+  const collectIds = (list, into) => {
+    list.forEach((node) => {
+      into.add(node.id)
+      collectIds(node.children, into)
+    })
+    return into
+  }
+  window.NotesIO = {
+    list() {
+      return tomes.map((t) => ({ id: t.id, name: t.name, sealed: t.sealed, notes: countNodes(t.nodes) }))
+    },
+    // Copies of the named tomes (all of them when no ids are given).
+    get(ids) {
+      if (dirty) flush()
+      persist()
+      const wanted = tomes.filter((t) => !ids || ids.has(t.id))
+      return JSON.parse(JSON.stringify(cleanTomes(wanted)))
+    },
+    // Adds tomes as new tabs. A tome whose id, or any note id, is already in
+    // use gets fresh ids, and links to its notes are updated to match.
+    add(list) {
+      if (dirty) flush()
+      const incoming = cleanTomes(list)
+      const taken = new Set(tomes.map((t) => t.id))
+      tomes.forEach((t) => collectIds(t.nodes, taken))
+      incoming.forEach((tome) => {
+        const ids = collectIds(tome.nodes, new Set([tome.id]))
+        if ([...ids].some((id) => taken.has(id))) {
+          const renames = new Map()
+          const fresh = () => newNode('').id
+          renames.set(tome.id, newTome('').id)
+          const rename = (nodesList) =>
+            nodesList.forEach((node) => {
+              renames.set(node.id, fresh())
+              rename(node.children)
+            })
+          rename(tome.nodes)
+          const apply = (nodesList) =>
+            nodesList.forEach((node) => {
+              let html = node.html
+              renames.forEach((to, from) => {
+                if (from !== tome.id && html.includes(from)) html = html.split(from).join(to)
+              })
+              node.html = html
+              node.id = renames.get(node.id)
+              apply(node.children)
+            })
+          if (tome.selectedId) tome.selectedId = renames.get(tome.selectedId) || null
+          apply(tome.nodes)
+          tome.id = renames.get(tome.id)
+        }
+        collectIds(tome.nodes, taken)
+        taken.add(tome.id)
+        tomes.push(tome)
+      })
+      persist()
+      renderTabs()
+      return incoming.length
+    },
+  }
+
   // #/compendium/<node>/<kind>/<id> (or the old #/notes/...): open that note, in
   // whichever tome holds it, and scroll to the reference. The address then goes
   // back to #/compendium so it can't reopen a stale note on reload.

@@ -1,0 +1,99 @@
+/* Import / Export Manager (js/transfer.js) */
+.modal.transfer-manager {
+  max-width: 720px;
+  width: 96%;
+}
+.transfer-manager [hidden] {
+  display: none !important;
+}
+.tm-list {
+  min-height: 12rem;
+}
+.tm-section {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tm-section:first-child {
+  margin-top: 0.2rem;
+}
+.tm-group {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 0.35rem;
+  background: var(--surface);
+}
+.tm-group.tm-off {
+  opacity: 0.45;
+}
+.tm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+}
+.tm-main {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.6rem;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.tm-main input {
+  align-self: center;
+}
+.tm-title {
+  font-weight: 600;
+}
+.tm-sub {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.tm-items {
+  max-height: 14rem;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+  padding: 0.3rem 0.6rem 0.4rem 1.6rem;
+}
+.tm-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.tm-item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tm-item-sub {
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.tm-file-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.4rem 0 0.8rem;
+}
+.tm-file-row .im-file {
+  margin: 0;
+}
+.tm-format {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.tm-format select {
+  font: inherit;
+}
