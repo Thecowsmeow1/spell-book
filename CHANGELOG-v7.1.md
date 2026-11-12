@@ -72,14 +72,17 @@ Keeps all of Spell Book's data in a database instead of the browser. Everything 
   - A page keeps showing its own copy of a part another browser changed until you reload it.
   - The server must run as a single process. Several server processes on one database are not supported.
 
+### 6. `styles.css` split into `css/` files
+- The one 3,800-line stylesheet is now ten files in `css/` (`base`, `layout-and-table`, `modals`, `settings-and-controls`, `code-themes`, `control-bar-and-panes`, `import-manager`, `editors-and-scratch`, `notes`, `notes-blocks`), loaded by `<link>` tags in `index.html` in the original order. The files joined end to end are byte-for-byte the old `styles.css`, so nothing looks different. `styles.css` is deleted.
+- Decided: `index.html` will NOT be split into pieces that JavaScript loads. Markup stays in `index.html`.
+
 ## Not part of this branch
 
 - Features that were already in `tentative` (scratch pad, fonts, Options section collapse and its setting, Synopsis and Details split for man pages, Edit and Delete buttons at the top and bottom of the detail pane, tables in notes, and others). Several of these were first built in an older working copy and turned out to be in `tentative` already. That older copy is saved in `Archive/spell-book-experimental-claude-2026-11-11/`.
 
 ## Planned, not started
 
-- Split `index.html` into smaller pieces without a build step (each piece a `.js` file holding its markup, filled into slots before the app starts).
-- Possibly split `styles.css`, `js/app.js` and `js/settings.js` after that.
+- Possibly split `js/app.js` and `js/settings.js` into several script files.
 - Merge by individual command, script and term for the database.
 
 ## Housekeeping

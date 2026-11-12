@@ -1,0 +1,212 @@
+/*
+  Spell Book visual system.
+  settings.js changes these custom properties at runtime; app.js adds state
+  classes and generated markup; index.html supplies the semantic regions.
+  Keep selectors grouped by UI region so a new control can be documented and
+  styled beside the region it belongs to.
+*/
+:root {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --surface2: #243044;
+  --border: #2d3a4f;
+  --text: #e7ecf3;
+  --muted: #8b9bb4;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --win: #60a5fa;
+  --lin: #34d399;
+  --ws: #f97316;
+  --rs: #fffb00;
+  --kb: #00bfb3;
+  --ar: #a855f7;
+  --danger: #f87171;
+  --success: #4ade80;
+  --mono: 'Consolas', 'Cascadia Code', 'Courier New', monospace;
+  --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --code-bg: #0a0e14;
+  --tok-comment: #6b7a93;
+  --tok-string: #86d993;
+  --tok-variable: #6ee7d8;
+  --tok-keyword: #c4a7ff;
+  --tok-function: #7cb7ff;
+  --tok-number: #ffb86b;
+  --tok-flag: #f0c674;
+  --tok-placeholder: #ffb86b;
+  --tok-operator: #ff8fa3;
+  /* Accent used as text color (links, headings). Darkened in light mode,
+     where a bright accent is too faint on a white page. */
+  --accent-text: var(--accent);
+  color-scheme: dark;
+}
+/* Light mode: settings.js changes data-mode; these are the fallback values
+  used when no browser-saved color override exists. */
+:root[data-mode='light'] {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface2: #e7ecf4;
+  --border: #cbd3e0;
+  --text: #1b2433;
+  --muted: #566176;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --win: #1d4ed8;
+  --lin: #047857;
+  --ws: #c2410c;
+  --rs: #a16207;
+  --kb: #0f766e;
+  --ar: #7e22ce;
+  --code-bg: #eef1f6;
+  --tok-comment: #7a869a;
+  --tok-string: #1a7f37;
+  --tok-variable: #0b7285;
+  --tok-keyword: #7c3aed;
+  --tok-function: #1d4ed8;
+  --tok-number: #b45309;
+  --tok-flag: #9a6700;
+  --tok-placeholder: #b45309;
+  --tok-operator: #be185d;
+  --danger: #dc2626;
+  --success: #15803d;
+  --accent-text: color-mix(in srgb, var(--accent), #000 30%);
+  color-scheme: light;
+}
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Header */
+header {
+  font-family: var(--font-controls, var(--sans));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem 1.5rem;
+  flex-shrink: 0;
+}
+.header-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+.nav-history {
+  display: flex;
+  gap: 0.35rem;
+}
+.nav-history[hidden] {
+  display: none;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+/* Vertical dividers between the header sections */
+header .controls-section {
+  border-left: 3px solid var(--muted);
+  padding-left: 1.5rem;
+}
+/* The wrapper adds no box of its own except when the table is docked */
+.control-sections {
+  display: contents;
+}
+.nav-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.4rem;
+}
+.nav-actions .btn {
+  text-align: center;
+}
+.brand h1 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.search-wrap {
+  flex: 1;
+  max-width: 480px;
+  position: relative;
+}
+.search-wrap input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+}
+.search-wrap input:focus {
+  border-color: var(--accent);
+}
+.search-wrap::before {
+  content: '⌕';
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 1rem;
+}
+.btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.btn:hover {
+  background: var(--accent-hover);
+}
+.btn.secondary {
+  background: var(--surface2);
+  /* Theme text, not .btn's white: surface2 is pale in light mode. */
+  color: var(--text);
+}
+.btn.secondary:hover {
+  background: color-mix(in srgb, var(--surface2), var(--text) 14%);
+}
+.btn.danger {
+  background: #b91c1c;
+}
+.btn.danger:hover {
+  background: #991b1b;
+}
+.btn.sm {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}

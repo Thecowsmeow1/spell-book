@@ -1,0 +1,330 @@
+/* Command card inside a note. contenteditable=false; drawn by drawCard(). */
+.note-command {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.75rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  cursor: default;
+}
+.note-command.missing {
+  border-left-color: var(--muted);
+}
+.note-command-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.note-command-title {
+  font-weight: 600;
+}
+.note-command-spacer {
+  flex: 1;
+}
+.notes-editor a.note-command-open {
+  flex: none;
+  color: var(--text);
+  text-decoration: none;
+}
+.note-command-gone {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.note-command-edit {
+  flex: none;
+}
+.note-command [data-var]:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.note-command-remove {
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.note-command-remove:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.note-command-label {
+  margin: 0.4rem 0 0.2rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.note-command .vars-grid {
+  margin-bottom: 0.25rem;
+}
+.note-command .var-field label {
+  line-height: 1.3;
+}
+.note-command pre.cmd {
+  margin: 0;
+}
+.note-script-body {
+  max-height: 24rem;
+  overflow: auto;
+}
+/* Code block in a note: a highlighted <pre> with a transparent textarea laid
+   exactly over it (same font, padding, border and wrapping). See drawCodeBlock(). */
+.notes-editor pre.note-code {
+  margin: 0 0 0.75rem;
+  white-space: normal;
+  font-family: inherit;
+  cursor: default;
+}
+.note-code-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+.note-code-lang {
+  padding: 0.15rem 0.35rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.78rem;
+}
+.note-code-body {
+  display: grid;
+}
+.note-code-body > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+  margin: 0;
+}
+.note-code-view,
+.note-code-input {
+  padding: 1rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  letter-spacing: normal;
+  tab-size: 8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  font-variant-ligatures: none;
+}
+/* Notes shrink <code> to 0.875em; here it must match the textarea exactly. */
+.notes-editor .note-code-view code {
+  font: inherit;
+}
+.note-code-input {
+  /* Above the colored copy, which pre.cmd makes position: relative; without
+     this the copy sits on top and takes every click. */
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--code-fg, var(--text));
+  resize: none;
+  overflow: hidden;
+  outline: none;
+}
+.note-code-input::placeholder {
+  color: var(--muted);
+}
+.note-code-input::selection {
+  background: color-mix(in srgb, var(--accent), transparent 65%);
+  color: transparent;
+}
+.note-code-body:focus-within .note-code-view {
+  border-color: var(--accent);
+}
+.note-code-lang:disabled {
+  opacity: 0.7;
+}
+/* A term link sits in the running text. contenteditable=false; see drawTermLink(). */
+.notes-editor a.note-term {
+  padding: 0 0.2em;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent), transparent 85%);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.notes-editor a.note-term.missing {
+  background: none;
+  color: var(--muted);
+  text-decoration: line-through;
+  cursor: default;
+}
+/* Marks the reference when you arrive from "Linked in n notes". */
+.note-flash {
+  animation: note-flash 2s ease-out;
+}
+@keyframes note-flash {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+/* "Linked in n notes" in the Spell Book detail pane; see renderNoteLinks(). */
+.note-links ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.note-links li {
+  padding: 0.15rem 0;
+  font-size: 0.9rem;
+}
+.note-links a {
+  color: var(--accent-text);
+}
+.note-links-path {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+/* Notes confirm/input dialog */
+.notes-ask-dialog {
+  max-width: 440px;
+}
+.notes-ask-message {
+  margin-bottom: 0.75rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.notes-ask-input {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+.notes-ask-input[hidden] {
+  display: none;
+}
+.notes-ask-error {
+  min-height: 1.1rem;
+  margin: 0.25rem 0;
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+/* Insert Command dialog */
+.notes-cmd-dialog {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  height: min(80vh, 640px);
+  overflow: hidden;
+}
+.notes-cmd-dialog h2 {
+  flex: none;
+}
+.notes-cmd-search-row {
+  flex: none;
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.notes-cmd-search-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+.notes-cmd-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.notes-cmd-result {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.notes-cmd-result:last-child {
+  border-bottom: none;
+}
+.notes-cmd-result:hover,
+.notes-cmd-result.active {
+  background: var(--surface2);
+}
+.notes-cmd-result-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+.notes-cmd-result-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.notes-cmd-result-code,
+.notes-cmd-result-desc {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notes-cmd-result-code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+.notes-cmd-result-desc {
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.notes-cmd-none {
+  padding: 1.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+.notes-cmd-count {
+  margin: 0 auto 0 0;
+  align-self: center;
+}
+@media (max-width: 720px) {
+  .notes-body {
+    flex-direction: column;
+  }
+  .notes-tree-pane {
+    flex: 0 0 35%;
+  }
+  .notes-splitter {
+    display: none;
+  }
+}

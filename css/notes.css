@@ -1,0 +1,649 @@
+/* Notes page: js/notes.js renders the tree into #notes-tree and edits
+   #notes-editor. The tree width comes from --notes-tree-width on #notes-body. */
+.notes-tabbar {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0.35rem 0.5rem 0;
+  /* The bottom line is an inset shadow, not a border, so the open tab can
+     cover it without sticking out of the bar (which made it scroll). */
+  box-shadow: inset 0 -1px 0 var(--border);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.notes-tabs {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+}
+.notes-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 14rem;
+  padding: 0.35rem 0.85rem;
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.notes-tab span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notes-tab:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.notes-tab[aria-selected='true'] {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+.notes-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* + Tome sits in the tab row and looks like a tab, so it reads as part of it. */
+.notes-tab-add {
+  flex: none;
+  font-weight: 600;
+}
+.notes-seal {
+  display: inline-flex;
+  flex: none;
+  color: #f59e0b;
+}
+.notes-tree-row .notes-seal {
+  margin-left: auto;
+}
+.notes-sealed-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  background: color-mix(in srgb, #f59e0b, transparent 85%);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.notes-sealed-bar[hidden] {
+  display: none;
+}
+.notes-sealed-bar svg {
+  flex: none;
+  color: #f59e0b;
+}
+.notes-sealed-bar span {
+  flex: 1;
+}
+.notes-editor-pane.is-sealed .notes-toolbar,
+.notes-editor-pane.is-sealed .notes-table-tools,
+.notes-editor-pane.is-sealed .note-command-remove {
+  display: none;
+}
+.notes-title[readonly] {
+  cursor: default;
+}
+.notes-body {
+  --notes-tree-width: 280px;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.notes-tree-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--notes-tree-width);
+  min-width: 0;
+  background: var(--surface);
+}
+.notes-tree-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem;
+}
+.notes-tree-search {
+  margin: 0 0.5rem 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+  min-width: 0;
+}
+.notes-scope {
+  display: flex;
+  margin: 0 0.5rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.notes-scope-btn {
+  flex: 1;
+  padding: 0.25rem 0.4rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.notes-scope-btn + .notes-scope-btn {
+  border-left: 1px solid var(--border);
+}
+.notes-scope-btn:hover:not(:disabled) {
+  background: var(--surface2);
+  color: var(--text);
+}
+.notes-scope-btn.active {
+  background: color-mix(in srgb, var(--accent), transparent 72%);
+  color: var(--text);
+}
+.notes-scope-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.notes-scope-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: -0.2rem 0.5rem 0.5rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.notes-scope-label[hidden] {
+  display: none;
+}
+.notes-scope-label span {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notes-scope-clear {
+  flex: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.notes-scope-clear:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.notes-tree,
+.notes-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.notes-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 1rem;
+}
+.notes-tree-tome-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.notes-tree-tome:first-child > .notes-tree-tome-name {
+  margin-top: 0;
+}
+.notes-tree-tome-name:hover,
+.notes-tree-tome-name.current {
+  color: var(--text);
+}
+.notes-tree-none {
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+}
+.notes-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem 0.2rem calc(0.25rem + var(--depth, 0) * 1.1rem);
+  font-size: 0.875rem;
+  cursor: pointer;
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  outline-offset: -2px;
+}
+.notes-tree-row:hover {
+  background: var(--surface2);
+}
+.notes-tree-row.selected {
+  background: color-mix(in srgb, var(--accent), transparent 72%);
+}
+.notes-tree-row.drop-before {
+  border-top-color: var(--accent);
+}
+.notes-tree-row.drop-after {
+  border-bottom-color: var(--accent);
+}
+.notes-tree-row.drop-inside {
+  background: color-mix(in srgb, var(--accent), transparent 50%);
+}
+.notes-twisty {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  line-height: 1;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.notes-twisty.leaf {
+  visibility: hidden;
+}
+.notes-dot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--danger);
+}
+.notes-dot[data-level='1'] {
+  background: var(--ws);
+}
+.notes-dot[data-level='2'] {
+  background: var(--success);
+}
+.notes-dot[data-level='3'] {
+  background: var(--accent);
+}
+.notes-dot[data-level='4'] {
+  background: var(--ar);
+}
+.notes-node-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notes-splitter {
+  flex: none;
+  width: 5px;
+  background: var(--border);
+  cursor: col-resize;
+  touch-action: none;
+}
+.notes-splitter:hover,
+.notes-splitter:focus-visible,
+.notes-splitter.dragging {
+  background: var(--accent);
+}
+.notes-editor-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+}
+.notes-empty {
+  display: none;
+  margin: auto;
+  text-align: center;
+  color: var(--muted);
+}
+.notes-empty p {
+  margin-bottom: 0.75rem;
+}
+.notes-editor-pane.is-empty > :not(.notes-empty) {
+  display: none;
+}
+.notes-editor-pane.is-empty > .notes-empty {
+  display: block;
+}
+.notes-title {
+  flex: none;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: center;
+  min-width: 0;
+}
+.notes-title:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.notes-toolbar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.notes-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.25rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.notes-tool:hover {
+  background: var(--surface2);
+}
+.notes-tool.active {
+  background: color-mix(in srgb, var(--accent), transparent 65%);
+  border-color: var(--accent);
+}
+.notes-tool code {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+.notes-tool-sep {
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 0.25rem;
+  background: var(--border);
+}
+.notes-format {
+  height: 1.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+.notes-color {
+  position: relative;
+  flex-direction: column;
+  font-weight: 700;
+  line-height: 1;
+}
+.notes-color-hl {
+  padding: 0 0.2rem;
+  border-radius: 2px;
+  background: color-mix(in srgb, #facc15, transparent 45%);
+}
+.notes-color input {
+  width: 1.1rem;
+  height: 0.3rem;
+  padding: 0;
+  margin-top: 1px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.notes-color input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.notes-color input::-webkit-color-swatch {
+  border: none;
+}
+.notes-editor {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 1.5rem 3rem;
+  outline: none;
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.notes-editor p,
+.notes-editor ul,
+.notes-editor ol,
+.notes-editor table {
+  margin: 0 0 0.6rem;
+}
+.notes-editor ul,
+.notes-editor ol {
+  padding-left: 1.75rem;
+}
+.notes-editor h1,
+.notes-editor h2,
+.notes-editor h3 {
+  margin: 1rem 0 0.5rem;
+  line-height: 1.25;
+}
+.notes-editor h1 {
+  font-size: 1.6rem;
+}
+.notes-editor h2 {
+  font-size: 1.3rem;
+}
+.notes-editor h3 {
+  font-size: 1.1rem;
+}
+.notes-editor a {
+  color: var(--accent-text);
+}
+.notes-editor blockquote {
+  margin: 0 0 0.6rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+/* The browser Indent command also writes a blockquote: keep it a plain indent. */
+.notes-editor blockquote[style*='margin'] {
+  padding-left: 0;
+  border-left: none;
+  color: inherit;
+}
+.notes-editor pre:not(.cmd):not(.note-code) {
+  margin: 0 0 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--code-fg, var(--text));
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
+.notes-editor code {
+  font-family: var(--mono);
+  font-size: 0.875em;
+}
+.notes-editor :not(pre) > code {
+  padding: 0.1em 0.3em;
+  background: var(--code-bg);
+  border-radius: 4px;
+  color: var(--code-fg, var(--text));
+}
+.notes-editor hr {
+  margin: 0.75rem 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+.notes-editor table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.notes-editor td,
+.notes-editor th {
+  min-width: 3rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.notes-editor th {
+  background: var(--surface);
+  font-weight: 600;
+}
+.notes-editor td > p:last-child,
+.notes-editor th > p:last-child {
+  margin-bottom: 0;
+}
+.notes-table-tools {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.notes-table-tools[hidden] {
+  display: none;
+}
+.notes-find-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.notes-find-bar[hidden] {
+  display: none;
+}
+.notes-find-bar span {
+  margin-right: 0.4rem;
+}
+.notes-find-bar .notes-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+::highlight(notes-match) {
+  background-color: rgba(250, 204, 21, 0.4);
+}
+::highlight(notes-match-current) {
+  background-color: #f97316;
+  color: #000;
+}
+.note-command .note-match-field {
+  border-color: #facc15;
+  box-shadow: 0 0 0 1px #facc15;
+}
+.note-command .note-match-field.current {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px #f97316;
+}
+.notes-table-tools-label {
+  margin-right: 0.25rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.notes-table-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+.notes-table-form label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+.notes-table-form input[type='number'] {
+  width: 4.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+}
+.notes-table-header {
+  flex-basis: 100%;
+}
+.notes-status {
+  flex: none;
+  display: flex;
+  gap: 1rem;
+  padding: 0.2rem 0.75rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.notes-path {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#notes-saved.error {
+  color: var(--danger);
+}
+.notes-menu {
+  position: fixed;
+  z-index: 90;
+  min-width: 170px;
+  padding: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.notes-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+.notes-menu button:hover,
+.notes-menu button:focus-visible {
+  background: var(--surface2);
+  outline: none;
+}
+.notes-menu button:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: none;
+}
+.notes-menu hr {
+  margin: 0.25rem 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+

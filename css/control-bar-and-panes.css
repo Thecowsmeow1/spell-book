@@ -1,0 +1,511 @@
+/* Settings sections (tabs) */
+.settings-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 -1.5rem 1.1rem;
+  padding: 0.4rem 1.5rem 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.settings-tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.5rem 0.9rem;
+  margin-bottom: -1px;
+}
+.settings-tab:hover {
+  color: var(--text);
+}
+.settings-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.settings-panel[hidden] {
+  display: none;
+}
+.syntax-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+/* Quick-filter edit mode: × buttons appear, adding is paused */
+.filters.editing .filter-add {
+  display: none;
+}
+.filters.editing .filter-remove {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+/* Renamable section headers */
+.section-title[data-section] {
+  cursor: text;
+  border-radius: 3px;
+}
+.section-title[data-section]:hover,
+.section-title[data-section]:focus-visible {
+  outline: 1px dashed var(--border);
+  outline-offset: 2px;
+}
+.section-title-input {
+  width: 9rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  outline: none;
+}
+/* Linked data file */
+.data-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.data-banner > span {
+  flex: 1 1 18rem;
+}
+.data-banner .btn.secondary {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+.datafile-status {
+  margin: 0.4rem 0 0.7rem;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.check-row input {
+  margin-top: 0.2rem;
+}
+.filters.editing .filter-restore {
+  border-style: dashed;
+  color: var(--text);
+}
+.filters.editing .filter-item:has(> .filter-restore) {
+  grid-column: 1 / -1;
+}
+/* Pencil (rename) button, shown beside × in Edit mode */
+.filter-rename {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-left: 0;
+  color: var(--muted);
+  padding: 0 0.45rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.filter-rename:hover {
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+.filter-item .filter-rename + .filter-remove {
+  border-radius: 0 4px 4px 0;
+}
+/* Columns menu */
+.columns-button {
+  margin-left: auto;
+}
+.columns-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  font-size: 0.85rem;
+}
+.columns-menu-title {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.35rem 0.35rem;
+}
+.columns-menu label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.35rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.columns-menu label:hover {
+  background: var(--surface2);
+}
+.columns-menu .btn {
+  margin-top: 0.35rem;
+  align-self: flex-start;
+}
+/* Resizable side control bar */
+.spellbook-page {
+  position: relative;
+  --controls-width: 22rem;
+}
+.controls-resizer {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  z-index: 30;
+  cursor: col-resize;
+  touch-action: none;
+}
+.controls-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 2px;
+  background: transparent;
+}
+.controls-resizer:hover::after,
+.controls-resizer:focus-visible::after,
+.controls-resizer.dragging::after {
+  background: var(--accent);
+}
+.controls-resizer:focus-visible {
+  outline: none;
+}
+.spellbook-page[data-controls='left'] .controls-resizer {
+  display: block;
+  left: calc(var(--controls-width) - 5px);
+}
+.spellbook-page[data-controls='right'] .controls-resizer {
+  display: block;
+  right: calc(var(--controls-width) - 5px);
+}
+/* Buttons that cannot be used right now */
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn:disabled:hover {
+  background: revert-layer;
+}
+/* Tags row in the detail view (editable) */
+.entry-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+.tag-chip.editable {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-right: 0.2rem;
+  font-size: 0.74rem;
+}
+.tag-x {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  opacity: 0.6;
+}
+.tag-x:hover,
+.tag-x:focus-visible {
+  color: var(--danger);
+  opacity: 1;
+  outline: none;
+}
+.tag-add-input {
+  width: 7.5rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.74rem;
+  outline: none;
+}
+.tag-add-input:focus {
+  border-style: solid;
+  border-color: var(--accent);
+}
+/* Suggestions while typing a tag in the detail view */
+.tag-add-wrap {
+  position: relative;
+  display: inline-block;
+}
+.tag-suggest {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 25;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-width: 14rem;
+  max-width: 24rem;
+  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.tag-suggest[hidden] {
+  display: none;
+}
+.tag-suggest .tag-pick.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.tag-suggest-hint {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+/* Fold-away toggle beside each section name */
+.section-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.section-toggle {
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.15rem 0.3rem;
+}
+.section-toggle:hover,
+.section-toggle:focus-visible {
+  background: var(--surface2);
+  color: var(--text);
+  outline: none;
+}
+.controls-section.collapsed .section-actions,
+.controls-section.collapsed .filters {
+  display: none;
+}
+/* Table beside details (instead of above) */
+.spellbook-page[data-panes='side'] .main {
+  flex-direction: row;
+}
+.spellbook-page[data-panes='side'] .table-wrap {
+  flex: 0 0 55%;
+  min-width: 260px;
+  min-height: 0;
+}
+.spellbook-page[data-panes='side'] .splitter {
+  flex: 0 0 8px;
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  cursor: col-resize;
+}
+.spellbook-page[data-panes='side'] .splitter::after {
+  width: 2px;
+  height: 40px;
+}
+.spellbook-page[data-panes='side'] .detail {
+  min-width: 260px;
+  min-height: 0;
+}
+/* Table pane docked in the control bar */
+.dock-splitter {
+  display: none;
+}
+.spellbook-page[data-table-dock='control'] > header {
+  overflow: hidden;
+  gap: 0;
+  padding-bottom: 0;
+}
+.spellbook-page[data-table-dock='control'] .control-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 0 0 45%;
+  min-height: 120px;
+  overflow-y: auto;
+  padding-bottom: 0.75rem;
+}
+.spellbook-page[data-table-dock='control'] .dock-splitter {
+  display: block;
+  flex: 0 0 8px;
+  margin: 0 -1.25rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-left: 0;
+  padding: 0;
+  cursor: row-resize;
+  touch-action: none;
+  position: relative;
+}
+.spellbook-page[data-table-dock='control'] .dock-splitter[hidden] {
+  display: none;
+}
+.dock-splitter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 2px;
+  transform: translate(-50%, -50%);
+  background: var(--muted);
+  border-radius: 1px;
+}
+.dock-splitter:hover,
+.dock-splitter:focus-visible,
+.dock-splitter.dragging {
+  background: var(--surface2);
+  outline: none;
+}
+.dock-splitter:hover::after,
+.dock-splitter:focus-visible::after,
+.dock-splitter.dragging::after {
+  background: var(--accent);
+}
+.spellbook-page[data-table-dock='control'] > header > .table-wrap {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 120px;
+  margin: 0 -1.25rem;
+  border-top: 0;
+}
+.spellbook-page[data-table-dock='control'] .main > .splitter {
+  display: none;
+}
+.spellbook-page[data-table-dock='control'] .main {
+  flex-direction: column;
+}
+/* Card list (table pane on the left) */
+.list-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.list-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.list-sort {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.78rem;
+}
+.card-list {
+  padding: 0.5rem;
+}
+.cmd-card {
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.cmd-card:hover,
+.cmd-card:focus-visible {
+  background: var(--surface2);
+  outline: none;
+}
+.cmd-card.active {
+  background: var(--surface2);
+  border-color: var(--accent);
+}
+.cmd-card .card-title {
+  margin-bottom: 0.2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.cmd-card .card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.cmd-card .card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+/* Layout options at the bottom right of the counters */
+.layout-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+.layout-seg {
+  display: flex;
+}
+.layout-seg .btn {
+  flex: 1;
+}
+.layout-seg .btn {
+  border-radius: 0;
+}
+.layout-seg .btn:first-child {
+  border-radius: 6px 0 0 6px;
+}
+.layout-seg .btn:last-child {
+  border-radius: 0 6px 6px 0;
+}
+.layout-seg .btn + .btn {
+  border-left: 1px solid var(--border);
+}
+.layout-seg .btn.active {
+  background: var(--accent);
+  color: #fff;
+}
