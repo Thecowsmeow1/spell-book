@@ -1,6 +1,6 @@
 # Spell Book
 
-**Version 6 — 20261025**
+**Version 7 — 20261105**
 
 Spell Book is a local-first reference for commands, scripts, and technical terminology. It runs in a browser using HTML, CSS, and JavaScript, without an account, database server, or installation. Open `index.html` directly to use it. Some file-linking features depend on browser support.
 
@@ -11,8 +11,20 @@ Spell Book is a local-first reference for commands, scripts, and technical termi
 3. Select **Spell Book** at the top. Choose a Command, Script, or Term filter and browse or search entries.
 4. Click **+ New Command**, **+ New Script**, or **+ New Term**, or press **A** outside an input to choose what to create.
 5. Use **Link** and **Save** in the sidebar to manage a linked data file or download a backup. Export individual collections separately when needed.
+6. Select **Compendium** to keep notes; see **Compendium** below.
 
-The **Guides** and **Templates** top-level pages are placeholders in this release; they do not yet contain a completed guide or template system.
+## Compendium
+
+The **Compendium** keeps CherryTree style notes: a tree of nodes on the left and a text editor on the right. Notes are saved in the browser as you type and are included in linked data files and backups.
+
+- **Tomes:** notes are grouped into tomes, shown as tabs above the tree. **+ Tome** starts a new one; double-click a tab to rename it, or right-click it to rename, seal or delete it. Guides and templates live here as tomes.
+- **Nodes:** **+ Node** and **+ Subnode** add notes, and dragging a node moves it. Right-click a node for more, including **Move Up/Down** and **Move In/Out a Level**. Arrow keys move through the tree, **F2** renames and **Delete** deletes.
+- **Editor:** headings, bold, italic, underline, strikethrough, colors, lists, alignment, links, horizontal lines and tables. Inline code (`</>`) is for a short piece of code inside a sentence. The code block button, or **Code block** in the paragraph style list, adds a block of code with a language picker and the same syntax colors as the Spell Book.
+- **Insert Command, Insert Script, Insert Term:** a command card shows the command's variable fields and generated command; values typed into it are saved with that card in that note only. A script card shows the script, and a term becomes a link in the text. Cards have **Edit**, which opens the Spell Book's edit window without leaving the note, and **View in Spell Book**. Each Spell Book entry lists the notes that use it under **Linked in n notes**.
+- **Sealing:** right-click a node and choose **Seal Branch** to make it and everything inside it read-only, or **Seal Tome** on a tab for a whole tome. Sealed notes can't be typed in, renamed, moved or deleted, and their command fields are locked. **Unseal** makes them editable again. Seals guard against accidental edits; anyone can unseal.
+- **Search:** the search box covers the open tome, **This branch** (the selected node and its subnodes) or **All tomes**. Matches are highlighted in the open note; Enter and Shift+Enter, or the arrows beside the count, jump between them.
+
+The **←** and **→** buttons beside the logo go back to whatever you were looking at before (the previous command, script, term or note, on either page) and forward again. Settings → Layout & Theme can hide them, and the Scratch pad too.
 
 ## Commands, Scripts, and Terms
 
@@ -61,7 +73,7 @@ Shortcuts should not override normal typing in input fields.
 
 Deleted entries may be moved to **Trash**, where supported, so they can be restored or permanently removed. Green `+N` and red `-N` indicators track changes relative to the applicable import/baseline state. A `(N shown)` counter is a view/filter indicator, not a count of newly added records. Import operations can reset the change baseline.
 
-## Project Files (Version 5)
+## Project Files (Version 7)
 
 ```text
 spell-book-experimental/
@@ -71,6 +83,7 @@ spell-book-experimental/
 ├── js/
 │   ├── app.js                 Commands, scripts, terms, imports, filters
 │   ├── settings.js            Settings and backup controls
+│   ├── notes.js               Compendium: tomes, notes editor, sealing
 │   ├── datafile.js            Linked JSON storage, backup and restore
 │   └── highlight.js           Syntax highlighting
 ├── data/
@@ -89,9 +102,30 @@ The bundled JSON files seed a fresh browser over HTTP(S). On `file://`, the opti
 
 ## About This README
 
-This documentation is currently embedded in `index.html` as `<script id="readme-source" type="text/x-readme">`. The **About** dialog reads that embedded text. There is no separate `README.md` in this archive, and no fetch of a Markdown file is required to display this guide from `file://`.
+This documentation is currently embedded in `index.html` as `<script id="readme-source" type="text/x-readme">`. The **About** dialog reads that embedded text. `README.md` holds the same text for reading outside the app; keep the two in step. No fetch of a Markdown file is required to display this guide from `file://`.
 
 ## Version History
+
+Version 7 -- 20261105
+
+Summary: added the Compendium (a notes page with tomes, sealing, Spell Book links and highlighted code), Back and Forward buttons, live syntax colors in the command and script editors, three new settings, a new logo, and light mode readability fixes. The Guides and Templates pages were removed; guides and templates now live in the Compendium as tomes.
+
+- `js/notes.js` (new): The Compendium page. Tome tabs; a node tree with add, rename, delete, drag and drop, a right-click menu and keyboard control; and a rich text editor with formatting, colors, lists, links, tables, inline code and highlighted code blocks with a language picker. Insert Command, Insert Script and Insert Term add cards and links that point to the Spell Book; command cards keep their variable values per note, and cards have **Edit** and **View in Spell Book** buttons. Branches and whole tomes can be sealed (read-only) and unsealed. Search covers the open tome, the selected branch or all tomes, highlights matches in the open note and jumps between them. Everything pasted, dropped or loaded passes through an HTML allowlist sanitizer. Notes autosave to `spellbook_notes_v1`; notes from before tomes are moved into a tome named "Notes" without loss.
+- `js/app.js`: **Linked in n notes** on command, script and term details. Links into the app (`#/command/<id>`, `#/script/<id>`, `#/term/<id>`, `#/compendium/<node>/...`; the old `#/notes` address still works). Back and Forward history across both pages. A setting for selecting one quick filter at a time or several. The New and Edit windows can be opened from the Compendium, for new entries or existing ones. Live syntax colors in the Command Template, Example and Script fields, following the platform or language field. The Guides and Templates pages were removed.
+- `js/settings.js`: New Layout & Theme settings for **Quick filters** (several at once or one at a time), **Back and Forward buttons** (show or hide) and **Scratch pad** (show or hide; its hide button had been unreachable since Version 5 hid the old layout toolbar). Resetting settings restores all three.
+- `index.html`: Compendium navigation and page, the Insert picker, an in-app confirm/input dialog (the browser's own dialogs are unreliable in some embedded browsers), table tools, the search match bar and the sealed-note bar. Back and Forward buttons, the new settings, and the new logo and browser tab icon (`icons/bookSB256BW.png`). New preview icons for the Layout settings (`icons/Side-Layout.png` and `icons/2L1R-Layout-thick-mirrored.png`). Guides and Templates removed. The embedded README matches this file.
+- `styles.css`: Styles for the Compendium (tabs, tree, editor, cards, code blocks, sealed notes, search highlights) and for the highlighted code fields. Light mode fixes: grey buttons now use the theme's text color, and accent-colored text (links, headings) is automatically darkened through the new `--accent-text` color so it stays readable on white. **View in Spell Book** is a button, **+ Tome** looks like a tab, and the tab bar no longer shows a stray scrollbar.
+- `README.md` and `DEVELOPER_NOTES.md`: Documented the Compendium, its storage format, links, sealing, Back and Forward, and the highlighted code fields; added this entry.
+- `.claude/launch.json` (new, development only): starts a local preview server with `python -m http.server 8765`.
+
+Known limitations in Version 7:
+
+- Notes saved by Version 7 use a new format that older versions can't read; keep a backup before opening the same browser data with an older copy.
+- Nodes can't be moved from one tome to another yet.
+- Seals prevent accidental edits but are not security; anyone can unseal.
+- Undoing a table edit can occasionally leave an extra blank line.
+- The Spell Book's own Delete buttons still use the browser's confirm dialog.
+- Not yet tested when opening `index.html` directly from disk (`file://`); tested over a local web server.
 
 Version 6 -- 20261025
 
@@ -107,7 +141,7 @@ Version 5 -- 20261025
 
 - `js/settings.js` and `styles.css`: Updated Settings startup behavior and linked-file button status; enlarged and vertically stacked Link/Linked and Save controls at the right of the sidebar counters.
 
-- Preserved the embedded README, existing storage formats, and import/export workflows. Guides, Notes, and import ID-collision improvements remain future work.
+- Preserved the embedded README, existing storage formats, and import/export workflows. Guides and import ID-collision improvements remain future work.
 
 Version 4 -- 20260926
 
