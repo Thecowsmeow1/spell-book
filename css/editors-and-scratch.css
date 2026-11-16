@@ -1,0 +1,531 @@
+/* Tag input in the Add / Edit windows */
+.tag-input {
+  position: relative;
+}
+.tag-input-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.4rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: text;
+}
+.tag-input-box:focus-within {
+  border-color: var(--accent);
+}
+.tag-input .tag-input-field {
+  flex: 1 1 8rem;
+  width: auto;
+  min-width: 6rem;
+  padding: 0.2rem 0.1rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-size: 0.85rem;
+}
+.tag-input .tag-input-field:focus {
+  border: 0;
+}
+.tag-input-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: 10rem;
+  overflow-y: auto;
+  padding: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.tag-input-panel[hidden] {
+  display: none;
+}
+.tag-input-panel .tag-pick.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+/* Wide, resizable Add / Edit windows */
+.modal.resizable-modal {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  margin: 0;
+  width: min(1040px, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+  min-width: min(480px, calc(100vw - 2rem));
+  min-height: 320px;
+  overflow: auto;
+  resize: both;
+}
+.modal.resizable-modal::-webkit-resizer {
+  background: linear-gradient(
+    135deg,
+    transparent 50%,
+    var(--muted) 50%,
+    var(--muted) 58%,
+    transparent 58%,
+    transparent 72%,
+    var(--muted) 72%,
+    var(--muted) 80%,
+    transparent 80%
+  );
+}
+/* Variables editor (Edit window) */
+.var-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.var-empty {
+  padding: 0.7rem;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.var-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+}
+.var-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.var-card .var-name {
+  flex: 1 1 12rem;
+  font-family: var(--mono);
+}
+.var-card .var-type {
+  flex: 1 1 14rem;
+  font-family: var(--mono);
+}
+.var-card input,
+.var-card textarea {
+  width: auto;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.85rem;
+  background: var(--surface);
+}
+.var-card .var-description {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+}
+.var-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.var-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.var-card .var-info-label {
+  flex: 0 1 15rem;
+}
+.var-card .var-info-value {
+  flex: 1 1 10rem;
+}
+.var-info-actions,
+.var-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.var-editor-actions {
+  margin-top: 0.5rem;
+}
+/* Variable reference in the detail pane */
+.var-ref {
+  margin-bottom: 1rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--border);
+}
+.var-ref-head {
+  font-family: var(--mono);
+  font-size: 0.88rem;
+}
+.var-ref-head code {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.var-ref-type {
+  color: var(--muted);
+}
+.var-ref-desc {
+  margin: 0.25rem 0 0.4rem 1rem;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+.var-ref-info {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.1rem 2rem;
+  margin: 0 0 0 1rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+.var-ref-info dt {
+  color: var(--muted);
+}
+.var-field-type {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+.var-field-desc {
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+}
+/* Scratch pad */
+.scratchpad {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 11rem; /* default height; the divider above changes it */
+  min-height: 6rem;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem 0.75rem;
+  background: var(--surface);
+}
+.scratchpad[hidden] {
+  display: none;
+}
+.scratchpad-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.scratchpad-title {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.scratchpad-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+.scratchpad-actions .btn {
+  padding: 0.15rem 0.45rem;
+  font-size: 0.72rem;
+}
+.scratchpad textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 3rem;
+  height: auto;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-family: var(--font-scratch, var(--mono));
+  font-size: 0.82rem;
+  line-height: 1.45;
+  resize: none;
+}
+.scratchpad textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+/* In the control bar (control bar on the left or right). The sections scroll
+   above it, so the pad and its divider stay at the bottom of the bar. */
+.spellbook-page[data-controls='left']:not([data-table-dock='control']) > header,
+.spellbook-page[data-controls='right']:not([data-table-dock='control'])
+  > header {
+  overflow: hidden;
+  gap: 0;
+  padding-bottom: 0;
+}
+.spellbook-page[data-controls='left']:not([data-table-dock='control'])
+  .control-sections,
+.spellbook-page[data-controls='right']:not([data-table-dock='control'])
+  .control-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1 1 0;
+  min-height: 120px;
+  overflow-y: auto;
+  padding-bottom: 0.75rem;
+}
+.spellbook-page[data-controls='left'] > header > .scratchpad,
+.spellbook-page[data-controls='right'] > header > .scratchpad {
+  flex: 0 0 12rem;
+  min-height: 6rem;
+  margin: 0 -1.25rem;
+  padding: 0.75rem 1.25rem 0.9rem;
+}
+/* With the table docked in the control bar the pad keeps a fixed height */
+.spellbook-page[data-table-dock='control'] > header > .scratchpad {
+  flex: 0 0 12rem;
+}
+/* Draggable divider above the scratch pad */
+.scratch-splitter {
+  flex: 0 0 8px;
+  position: relative;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  cursor: row-resize;
+  touch-action: none;
+}
+.scratch-splitter[hidden] {
+  display: none;
+}
+.scratch-splitter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 2px;
+  transform: translate(-50%, -50%);
+  background: var(--muted);
+  border-radius: 1px;
+}
+.scratch-splitter:hover,
+.scratch-splitter:focus-visible,
+.scratch-splitter.dragging {
+  background: var(--surface2);
+  outline: none;
+}
+.scratch-splitter:hover::after,
+.scratch-splitter:focus-visible::after,
+.scratch-splitter.dragging::after {
+  background: var(--accent);
+}
+/* In the control bar the divider spans the bar's full width */
+.spellbook-page[data-controls='left'] > header > .scratch-splitter,
+.spellbook-page[data-controls='right'] > header > .scratch-splitter {
+  margin: auto -1.25rem 0;
+}
+
+/* Options (man page style) in the editor and the reference */
+.var-card.option {
+  border-left-color: var(--success);
+}
+.option-heading {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--success);
+}
+.var-card .var-short {
+  flex: 0 1 8rem;
+  font-family: var(--mono);
+}
+.var-card .var-long {
+  flex: 1 1 12rem;
+  font-family: var(--mono);
+}
+.var-card .var-argument {
+  flex: 1 1 12rem;
+  font-family: var(--mono);
+}
+.var-paste {
+  margin-top: 0.6rem;
+}
+.var-paste textarea {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+.var-paste-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.var-paste-message {
+  color: var(--danger);
+  font-size: 0.78rem;
+}
+.toggle-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+/* Import / export buttons that belong to one Settings tab */
+.theme-io-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+  margin: 0.9rem 0 1rem;
+}
+.theme-io-row .form-hint {
+  flex-basis: 100%;
+  margin-top: 0;
+}
+.var-ref-details {
+  margin: 0 0 0.4rem 1rem;
+}
+.var-ref-details > summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.var-ref-details > .var-ref-desc {
+  margin-left: 0;
+}
+/* Settings > Fonts */
+.font-settings {
+  display: grid;
+  gap: 0.6rem;
+}
+.font-row {
+  display: grid;
+  grid-template-columns: 1fr 14rem;
+  align-items: center;
+  gap: 1rem;
+}
+.detail-actions-bottom {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+.options-section > summary {
+  cursor: pointer;
+  list-style-position: inside;
+}
+.options-section > summary > h3 {
+  display: inline;
+}
+.var-ref-details > .var-ref-info {
+  margin-top: 0.25rem;
+}
+
+/* Consistent quick-filter button sizing across Commands, Scripts and Terms. */
+.scripts-filters .filter-btn, .terms-filters .filter-btn {
+  box-sizing: border-box; min-height: 2rem; padding: 0.35rem 0.7rem;
+  font-size: 0.8rem; border-radius: 4px;
+}
+/* Keep legacy elements available to existing event listeners. */
+.layout-switch[hidden], #btn-columns[hidden] { display: none !important; }
+/* Visual settings choices retain their existing radio input and persistence. */
+.layout-options label:has(.layout-preview) {
+  display: inline-flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 0.35rem; width: 9.5rem;
+  min-height: 7.5rem; padding: 0.65rem;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface2); text-align: center;
+}
+.layout-options label:has(.layout-preview):has(input:checked) {
+  border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent);
+}
+.layout-preview { display: block; width: 100%; max-width: 7rem;
+  height: 4rem; object-fit: contain; }
+
+
+/* Equal-width filters at every sidebar size, including after pane resizing. */
+.spellbook-page[data-controls='left'] .filters,
+.spellbook-page[data-controls='right'] .filters {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-columns: minmax(0, 1fr);
+}
+.spellbook-page[data-controls='left'] .filters > *,
+.spellbook-page[data-controls='right'] .filters > * {
+  min-width: 0;
+  width: 100%;
+}
+.spellbook-page[data-controls='left'] .filters .filter-btn,
+.spellbook-page[data-controls='right'] .filters .filter-btn {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+.settings-divider { border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+/* Top mode: equal-width filter cells within each repository, including when resized. */
+.spellbook-page[data-controls='top'] .filters {
+  grid-auto-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+}
+.spellbook-page[data-controls='top'] .filters > .filter-item,
+.spellbook-page[data-controls='top'] .filters > .filter-btn {
+  min-width: 0;
+  width: 100%;
+}
+.spellbook-page[data-controls='top'] .filters .filter-btn {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-create-choices { display:grid; gap:0.6rem; margin:1rem 0; }
+.quick-create-choices button { display:flex; justify-content:space-between; align-items:center; }
+.quick-create-choices kbd { font-family:var(--mono); border:1px solid var(--border); padding:0.1rem 0.4rem; border-radius:4px; }
+
+.category-input-wrap { position: relative; width: 100%; }
+.category-input-wrap > input { width: 100%; }
+.category-input-panel { position: absolute; left: 0; right: 0; top: calc(100% + 3px); z-index: 150; max-height: 190px; overflow-y: auto; }
+
+/* Keep data-file shortcuts alongside the counters in every control-bar layout. */
+.data-quick-actions { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+.data-quick-actions .btn { white-space: nowrap; }
+
+/* Quick data actions: center the pair in the available counter-row space. */
+.data-quick-actions { justify-content: center; gap: .65rem; }
+.data-quick-actions .btn { padding: .55rem .95rem; font-size: .9rem; min-height: 2.3rem; }
+.data-quick-actions .quick-link-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Data shortcuts: vertical stack anchored at the right of the counter area. */
+.header-left > .data-quick-actions {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  align-self: center;
+}
+.header-left > .data-quick-actions .btn {
+  min-width: 5.5rem;
+  text-align: center;
+}
+
+/* Small save timestamp under the stacked quick-save button. */
+.header-left > .data-quick-actions .quick-save-time {
+  font-size: .68rem;
+  line-height: 1.1;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}
+

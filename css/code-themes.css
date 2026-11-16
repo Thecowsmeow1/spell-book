@@ -1,0 +1,121 @@
+/* Code block themes (chosen in Settings). With none chosen, code blocks use
+   the app's own colors. */
+:root[data-code-theme='midnight'] {
+  --code-bg: #0b1020;
+  --code-fg: #c9d1e8;
+  --code-border: #26304f;
+  --tok-comment: #5c6b8f;
+  --tok-string: #9ece6a;
+  --tok-variable: #7dcfff;
+  --tok-keyword: #bb9af7;
+  --tok-function: #7aa2f7;
+  --tok-number: #ff9e64;
+  --tok-flag: #e0af68;
+  --tok-placeholder: #e0af68;
+  --tok-operator: #89ddff;
+}
+:root[data-code-theme='terminal'] {
+  --code-bg: #020a04;
+  --code-fg: #4cff7a;
+  --code-border: #17462a;
+  --tok-comment: #2f8a4a;
+  --tok-string: #b5ff6d;
+  --tok-variable: #2dd4bf;
+  --tok-keyword: #4cff7a;
+  --tok-function: #8dffb0;
+  --tok-number: #e6ff6d;
+  --tok-flag: #7dffa1;
+  --tok-placeholder: #ffe66d;
+  --tok-operator: #4cff7a;
+}
+:root[data-code-theme='solarized'] {
+  --code-bg: #002b36;
+  --code-fg: #93a1a1;
+  --code-border: #0b4755;
+  --tok-comment: #586e75;
+  --tok-string: #2aa198;
+  --tok-variable: #b58900;
+  --tok-keyword: #859900;
+  --tok-function: #268bd2;
+  --tok-number: #d33682;
+  --tok-flag: #cb4b16;
+  --tok-placeholder: #b58900;
+  --tok-operator: #859900;
+}
+:root[data-code-theme='dracula'] {
+  --code-bg: #282a36;
+  --code-fg: #f8f8f2;
+  --code-border: #44475a;
+  --tok-comment: #6272a4;
+  --tok-string: #f1fa8c;
+  --tok-variable: #8be9fd;
+  --tok-keyword: #ff79c6;
+  --tok-function: #50fa7b;
+  --tok-number: #bd93f9;
+  --tok-flag: #ffb86c;
+  --tok-placeholder: #ffb86c;
+  --tok-operator: #ff79c6;
+}
+:root[data-code-theme='monokai'] {
+  --code-bg: #272822;
+  --code-fg: #f8f8f2;
+  --code-border: #3e3d32;
+  --tok-comment: #75715e;
+  --tok-string: #e6db74;
+  --tok-variable: #fd971f;
+  --tok-keyword: #f92672;
+  --tok-function: #a6e22e;
+  --tok-number: #ae81ff;
+  --tok-flag: #66d9ef;
+  --tok-placeholder: #fd971f;
+  --tok-operator: #f92672;
+}
+:root[data-code-theme='paper'] {
+  --code-bg: #fbf7ee;
+  --code-fg: #3b3a36;
+  --code-border: #ded6c2;
+  --tok-comment: #8a8576;
+  --tok-string: #3b7d2a;
+  --tok-variable: #0f766e;
+  --tok-keyword: #8a3ea8;
+  --tok-function: #1f5fbf;
+  --tok-number: #b4540a;
+  --tok-flag: #9a6700;
+  --tok-placeholder: #b4540a;
+  --tok-operator: #8a3ea8;
+}
+.code-preview {
+  margin: 0.5rem 0;
+}
+.code-theme-row {
+  margin-bottom: 0;
+}
+/* Syntax highlighting inside code blocks */
+.tok-comment {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+.tok-string {
+  color: var(--tok-string);
+}
+.tok-variable {
+  color: var(--tok-variable);
+}
+.tok-keyword {
+  color: var(--tok-keyword);
+}
+.tok-function {
+  color: var(--tok-function);
+}
+.tok-number {
+  color: var(--tok-number);
+}
+.tok-flag {
+  color: var(--tok-flag);
+}
+.tok-placeholder {
+  color: var(--tok-placeholder);
+}
+.tok-operator {
+  color: var(--tok-operator);
+}
