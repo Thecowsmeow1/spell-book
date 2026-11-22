@@ -221,7 +221,7 @@
 }
 
 /* Highlighted code fields: the textarea's text is transparent and a colored
-   copy (.code-field-view) sits behind it; attachCodeHighlighting() in app.js
+   copy (.code-field-view) sits behind it; attachCodeHighlighting() in spells.js
    copies the textarea's font, padding and wrapping onto the copy. */
 .code-field {
   position: relative;
@@ -364,6 +364,44 @@
 .nav-link:hover {
   color: var(--text);
   background: var(--surface2);
+}
+/* Drag handles (js/core/reorder.js): faint until the item is hovered. */
+.reorder-handle {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.85rem;
+  margin-right: 0.35rem;
+  vertical-align: -0.1rem;
+  flex: none;
+  cursor: grab;
+  opacity: 0.25;
+  background-image: radial-gradient(currentColor 1px, transparent 1.3px);
+  background-size: 4px 4px;
+  background-position: 0 0;
+  touch-action: none;
+}
+:hover > .reorder-handle,
+.reorder-handle:hover {
+  opacity: 0.8;
+}
+body.reordering,
+body.reordering * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+.reorder-dragging {
+  opacity: 0.5;
+}
+.reorder-before {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.reorder-after {
+  box-shadow: inset -2px 0 0 var(--accent);
+}
+/* One tab, nothing to reorder. */
+.nav-links > .nav-link:only-child > .reorder-handle,
+.nav-links.single-tab > .nav-link > .reorder-handle {
+  display: none;
 }
 .nav-link.active {
   color: var(--text);
@@ -525,7 +563,7 @@
   gap: 0.4rem;
   cursor: pointer;
 }
-/* Light / dark toggle: sun while in dark mode, crescent moon in light mode */
+/* Icon-only buttons (the top bar's). */
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -535,12 +573,43 @@
 .icon-btn svg {
   display: block;
 }
-#btn-mode .icon-moon,
-#btn-mode[data-mode='light'] .icon-sun {
-  display: none;
+/* Light / dark mode in Settings → Layout & Theme: two choices, each with
+   its icon and name; the one in use is filled with the accent. */
+.mode-choice {
+  display: inline-flex;
+  margin: 0 0 1rem;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 8px;
+  background: var(--surface2);
 }
-#btn-mode[data-mode='light'] .icon-moon {
-  display: block;
+.mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.mode-option svg {
+  width: 16px;
+  height: 16px;
+}
+.mode-option:hover {
+  color: var(--text);
+}
+.mode-option.active {
+  background: var(--accent);
+  color: #fff;
+}
+.mode-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 /* Wider Settings window; names left, color controls in a fixed right-hand slot */
 .modal.has-sticky-actions {
@@ -563,4 +632,104 @@
   display: flex;
   gap: 0.5rem;
   margin-right: auto;
+}
+
+/* Theme presets (js/settings.js "Theme presets"): a small picture of each
+   preset's colors in the current light / dark mode. */
+.theme-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.75rem, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.theme-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.35rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.theme-preset:hover {
+  border-color: var(--muted);
+}
+.theme-preset[aria-checked='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.theme-preset-swatch {
+  display: block;
+  height: 3rem;
+  padding: 0.4rem;
+  border: 1px solid;
+  border-radius: 5px;
+}
+.theme-preset-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  height: 100%;
+  padding: 0.35rem;
+  border: 1px solid;
+  border-radius: 4px;
+}
+.theme-preset-line {
+  display: block;
+  width: 70%;
+  height: 3px;
+  border-radius: 2px;
+}
+.theme-preset-line.short {
+  width: 45%;
+}
+.theme-preset-accent {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.3rem;
+  width: 0.9rem;
+  height: 0.5rem;
+  border-radius: 3px;
+}
+.theme-preset-name {
+  text-align: center;
+}
+.theme-preset-custom {
+  margin: -0.4rem 0 0.75rem;
+}
+
+/* Settings → Layout & Theme → Tabs: a switch per tab (js/settings.js). */
+.tab-switches-field {
+  display: block;
+  margin-top: 1.1rem;
+  padding: 0;
+}
+.tab-switches-field .form-hint {
+  margin: 0.5rem 0 0;
+}
+.tab-switches {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.25rem 0 0.5rem;
+}
+.tab-switches label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.tab-switches .tab-switch-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.tab-switches-reload {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }

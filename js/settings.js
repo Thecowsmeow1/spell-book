@@ -3,8 +3,9 @@
  *
  * Reads and writes appearance preferences in localStorage, then reflects
  * them into CSS custom properties and data attributes. The HTML controls are
- * declared in index.html; app.js provides shared rendering/persistence helpers
- * such as normalizeHex(), downloadFile(), and category-color functions.
+ * declared in index.html; js/core/util.js provides normalizeHex() and
+ * downloadFile(). Each tab adds its own Settings tab (settingsSection) and
+ * hears spellbook:settings-open and spellbook:settings-reset.
  */
 // ─── Settings ─────────────────────────────────────────────────────────
 const SETTINGS_KEY = 'cmdref_settings_v1'
@@ -98,7 +99,142 @@ function applyTheme(overrides = loadSettings()) {
     if (overrides[key]) style.setProperty(`--${key}`, overrides[key])
     else style.removeProperty(`--${key}`)
   })
+  // Buttons darken on hover: follow a chosen accent instead of the default blue.
+  if (overrides.accent) style.setProperty('--accent-hover', `color-mix(in srgb, ${overrides.accent}, #000 15%)`)
+  else style.removeProperty('--accent-hover')
+  // For anything that follows the colors (a game on the Games tab).
+  document.dispatchEvent(new CustomEvent('spellbook:theme'))
 }
+
+// ─── Theme presets ────────────────────────────────────────────────────
+// Each preset sets the seven Application Theme colors, with a dark and a
+// light version; the light / dark button switches between them. Default is
+// the stylesheet's own colors. Changing any color by hand makes it Custom.
+// Category colors (badges and filters) are left as they are.
+const PRESET_KEYS = ['bg', 'surface', 'surface2', 'border', 'text', 'muted', 'accent']
+const THEME_PRESETS = [
+  { id: 'default', name: 'Default' },
+  {
+    id: 'midnight',
+    name: 'Midnight',
+    dark: { bg: '#0b0b10', surface: '#15151d', surface2: '#1f1f2a', border: '#2c2c3a', text: '#e6e6ef', muted: '#9090a6', accent: '#8b5cf6' },
+    light: { bg: '#f4f3f8', surface: '#ffffff', surface2: '#ebe9f3', border: '#d3d0e0', text: '#1d1b29', muted: '#5f5b72', accent: '#7c3aed' },
+  },
+  {
+    id: 'forest',
+    name: 'Forest',
+    dark: { bg: '#0d1410', surface: '#142019', surface2: '#1c2c23', border: '#28392e', text: '#e3ece5', muted: '#8fa596', accent: '#16a34a' },
+    light: { bg: '#f2f6f2', surface: '#ffffff', surface2: '#e4ede6', border: '#c7d6cb', text: '#18241c', muted: '#536457', accent: '#15803d' },
+  },
+  {
+    id: 'ocean',
+    name: 'Ocean',
+    dark: { bg: '#071318', surface: '#0e1f27', surface2: '#152b35', border: '#1f3a46', text: '#e0f0f4', muted: '#86a8b4', accent: '#0891b2' },
+    light: { bg: '#f0f7f9', surface: '#ffffff', surface2: '#e0eef2', border: '#c3dbe2', text: '#102a33', muted: '#4e6a74', accent: '#0e7490' },
+  },
+  {
+    id: 'ember',
+    name: 'Ember',
+    dark: { bg: '#14100d', surface: '#1f1814', surface2: '#2a211b', border: '#3a2e25', text: '#f0e7df', muted: '#a8978a', accent: '#d4691c' },
+    light: { bg: '#faf6f1', surface: '#ffffff', surface2: '#f1e8de', border: '#dccdbd', text: '#2a1f17', muted: '#6e5d4f', accent: '#c2410c' },
+  },
+  {
+    id: 'dusk',
+    name: 'Dusk',
+    dark: { bg: '#130f1a', surface: '#1d1726', surface2: '#282033', border: '#372c45', text: '#ede6f3', muted: '#a093b0', accent: '#db2777' },
+    light: { bg: '#faf5f8', surface: '#ffffff', surface2: '#f2e8ef', border: '#dfccd9', text: '#2a1a26', muted: '#6b5566', accent: '#be185d' },
+  },
+  {
+    id: 'graphite',
+    name: 'Graphite',
+    dark: { bg: '#121212', surface: '#1c1c1c', surface2: '#262626', border: '#343434', text: '#e8e8e8', muted: '#9a9a9a', accent: '#607d8b' },
+    light: { bg: '#f5f5f5', surface: '#ffffff', surface2: '#ebebeb', border: '#d4d4d4', text: '#1f1f1f', muted: '#5c5c5c', accent: '#475569' },
+  },
+]
+
+// A preset's colors in the current mode.
+function presetColors(preset) {
+  if (!preset.dark) {
+    const defaults = readCssDefaults()
+    return Object.fromEntries(PRESET_KEYS.map((key) => [key, defaults[key]]))
+  }
+  return preset[loadMode()]
+}
+
+// The preset the current colors match, or 'custom'.
+function currentPreset() {
+  const theme = effectiveTheme()
+  const match = THEME_PRESETS.find((preset) => {
+    const colors = presetColors(preset)
+    return PRESET_KEYS.every((key) => sameColor(theme[key], colors[key]))
+  })
+  return match ? match.id : 'custom'
+}
+
+function applyPreset(id) {
+  const preset = THEME_PRESETS.find((p) => p.id === id)
+  if (!preset) return
+  // Category colors you set are kept; the preset's colors replace the rest.
+  const overrides = loadSettings()
+  PRESET_KEYS.forEach((key) => delete overrides[key])
+  const defaults = readCssDefaults()
+  const colors = presetColors(preset)
+  PRESET_KEYS.forEach((key) => {
+    if (!sameColor(colors[key], defaults[key])) overrides[key] = normalizeHex(colors[key])
+  })
+  saveSettings(overrides)
+  applyTheme(overrides)
+  fillColorInputs()
+}
+
+// The preset cards above the color pickers, drawn in the current mode.
+function renderThemePresets() {
+  const box = document.getElementById('theme-presets')
+  if (!box) return
+  const current = currentPreset()
+  box.replaceChildren(
+    ...THEME_PRESETS.map((preset) => {
+      const colors = presetColors(preset)
+      const card = document.createElement('button')
+      card.type = 'button'
+      card.className = 'theme-preset'
+      card.dataset.preset = preset.id
+      card.setAttribute('role', 'radio')
+      card.setAttribute('aria-checked', String(preset.id === current))
+      const swatch = document.createElement('span')
+      swatch.className = 'theme-preset-swatch'
+      swatch.style.background = colors.bg
+      swatch.style.borderColor = colors.border
+      const panel = document.createElement('span')
+      panel.className = 'theme-preset-panel'
+      panel.style.background = colors.surface
+      panel.style.borderColor = colors.border
+      const line = document.createElement('span')
+      line.className = 'theme-preset-line'
+      line.style.background = colors.text
+      const muted = document.createElement('span')
+      muted.className = 'theme-preset-line short'
+      muted.style.background = colors.muted
+      const dot = document.createElement('span')
+      dot.className = 'theme-preset-accent'
+      dot.style.background = colors.accent
+      panel.append(line, muted, dot)
+      swatch.append(panel)
+      const name = document.createElement('span')
+      name.className = 'theme-preset-name'
+      name.textContent = preset.name
+      card.append(swatch, name)
+      return card
+    }),
+  )
+  const custom = document.getElementById('theme-preset-custom')
+  if (custom) custom.hidden = current !== 'custom'
+}
+
+document.getElementById('theme-presets')?.addEventListener('click', (e) => {
+  const card = e.target.closest('[data-preset]')
+  if (card) applyPreset(card.dataset.preset)
+})
 
 function saveSettings(overrides) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(overrides))
@@ -114,6 +250,7 @@ function fillColorInputs(theme = effectiveTheme()) {
       if (input.syncHex) input.syncHex()
     }
   })
+  renderThemePresets()
 }
 
 function openSettings() {
@@ -124,11 +261,8 @@ function openSettings() {
   applyCodeTheme(loadCodeTheme())
   renderSyntaxColorSettings()
   showSettingsTab('layout')
-  const position = document.querySelector(
-    `input[name='controls-position'][value='${loadControlsPosition()}']`,
-  )
-  if (position) position.checked = true
-  renderCategoryColorSettings()
+  // Modules refresh their own sections (Spells: layout and category colors).
+  document.dispatchEvent(new CustomEvent('spellbook:settings-open'))
   document.getElementById('settings-modal').classList.add('open')
 }
 
@@ -136,6 +270,9 @@ function closeSettings() {
   document.getElementById('settings-modal').classList.remove('open')
 }
 document.getElementById('btn-settings').addEventListener('click', openSettings)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeSettings()
+})
 document
   .getElementById('btn-settings-close')
   .addEventListener('click', closeSettings)
@@ -166,24 +303,27 @@ document.querySelectorAll('.color-setting').forEach((input) =>
     }
     applyTheme(theme)
     saveSettings(theme)
+    renderThemePresets()
   }),
 )
 
 // ─── Light / dark mode ────────────────────────────────────────────────
-// The button in the navigation bar shows the mode you would switch to: a sun
-// while in dark mode, a crescent moon while in light mode. Switching uses the
-// new mode's stylesheet colors (a custom accent color is kept).
+// Settings → Layout & Theme has a choice of Dark mode (crescent moon) and
+// Light mode (sun); the one in use is marked. Switching uses the new mode's
+// stylesheet colors (a custom accent color is kept).
 function updateModeButton() {
-  const button = document.getElementById('btn-mode')
-  if (!button) return
-  const next = loadMode() === 'light' ? 'dark' : 'light'
-  const label = `Switch to ${next} mode`
-  button.title = label
-  button.setAttribute('aria-label', label)
-  button.dataset.mode = loadMode()
+  const mode = loadMode()
+  document.querySelectorAll('#mode-choice [data-mode-choice]').forEach((option) => {
+    const on = option.dataset.modeChoice === mode
+    option.classList.toggle('active', on)
+    option.setAttribute('aria-checked', String(on))
+    option.tabIndex = on ? 0 : -1
+  })
 }
 
 function setMode(mode) {
+  // A preset switches to its own version for the new mode.
+  const preset = currentPreset()
   // Switching modes intentionally carries only the accent override. Every
   // other color belongs to the new mode's stylesheet defaults.
   const accent = loadSettings().accent
@@ -195,6 +335,7 @@ function setMode(mode) {
   const overrides = accent ? { accent } : {}
   saveSettings(overrides)
   applyTheme(overrides)
+  if (preset !== 'custom') applyPreset(preset)
   fillColorInputs()
   updateModeButton()
   // The code theme's defaults can differ between modes.
@@ -202,11 +343,19 @@ function setMode(mode) {
   renderSyntaxColorSettings()
 }
 
-document
-  .getElementById('btn-mode')
-  .addEventListener('click', () =>
-    setMode(loadMode() === 'light' ? 'dark' : 'light'),
-  )
+document.getElementById('mode-choice').addEventListener('click', (e) => {
+  const option = e.target.closest('[data-mode-choice]')
+  if (option && option.dataset.modeChoice !== loadMode()) setMode(option.dataset.modeChoice)
+})
+// Arrow keys move between the two, as in any radio group.
+document.getElementById('mode-choice').addEventListener('keydown', (e) => {
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+  e.preventDefault()
+  const next = loadMode() === 'light' ? 'dark' : 'light'
+  setMode(next)
+  const option = document.querySelector(`#mode-choice [data-mode-choice="${next}"]`)
+  if (option) option.focus()
+})
 
 // ─── Code block theme ─────────────────────────────────────────────────
 // The theme colors themselves are in styles.css (:root[data-code-theme=...]).
@@ -274,34 +423,54 @@ document
     tab.addEventListener('click', () => showSettingsTab(tab.dataset.tab)),
   )
 
-// ─── Options section default ──────────────────────────────────────────
-document.querySelectorAll("input[name='options-default']").forEach((radio) => {
-  radio.checked =
-    radio.value === (optionsDefaultOpen() ? 'expanded' : 'collapsed')
-  radio.addEventListener('change', () => {
-    try {
-      localStorage.setItem(OPTIONS_OPEN_KEY, radio.value)
-    } catch {}
-    renderDetail()
-  })
-})
-
-// ─── Quick filter selection ───────────────────────────────────────────
-const filterSelectionRadios = document.querySelectorAll(
-  "input[name='filter-selection']",
-)
-function syncFilterSelectionRadios() {
-  filterSelectionRadios.forEach((radio) => {
-    radio.checked =
-      radio.value === (multiFilterEnabled() ? 'multiple' : 'single')
-  })
+// Tabs that modules add (SpellBook.settingsSection, js/core/pages.js), placed
+// before Data & Backups in `order`. A section is drawn as soon as it is
+// registered, so the module's script can wire its controls right after.
+// Sections with the same `tab` share one tab, in the order registered.
+const moduleSettingsTabs = new Map() // tab name -> { order, tab, panel }
+function addSettingsSection(def) {
+  const dataTab = document.querySelector('.settings-tab[data-tab="data"]')
+  const dataPanel = document.querySelector('.settings-panel[data-panel="data"]')
+  if (!def || !dataTab || !dataPanel) return
+  const name = `module-${def.tab || def.id}`
+  let entry = moduleSettingsTabs.get(name)
+  if (!entry) {
+    const order = def.order ?? 100
+    const tab = document.createElement('button')
+    tab.type = 'button'
+    tab.className = 'settings-tab'
+    tab.dataset.tab = name
+    tab.setAttribute('role', 'tab')
+    tab.setAttribute('aria-selected', 'false')
+    tab.textContent = def.label || def.id
+    tab.addEventListener('click', () => showSettingsTab(name))
+    const panel = document.createElement('div')
+    panel.className = 'settings-panel'
+    panel.dataset.panel = name
+    panel.hidden = true
+    const after = [...moduleSettingsTabs.values()].find((other) => other.order > order)
+    ;(after ? after.tab : dataTab).before(tab)
+    ;(after ? after.panel : dataPanel).before(panel)
+    entry = { order, tab, panel }
+    moduleSettingsTabs.set(name, entry)
+  }
+  const section = document.createElement('div')
+  section.dataset.section = def.id
+  entry.panel.append(section)
+  try {
+    if (def.render) def.render(section)
+  } catch (error) {
+    console.error(`Settings section "${def.id}":`, error)
+  }
 }
-filterSelectionRadios.forEach((radio) => {
-  radio.addEventListener('change', () =>
-    setMultiFilterEnabled(radio.value === 'multiple'),
-  )
-})
-syncFilterSelectionRadios()
+window.SpellBook.contributions('settings').forEach(addSettingsSection)
+{
+  const register = window.SpellBook.settingsSection
+  window.SpellBook.settingsSection = (def) => {
+    register(def)
+    addSettingsSection(def)
+  }
+}
 
 // ─── Back and Forward buttons ─────────────────────────────────────────
 // Shown by default; stored as 'hidden' only when turned off. Hiding them only
@@ -332,6 +501,47 @@ navHistoryRadios.forEach((radio) => {
   })
 })
 applyNavHistory()
+
+// ─── Tabs on and off ──────────────────────────────────────────────────
+// A checkbox per tab (js/core/pages.js setTabOn). A tab turned on that wasn't
+// loaded at start needs a reload; the Reload Now button offers it.
+function renderTabSwitches() {
+  const list = document.getElementById('tab-switches')
+  if (!list || !window.SpellBook.tabs) return
+  const tabs = window.SpellBook.tabs()
+  const onCount = tabs.filter((tab) => tab.on).length
+  list.replaceChildren(
+    ...tabs.map((tab) => {
+      const label = document.createElement('label')
+      const box = document.createElement('input')
+      box.type = 'checkbox'
+      box.checked = tab.on
+      // The last tab on can't be turned off.
+      box.disabled = tab.on && onCount === 1
+      box.addEventListener('change', () => {
+        window.SpellBook.setTabOn(tab.id, box.checked)
+        renderTabSwitches()
+      })
+      const name = document.createElement('span')
+      name.textContent = tab.title
+      label.append(box, name)
+      if (tab.tooltip) label.title = tab.tooltip
+      if (box.disabled) label.title = 'One tab always stays on.'
+      if (tab.on && !tab.loaded) {
+        const note = document.createElement('span')
+        note.className = 'tab-switch-note'
+        note.textContent = 'shows after a reload'
+        label.append(note)
+      }
+      return label
+    }),
+  )
+  document.getElementById('tab-switches-reload').hidden = !tabs.some((tab) => tab.on && !tab.loaded)
+}
+document.getElementById('tab-switches-reload-btn').addEventListener('click', () => location.reload())
+document.addEventListener('spellbook:tabs', renderTabSwitches)
+document.addEventListener('spellbook:ready', renderTabSwitches)
+renderTabSwitches()
 
 // ─── Fonts ────────────────────────────────────────────────────────────
 // Each part of the page can use its own font. Only the typeface changes, and
@@ -614,53 +824,6 @@ function applyAppearanceTheme(data) {
   }
 }
 
-// ─── Control bar position ─────────────────────────────────────────────
-const LAYOUT_KEY = 'spellbook_layout_v1'
-const CONTROLS_POSITIONS = ['left', 'top', 'right']
-
-function loadControlsPosition() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}').controls
-    return CONTROLS_POSITIONS.includes(saved) ? saved : 'top'
-  } catch {
-    return 'top'
-  }
-}
-
-function applyControlsPosition(position) {
-  document.getElementById('page-spellbook').dataset.controls = position
-  if (typeof applyTableDock === 'function') applyTableDock()
-  if (typeof updateLayoutButtons === 'function') updateLayoutButtons()
-  if (typeof placeScratchpad === 'function') placeScratchpad()
-  // The table / detail split depends on the available height.
-  if (window.restoreSplitHeight) window.restoreSplitHeight()
-}
-
-function setControlsPosition(position) {
-  try {
-    localStorage.setItem(LAYOUT_KEY, JSON.stringify({ controls: position }))
-  } catch {}
-  const radio = document.querySelector(
-    `input[name='controls-position'][value='${position}']`,
-  )
-  if (radio) radio.checked = true
-  applyControlsPosition(position)
-}
-
-document
-  .querySelectorAll('[data-controls-pos]')
-  .forEach((button) =>
-    button.addEventListener('click', () =>
-      setControlsPosition(button.dataset.controlsPos),
-    ),
-  )
-
-document.querySelectorAll("input[name='controls-position']").forEach((radio) =>
-  radio.addEventListener('change', () => {
-    if (radio.checked) setControlsPosition(radio.value)
-  }),
-)
-
 // ─── Linked data file ─────────────────────────────────────────────────
 // The last problem from a button here, shown in the status line (and the
 // console) so a failure is never silent.
@@ -736,6 +899,7 @@ if (window.DataFile) {
         window.DataFile.exportText(),
         'application/json;charset=utf-8',
       )
+      if (window.DataFile.markBackedUp) window.DataFile.markBackedUp()
     })
   const restoreFile = document.getElementById('datafile-restore-file')
   document
@@ -757,7 +921,7 @@ if (window.DataFile) {
         return
       }
       window.DataFile.importText(text)
-      location.reload()
+      window.DataFile.reload()
     } catch (err) {
       alert('Restore failed: ' + (err.message || err))
     }
@@ -785,10 +949,10 @@ if (window.DataFile) {
         )
       ) {
         window.DataFile.apply(data)
-        location.reload()
+        window.DataFile.reload()
         return
       }
-      await window.DataFile.save()
+      await window.DataFile.save({ ask: true, verify: true })
     }),
   )
 
@@ -802,7 +966,7 @@ if (window.DataFile) {
   document.getElementById('btn-datafile-save').addEventListener(
     'click',
     dataFileAction(async () => {
-      if (!(await window.DataFile.save())) {
+      if (!(await window.DataFile.save({ ask: true, verify: true }))) {
         const state = await window.DataFile.getState()
         throw new Error(state.lastError || 'The data file could not be saved.')
       }
@@ -820,7 +984,7 @@ if (window.DataFile) {
         return
       }
       await window.DataFile.loadNow()
-      location.reload()
+      window.DataFile.reload()
     }),
   )
 
@@ -839,576 +1003,371 @@ if (window.DataFile) {
     dataFileAction(async () => {
       const on = document.getElementById('datafile-autosave').checked
       window.DataFile.setAutosave(on)
-      if (on) await window.DataFile.save() // write the current data right away
+      if (on) await window.DataFile.save({ ask: true }) // write the current data right away
     }),
   )
 }
 
-// Compact data shortcuts near the counters. Reuse the established Data tab
-// actions so confirmation, permission, and error handling stay centralized.
+// The Save control in the top bar: one button that saves and shows the save
+// state, and an arrow that opens a menu with Autosave and where things are
+// saved. It saves the data file and every other place a tab adds with
+// SpellBook.saveTarget (js/core/pages.js), such as the Compendium's Markdown
+// folder; one Autosave switch covers them all. The data file's actions go
+// through the Data tab's own buttons, so confirmation, permission and error
+// handling stay in one place.
 ;(() => {
-  const link = document.getElementById('btn-quick-link')
+  const control = document.getElementById('save-control')
   const save = document.getElementById('btn-quick-save')
-  if (!link || !save) return
-  // Reuse the file manager's change notification, including after unlink.
-  // The link state is not equivalent to write permission: reconnect remains
-  // available if permission has expired.
-  let statusRequest = 0
-  async function refreshQuickLink() {
-    const request = ++statusRequest
+  const link = document.getElementById('btn-quick-link')
+  const label = document.getElementById('save-label')
+  if (!control || !save || !link || !label) return
+  const click = (id) => document.getElementById(id).click()
+  const unsaved = () => (window.SpellBook.unsaved ? window.SpellBook.unsaved.summary() : { total: 0, byLabel: {} })
+  let state = null
+  let menu = null
+
+  // The other places to save, with their state now. Only linked ones count.
+  //   { def, s: { linked, name, needsPermission, dirty, writing, lastWritten, error, status } }
+  function targets({ all = false } = {}) {
+    return window.SpellBook.contributions('saveTargets')
+      .map((def) => {
+        try {
+          return { def, s: def.state() || {} }
+        } catch (error) {
+          console.error(error)
+          return { def, s: {} }
+        }
+      })
+      .filter((t) => all || t.s.linked)
+  }
+
+  // A short time for the bar: "3:42 PM" today, otherwise the date.
+  function short(date) {
+    if (!date || Number.isNaN(date.getTime())) return ''
+    return date.toDateString() === new Date().toDateString()
+      ? date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+      : date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  }
+  // When the data last matched the file or database: this visit's last
+  // write, or the saved record of the last one (js/core/unsaved.js).
+  function lastSave(s, sum) {
+    if (s && s.lastSaved) return s.lastSaved
+    return sum.since && ['file', 'database'].includes(sum.how) ? new Date(sum.since) : null
+  }
+
+  // What the control shows. Modes:
+  //   database   the database server saves every change itself
+  //   blocked    autosave is on but the browser must be asked for
+  //              permission again (after a restart), for the data file or
+  //              another place: a click asks
+  //   error      the last write failed
+  //   auto       autosave on: Saving… / Autosaving… / Autosaved 3:42
+  //   manual     saved places without autosave: Save / Saved 3:42
+  //   unlinked   no data file: "Link a Data File" links one
+  function mode(s, linkedTargets) {
+    if (s && s.remote && s.remote.active) return 'database'
+    const file = Boolean(s && s.name)
+    // Without a data file there's nothing to save to (other places, such as
+    // the Markdown folder, are copies), so the button links one.
+    if (!file) return 'unlinked'
+    const auto = Boolean(s && s.autosave)
+    const fileBlocked = file && s.permission !== 'granted'
+    if (auto && (fileBlocked || linkedTargets.some((t) => t.s.needsPermission))) return 'blocked'
+    if ((file && s.lastError) || linkedTargets.some((t) => t.s.error)) return 'error'
+    return auto ? 'auto' : 'manual'
+  }
+
+  function render() {
+    const s = state || {}
+    const tl = targets()
+    const m = mode(state, tl)
+    const file = Boolean(s.name)
+    const sum = unsaved()
+    const n = file || m === 'database' ? sum.total || 0 : 0
+    const dirty = n > 0 || tl.some((t) => t.s.dirty)
+    const saving = Boolean(s.saving) || tl.some((t) => t.s.writing)
+    // The time everything was last saved: the oldest of the places'.
+    const times = [file ? lastSave(s, sum) : null, ...tl.map((t) => t.s.lastWritten || null)].filter((d, i) => i > 0 || file)
+    const last = times.length && times.every(Boolean) ? new Date(Math.min(...times.map((d) => d.getTime()))) : null
+    const places = [file ? s.name : '', ...tl.map((t) => `${t.def.label} “${t.s.name}”`)].filter(Boolean).join(' and ')
+    const details = file && window.SpellBook.unsaved ? window.SpellBook.unsaved.describe() : ''
+    let text
+    let tip
+    if (m === 'database') {
+      // A failed save (signed out, server down) shows until a save works.
+      text = saving ? 'Saving…' : s.lastError ? 'Not saved' : 'Saved'
+      tip = s.lastError
+        ? `The last save to the database failed: ${s.lastError}
+Your changes are kept in this browser.`
+        : 'The database server saves every change as you make it.'
+    } else if (m === 'blocked') {
+      const need = [file && s.permission !== 'granted' ? s.name : '', ...tl.filter((t) => t.s.needsPermission).map((t) => `${t.def.label} “${t.s.name}”`)].filter(Boolean)
+      text = 'Allow saving'
+      tip = `Autosave can't write to ${need.join(' or ')} until the browser is given permission again. Click to allow it.`
+    } else if (m === 'error') {
+      const errors = [file && s.lastError ? `${s.name}: ${s.lastError}` : '', ...tl.filter((t) => t.s.error).map((t) => `${t.def.label}: ${t.s.error}`)].filter(Boolean)
+      text = 'Not saved'
+      tip = `The last save failed.\n${errors.join('\n')}\nClick to try again.`
+    } else if (m === 'auto') {
+      text = saving ? 'Saving…' : (file && s.pending) || dirty ? 'Autosaving…' : last ? `Autosaved ${short(last)}` : 'Autosave on'
+      tip = `Autosave is on: changes are written to ${places} shortly after you make them.\nClick to save now.`
+    } else if (m === 'manual') {
+      // No time: somewhere hasn't been written yet (a folder just chosen).
+      text = saving ? 'Saving…' : dirty || !last ? 'Save' : `Saved ${short(last)}`
+      tip = `Click to save to ${places}. Autosave is off: turn it on from the arrow's menu.`
+    } else {
+      text = 'Link a Data File'
+      tip = 'No data file is linked, so there is nothing to save to. Click to link one; the arrow beside it can create one or download a backup.'
+    }
+    label.textContent = text
+    control.dataset.mode = m
+    control.classList.toggle('db-failed', m === 'database' && Boolean(s.lastError))
+    control.classList.toggle('is-saving', saving)
+    control.classList.toggle('has-unsaved', dirty)
+    save.title = `${details ? `${details}\n\n` : ''}${tip}`
+    save.setAttribute('aria-label', `${text}${n && ['manual', 'error', 'blocked'].includes(m) ? ` (${n} unsaved change${n === 1 ? '' : 's'})` : ''}`)
+    link.classList.toggle('needs-permission', (file && s.permission !== 'granted') || tl.some((t) => t.s.needsPermission))
+    link.title =
+      m === 'database'
+        ? 'Database server, Autosave and backups'
+        : file || tl.length
+          ? `Saving to ${places}\nAutosave ${s.autosave ? 'on' : 'off'}, and more`
+          : 'No data file linked: link or create one, Autosave and backups'
+    link.setAttribute('aria-label', link.title.split('\n')[0])
+    if (menu) fillMenu()
+  }
+
+  let request = 0
+  async function refresh() {
+    const mine = ++request
     try {
-      const state = await window.DataFile.getState()
-      if (request !== statusRequest) return
-      const linked = Boolean(state.name)
-      link.textContent = linked ? 'Linked' : 'Link'
-      link.classList.toggle('quick-link-active', linked)
-      link.setAttribute('aria-label', linked ? `Linked to ${state.name}; click to reconnect` : 'Link a data file')
-      link.title = linked ? `Linked: ${state.name} (click to reconnect)` : 'Link an existing Spell Book data file'
-      const saveTime = document.getElementById('quick-save-time')
-      if (saveTime) {
-        saveTime.textContent = state.lastSaved && linked
-          ? `Saved ${state.lastSaved.toLocaleTimeString()}`
-          : 'Not saved'
-        saveTime.title = state.lastSaved && linked ? `Last saved: ${state.lastSaved.toLocaleString()}` : 'No linked-file save recorded this session'
-      }
+      const s = await window.DataFile.getState()
+      if (mine !== request) return
+      state = s
+      render()
     } catch (error) {
-      console.error('Could not read data-file link status:', error)
+      console.error('Could not read data-file status:', error)
     }
   }
-  if (window.DataFile) {
-    window.DataFile.onChange(refreshQuickLink)
-    refreshQuickLink()
+
+  // Asks the browser for permission wherever it's needed. Each ask needs the
+  // click, so the data file goes first, then each other place.
+  async function allowAll() {
+    if (state && state.name && state.permission !== 'granted') click('btn-datafile-reconnect')
+    for (const t of targets().filter((x) => x.s.needsPermission)) {
+      try {
+        await t.def.allow()
+      } catch (error) {
+        console.error(error)
+      }
+    }
   }
-  link.addEventListener('click', async () => {
-    if (!window.DataFile) return
-    const state = await window.DataFile.getState()
-    if (!state.supported) {
+  // Saves everywhere now.
+  async function saveAll() {
+    if (state && (state.name || (state.remote && state.remote.active))) click('btn-datafile-save')
+    for (const t of targets()) {
+      try {
+        await t.def.save()
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  }
+
+  save.addEventListener('click', () => {
+    const m = mode(state, targets())
+    if (m === 'blocked') return allowAll()
+    if (m === 'unlinked') return linkFile()
+    saveAll()
+  })
+
+  // ─── The menu ───────────────────────────────────────────────────────
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+  function item(html, run, extra = {}) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = `nav-menu-item${extra.className ? ` ${extra.className}` : ''}`
+    button.setAttribute('role', extra.role || 'menuitem')
+    button.innerHTML = html
+    button.addEventListener('click', () => {
+      if (!extra.keepOpen) closeMenu()
+      run()
+    })
+    return button
+  }
+  const linkIcon = '<span class="nav-icon nav-icon-link" aria-hidden="true"></span>'
+  const hr = () => document.createElement('hr')
+  function headOf(html) {
+    const head = document.createElement('div')
+    head.className = 'nav-menu-head'
+    head.innerHTML = html
+    return head
+  }
+
+  function fillMenu() {
+    const s = state || {}
+    const all = targets({ all: true })
+    const tl = all.filter((t) => t.s.linked)
+    const m = mode(state, tl)
+    const file = Boolean(s.name)
+    const sum = unsaved()
+    const last = lastSave(state, sum)
+    const items = () => [...menu.querySelectorAll('.nav-menu-item')]
+    const focused = items().indexOf(document.activeElement)
+    menu.innerHTML = ''
+    // The data file.
+    if (m === 'database') {
+      menu.append(headOf('<b>Database server</b><span>Every change is saved as you make it.</span>'))
+    } else if (file) {
+      menu.append(
+        headOf(
+          `<b>${esc(s.name)}</b>` +
+            `<span>${last ? `Last saved ${esc(last.toLocaleString())}` : 'Not saved yet'}${sum.total ? ` · ${sum.total} unsaved` : ''}</span>` +
+            (s.permission !== 'granted' ? '<span class="nav-menu-warn">The browser needs permission to write to it again.</span>' : '') +
+            (s.lastError ? `<span class="nav-menu-warn">${esc(s.lastError)}</span>` : ''),
+        ),
+      )
+    } else {
+      menu.append(headOf('<b>No data file linked</b><span>Your data is kept in this browser only. Link or create a data file to save it.</span>'))
+    }
+    // Autosave: the same setting as Settings → Data & Backups, for the data
+    // file and every other place. It's changed through that checkbox, so both
+    // stay in step and turning it on writes at once.
+    const usable = m === 'database' || file
+    const on = m === 'database' || (usable && s.autosave)
+    const sub =
+      m === 'database'
+        ? 'Always on with the database server'
+        : !usable
+          ? 'Link a data file to use it'
+          : on
+            ? 'Changes are written shortly after you make them'
+            : 'Changes wait until you click Save'
+    const auto = item(
+      `<span class="nav-switch${on ? ' on' : ''}" aria-hidden="true"></span><span class="nav-menu-text">Autosave<small>${sub}</small></span>`,
+      () => {
+        if (m === 'database') return
+        if (!usable) return linkFile()
+        const box = document.getElementById('datafile-autosave')
+        box.checked = !s.autosave
+        box.dispatchEvent(new Event('change'))
+      },
+      { role: 'menuitemcheckbox', keepOpen: usable && m !== 'database', className: 'with-switch' },
+    )
+    auto.setAttribute('aria-checked', String(on))
+    if (m === 'database') auto.setAttribute('aria-disabled', 'true')
+    menu.append(auto)
+    menu.append(hr())
+    // Linking the data file.
+    if (m !== 'database') {
+      if (!s.supported) {
+        const note = document.createElement('div')
+        note.className = 'nav-menu-note'
+        note.textContent = 'Linking a data file needs Chrome or Edge. Use Backup instead.'
+        menu.append(note)
+      } else if (file) {
+        if (s.permission !== 'granted') {
+          menu.append(item(`${linkIcon}Allow saving to ${esc(s.name)}`, () => click('btn-datafile-reconnect'), { className: 'with-icon' }))
+        }
+        menu.append(item(`${linkIcon}Link a different file…`, () => click('btn-datafile-open'), { className: 'with-icon' }))
+        menu.append(item('Unlink', () => click('btn-datafile-unlink')))
+      } else {
+        menu.append(item(`${linkIcon}Link a data file…`, linkFile, { className: 'with-icon' }))
+        menu.append(item('Create a data file…', () => click('btn-datafile-new')))
+      }
+    }
+    // Backup: downloads a copy of everything (the Save button itself saves).
+    menu.append(item('Backup', () => click('btn-datafile-download')))
+    menu.append(
+      item('Data file settings…', () => {
+        click('btn-settings')
+        showSettingsTab('data')
+      }),
+    )
+    // Every other place to save (the Markdown folder…), linked or not.
+    all.forEach(({ def, s: t }) => {
+      menu.append(hr())
+      const status = t.linked
+        ? [
+            `<span>${t.writing ? 'Writing…' : t.dirty ? 'Changes not written yet' : t.lastWritten ? `Last written ${esc(t.lastWritten.toLocaleString())}` : 'Linked'}</span>`,
+            t.needsPermission ? `<span class="nav-menu-warn">${esc(t.status || 'The browser needs permission to write to it again.')}</span>` : '',
+            t.error ? `<span class="nav-menu-warn">${esc(t.error)}</span>` : '',
+          ].join('')
+        : `<span>${esc(t.status || 'Not set up')}</span>`
+      menu.append(headOf(`<b>${esc(def.label)}${t.name ? `: ${esc(t.name)}` : ''}</b>${status}`))
+      if (t.linked && t.needsPermission) menu.append(item(`${linkIcon}Allow writing to ${esc(t.name || def.label)}`, () => def.allow(), { className: 'with-icon' }))
+      else if (t.linked) menu.append(item('Write now', () => def.save()))
+      if (def.open) menu.append(item(`${esc(def.label)} settings…`, () => def.open()))
+    })
+    if (focused >= 0 && items()[focused]) items()[focused].focus()
+  }
+  function linkFile() {
+    if (state && !state.supported) {
       alert('File linking is unavailable in this browser. Use Save to download a backup instead.')
       return
     }
-    document.getElementById(state.name ? 'btn-datafile-reconnect' : 'btn-datafile-open').click()
-  })
-  save.addEventListener('click', async () => {
-    if (!window.DataFile) return
-    const state = await window.DataFile.getState()
-    document.getElementById(state.name ? 'btn-datafile-save' : 'btn-datafile-download').click()
-  })
+    click('btn-datafile-open')
+  }
+
+  function openMenu() {
+    menu = document.createElement('div')
+    menu.className = 'nav-menu save-menu'
+    menu.setAttribute('role', 'menu')
+    menu.setAttribute('aria-label', 'Saving and Autosave')
+    document.body.append(menu)
+    fillMenu()
+    const r = control.getBoundingClientRect()
+    menu.style.top = `${r.bottom + 6}px`
+    menu.style.left = `${Math.max(8, Math.min(r.left, innerWidth - menu.offsetWidth - 8))}px`
+    link.setAttribute('aria-expanded', 'true')
+    const first = menu.querySelector('.nav-menu-item')
+    if (first) first.focus()
+    menu.addEventListener('keydown', (e) => {
+      const items = [...menu.querySelectorAll('.nav-menu-item')]
+      const at = items.indexOf(document.activeElement)
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        items[(at + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus()
+      } else if (e.key === 'Home' || e.key === 'End') {
+        e.preventDefault()
+        items[e.key === 'Home' ? 0 : items.length - 1].focus()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        closeMenu(true)
+      } else if (e.key === 'Tab') {
+        closeMenu()
+      }
+    })
+    setTimeout(() => document.addEventListener('pointerdown', outside, true))
+    refresh()
+  }
+  function closeMenu(refocus) {
+    if (!menu) return
+    menu.remove()
+    menu = null
+    link.setAttribute('aria-expanded', 'false')
+    document.removeEventListener('pointerdown', outside, true)
+    if (refocus) link.focus()
+  }
+  function outside(e) {
+    if (menu && !menu.contains(e.target) && !link.contains(e.target)) closeMenu()
+  }
+  link.addEventListener('click', () => (menu ? closeMenu() : openMenu()))
+  window.addEventListener('resize', () => closeMenu())
+
+  document.addEventListener('spellbook:unsaved', render)
+  // A place to save (the Markdown folder…) changed state.
+  document.addEventListener('spellbook:save-target', render)
+  document.addEventListener('spellbook:ready', render)
+  if (window.DataFile) {
+    window.DataFile.onChange(refresh)
+    refresh()
+  }
+  // "Autosaved 3:42" becomes a date after midnight.
+  setInterval(render, 60000)
 })()
 
-// ─── Side control bar width ───────────────────────────────────────────
-// With the control bar on the left or right, drag its inner edge to change its
-// width (arrow keys work too; double-click resets). The sections inside wrap
-// to fit whatever width it has.
-const CONTROLS_WIDTH_KEY = 'spellbook_controls_width_v1'
-const CONTROLS_MIN_WIDTH = 240
-
-function setControlsWidth(px, persist = true) {
-  const page = document.getElementById('page-spellbook')
-  if (!page.clientWidth) return // the Spell Book page is not showing
-  const max = Math.max(
-    CONTROLS_MIN_WIDTH,
-    Math.min(640, page.clientWidth - 320),
-  )
-  const width = Math.round(Math.min(Math.max(px, CONTROLS_MIN_WIDTH), max))
-  page.style.setProperty('--controls-width', `${width}px`)
-  if (persist) {
-    try {
-      localStorage.setItem(CONTROLS_WIDTH_KEY, String(width))
-    } catch {}
-  }
-}
-
-function resetControlsWidth() {
-  document
-    .getElementById('page-spellbook')
-    .style.removeProperty('--controls-width')
-  try {
-    localStorage.removeItem(CONTROLS_WIDTH_KEY)
-  } catch {}
-}
-
-function restoreControlsWidth() {
-  try {
-    const saved = Number.parseFloat(localStorage.getItem(CONTROLS_WIDTH_KEY))
-    if (saved > 0) setControlsWidth(saved, false)
-  } catch {}
-}
-
-{
-  const resizer = document.getElementById('controls-resizer')
-  const page = document.getElementById('page-spellbook')
-  const sideLeft = () => page.dataset.controls === 'left'
-  const currentWidth = () =>
-    document.querySelector('#page-spellbook > header').offsetWidth
-
-  resizer.addEventListener('pointerdown', (e) => {
-    resizer.setPointerCapture(e.pointerId)
-    resizer.classList.add('dragging')
-    document.body.style.userSelect = 'none'
-  })
-  resizer.addEventListener('pointermove', (e) => {
-    if (!resizer.hasPointerCapture(e.pointerId)) return
-    const rect = page.getBoundingClientRect()
-    setControlsWidth(
-      sideLeft() ? e.clientX - rect.left : rect.right - e.clientX,
-    )
-  })
-  const endDrag = (e) => {
-    if (resizer.hasPointerCapture(e.pointerId)) {
-      resizer.releasePointerCapture(e.pointerId)
-    }
-    resizer.classList.remove('dragging')
-    document.body.style.userSelect = ''
-  }
-  resizer.addEventListener('pointerup', endDrag)
-  resizer.addEventListener('pointercancel', endDrag)
-  resizer.addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-    e.preventDefault()
-    const step = e.shiftKey ? 80 : 20
-    const grow = (e.key === 'ArrowRight') === sideLeft()
-    setControlsWidth(currentWidth() + (grow ? step : -step))
-  })
-  resizer.addEventListener('dblclick', resetControlsWidth)
-  // Keep a saved width valid when the window shrinks.
-  window.addEventListener('resize', () => {
-    if (page.style.getPropertyValue('--controls-width')) {
-      setControlsWidth(currentWidth(), false)
-    }
-  })
-}
-
-// ─── Table / details arrangement ──────────────────────────────────────
-const PANES_KEY = 'spellbook_panes_v1'
-
-function loadPanesLayout() {
-  try {
-    return JSON.parse(localStorage.getItem(PANES_KEY) || '{}').layout === 'side'
-      ? 'side'
-      : 'stacked'
-  } catch {
-    return 'stacked'
-  }
-}
-
-// Dock table / Side by side buttons: labels, tooltips and availability.
-function updateLayoutButtons() {
-  const page = document.getElementById('page-spellbook')
-  document.querySelectorAll('[data-controls-pos]').forEach((button) => {
-    const on = button.dataset.controlsPos === page.dataset.controls
-    button.classList.toggle('active', on)
-    button.setAttribute('aria-pressed', String(on))
-  })
-  const docked = page.dataset.tableDock === 'control'
-  const dock = document.getElementById('btn-dock')
-  if (dock) {
-    dock.textContent = docked ? 'Undock table' : 'Dock table'
-    dock.title = docked
-      ? 'Put the table pane back in the main area'
-      : 'Put the table pane in the control bar (the control bar moves to the left if it is on top)'
-  }
-  const panes = document.getElementById('btn-panes')
-  if (panes) {
-    // The table and details are not side by side while the table is docked.
-    panes.disabled = docked
-    if (docked)
-      panes.title = 'Not available while the table is in the control bar'
-  }
-}
-
-function applyPanesLayout(layout) {
-  const page = document.getElementById('page-spellbook')
-  page.dataset.panes = layout
-  const radio = document.querySelector(
-    `input[name='panes-layout'][value='${layout}']`,
-  )
-  if (radio) radio.checked = true
-  const button = document.getElementById('btn-panes')
-  if (button) {
-    button.textContent = layout === 'side' ? 'Stacked' : 'Side by side'
-    button.title =
-      layout === 'side'
-        ? 'Put the table above the details'
-        : 'Put the table and the details side by side'
-  }
-  updateLayoutButtons()
-  // The saved size depends on the arrangement.
-  if (window.restoreSplitHeight) window.restoreSplitHeight()
-  // The table pane shows as cards when it sits beside the details.
-  if (typeof renderList === 'function') renderList()
-}
-
-function setPanesLayout(layout) {
-  try {
-    if (layout === 'side') {
-      localStorage.setItem(PANES_KEY, JSON.stringify({ layout }))
-    } else {
-      localStorage.removeItem(PANES_KEY)
-    }
-  } catch {}
-  applyPanesLayout(layout)
-}
-
-document.querySelectorAll("input[name='panes-layout']").forEach((radio) =>
-  radio.addEventListener('change', () => {
-    if (radio.checked) setPanesLayout(radio.value)
-  }),
-)
-document
-  .getElementById('btn-panes')
-  .addEventListener('click', () =>
-    setPanesLayout(loadPanesLayout() === 'side' ? 'stacked' : 'side'),
-  )
-
-// ─── Table pane in the control bar ────────────────────────────────────
-// With the control bar on the left or right, the table pane can live inside it,
-// under the sections, with a draggable divider between them; the detail pane
-// then fills the main area.
-const TABLE_DOCK_KEY = 'spellbook_table_dock_v1'
-const DOCK_SPLIT_KEY = 'spellbook_dock_split_v1'
-
-function loadTableDock() {
-  try {
-    return localStorage.getItem(TABLE_DOCK_KEY) === 'control'
-      ? 'control'
-      : 'main'
-  } catch {
-    return 'main'
-  }
-}
-
-// What is actually in effect: the control bar must be on a side.
-function effectiveTableDock() {
-  const page = document.getElementById('page-spellbook')
-  const sideBar = ['left', 'right'].includes(page.dataset.controls)
-  return loadTableDock() === 'control' && sideBar ? 'control' : 'main'
-}
-
-function applyTableDock() {
-  const page = document.getElementById('page-spellbook')
-  const header = page.querySelector(':scope > header')
-  const main = page.querySelector('.main')
-  const table = document.getElementById('cmd-list')
-  const dockSplitter = document.getElementById('dock-splitter')
-  const mainSplitter = document.getElementById('splitter')
-  const dock = effectiveTableDock()
-  const radio = document.querySelector(
-    `input[name='table-dock'][value='${loadTableDock()}']`,
-  )
-  if (radio) radio.checked = true
-  if (page.dataset.tableDock === dock) {
-    updateLayoutButtons()
-    return
-  }
-  page.dataset.tableDock = dock
-  table.style.flexBasis = ''
-  if (dock === 'control') {
-    dockSplitter.hidden = false
-    header.append(dockSplitter, table)
-    restoreDockSplit()
-  } else {
-    dockSplitter.hidden = true
-    header.append(dockSplitter) // stays in the header, hidden
-    main.insertBefore(table, mainSplitter)
-    document.getElementById('control-sections').style.flexBasis = ''
-    if (window.restoreSplitHeight) window.restoreSplitHeight()
-  }
-  updateLayoutButtons()
-  placeScratchpad() // keep it last in the control bar
-  renderList() // lay the table out for its new width
-}
-
-function setDockSplit(px, persist = true) {
-  const header = document.querySelector('#page-spellbook > header')
-  const sections = document.getElementById('control-sections')
-  if (!header.clientHeight) return
-  const max = header.clientHeight - 8 - 120
-  const height = Math.round(Math.min(Math.max(px, 120), Math.max(120, max)))
-  sections.style.flexBasis = `${height}px`
-  if (persist) {
-    try {
-      localStorage.setItem(DOCK_SPLIT_KEY, String(height))
-    } catch {}
-  }
-}
-
-function restoreDockSplit() {
-  const sections = document.getElementById('control-sections')
-  sections.style.flexBasis = ''
-  try {
-    const saved = Number.parseFloat(localStorage.getItem(DOCK_SPLIT_KEY))
-    if (saved > 0) setDockSplit(saved, false)
-  } catch {}
-}
-
-function setTableDock(dock) {
-  try {
-    if (dock === 'control') localStorage.setItem(TABLE_DOCK_KEY, 'control')
-    else localStorage.removeItem(TABLE_DOCK_KEY)
-  } catch {}
-  applyTableDock()
-}
-
-document.getElementById('btn-dock').addEventListener('click', () => {
-  if (effectiveTableDock() === 'control') {
-    setTableDock('main')
-    return
-  }
-  // Docking needs the control bar on a side.
-  const page = document.getElementById('page-spellbook')
-  if (!['left', 'right'].includes(page.dataset.controls)) {
-    setControlsPosition('left')
-  }
-  setTableDock('control')
-})
-
-document.querySelectorAll("input[name='table-dock']").forEach((radio) =>
-  radio.addEventListener('change', () => {
-    if (radio.checked) setTableDock(radio.value)
-  }),
-)
-
-{
-  const splitter = document.getElementById('dock-splitter')
-  const sections = document.getElementById('control-sections')
-  splitter.addEventListener('pointerdown', (e) => {
-    splitter.setPointerCapture(e.pointerId)
-    splitter.classList.add('dragging')
-    document.body.style.userSelect = 'none'
-  })
-  splitter.addEventListener('pointermove', (e) => {
-    if (!splitter.hasPointerCapture(e.pointerId)) return
-    setDockSplit(e.clientY - sections.getBoundingClientRect().top)
-  })
-  const endDrag = (e) => {
-    if (splitter.hasPointerCapture(e.pointerId)) {
-      splitter.releasePointerCapture(e.pointerId)
-    }
-    splitter.classList.remove('dragging')
-    document.body.style.userSelect = ''
-  }
-  splitter.addEventListener('pointerup', endDrag)
-  splitter.addEventListener('pointercancel', endDrag)
-  splitter.addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
-    e.preventDefault()
-    const step = e.shiftKey ? 80 : 20
-    setDockSplit(sections.offsetHeight + (e.key === 'ArrowUp' ? -step : step))
-  })
-  splitter.addEventListener('dblclick', () => {
-    sections.style.flexBasis = ''
-    try {
-      localStorage.removeItem(DOCK_SPLIT_KEY)
-    } catch {}
-  })
-}
-
-// ─── Scratch pad ──────────────────────────────────────────────────────
-// A free-form text area that is saved as you type. It sits at the bottom of the
-// control bar when the control bar is on the left or right, and under the
-// detail pane when the control bar is on top. A button under Dock table shows
-// or hides it.
-const SCRATCH_VISIBLE_KEY = 'spellbook_scratchpad_v1'
-const SCRATCH_TEXT_KEY = 'spellbook_scratchpad_text_v1'
-
-const scratchVisible = () => {
-  try {
-    return localStorage.getItem(SCRATCH_VISIBLE_KEY) !== 'hidden'
-  } catch {
-    return true
-  }
-}
-
-// The scratch pad's height is remembered separately for the two places it can
-// be: under the detail pane ("top") and in the control bar ("side").
-const SCRATCH_HEIGHT_KEY = 'spellbook_scratch_height_v1'
-const SCRATCH_MIN_HEIGHT = 96
-
-const scratchPlace = () =>
-  ['left', 'right'].includes(
-    document.getElementById('page-spellbook').dataset.controls,
-  )
-    ? 'side'
-    : 'top'
-
-function loadScratchHeights() {
-  try {
-    const stored = JSON.parse(localStorage.getItem(SCRATCH_HEIGHT_KEY) || '{}')
-    return stored && typeof stored === 'object' ? stored : {}
-  } catch {
-    return {}
-  }
-}
-
-function saveScratchHeight(place, height) {
-  const heights = loadScratchHeights()
-  if (height > 0) heights[place] = height
-  else delete heights[place]
-  try {
-    if (Object.keys(heights).length) {
-      localStorage.setItem(SCRATCH_HEIGHT_KEY, JSON.stringify(heights))
-    } else {
-      localStorage.removeItem(SCRATCH_HEIGHT_KEY)
-    }
-  } catch {}
-}
-
-// Uses the saved height for the current place (or the default).
-function applyScratchHeight() {
-  const pad = document.getElementById('scratchpad')
-  const height = loadScratchHeights()[scratchPlace()]
-  pad.style.flex = height > 0 ? `0 0 ${height}px` : ''
-}
-
-function setScratchHeight(px, persist = true) {
-  const pad = document.getElementById('scratchpad')
-  const room = pad.parentElement ? pad.parentElement.clientHeight : 0
-  if (!room) return
-  const height = Math.round(
-    Math.min(
-      Math.max(px, SCRATCH_MIN_HEIGHT),
-      Math.max(SCRATCH_MIN_HEIGHT, room - 140),
-    ),
-  )
-  pad.style.flex = `0 0 ${height}px`
-  if (persist) saveScratchHeight(scratchPlace(), height)
-}
-
-function placeScratchpad() {
-  const page = document.getElementById('page-spellbook')
-  const pad = document.getElementById('scratchpad')
-  const splitter = document.getElementById('scratch-splitter')
-  if (!pad || !splitter) return
-  const target =
-    scratchPlace() === 'side'
-      ? page.querySelector(':scope > header')
-      : document.getElementById('detail-column')
-  if (
-    pad.parentElement !== target ||
-    target.lastElementChild !== pad ||
-    pad.previousElementSibling !== splitter
-  ) {
-    target.append(splitter, pad)
-  }
-  applyScratchHeight()
-}
-
-{
-  const splitter = document.getElementById('scratch-splitter')
-  const pad = document.getElementById('scratchpad')
-  let dragStartY = 0
-  let dragStartHeight = 0
-  splitter.addEventListener('pointerdown', (e) => {
-    dragStartY = e.clientY
-    dragStartHeight = pad.offsetHeight
-    splitter.setPointerCapture(e.pointerId)
-    splitter.classList.add('dragging')
-    document.body.style.userSelect = 'none'
-  })
-  splitter.addEventListener('pointermove', (e) => {
-    if (!splitter.hasPointerCapture(e.pointerId)) return
-    setScratchHeight(dragStartHeight + (dragStartY - e.clientY))
-  })
-  const endDrag = (e) => {
-    if (splitter.hasPointerCapture(e.pointerId)) {
-      splitter.releasePointerCapture(e.pointerId)
-    }
-    splitter.classList.remove('dragging')
-    document.body.style.userSelect = ''
-  }
-  splitter.addEventListener('pointerup', endDrag)
-  splitter.addEventListener('pointercancel', endDrag)
-  splitter.addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
-    e.preventDefault()
-    const step = e.shiftKey ? 80 : 20
-    setScratchHeight(pad.offsetHeight + (e.key === 'ArrowUp' ? step : -step))
-  })
-  splitter.addEventListener('dblclick', () => {
-    saveScratchHeight(scratchPlace(), 0)
-    applyScratchHeight()
-  })
-  window.addEventListener('resize', () => {
-    if (pad.style.flex) setScratchHeight(pad.offsetHeight, false)
-  })
-}
-
-function applyScratchpad() {
-  const pad = document.getElementById('scratchpad')
-  const button = document.getElementById('btn-scratch')
-  const visible = scratchVisible()
-  // Settings → Layout & Theme → Scratch pad
-  document.querySelectorAll("input[name='scratch-visible']").forEach((radio) => {
-    radio.checked = radio.value === (visible ? 'show' : 'hide')
-  })
-  pad.hidden = !visible
-  document.getElementById('scratch-splitter').hidden = !visible
-  if (button) {
-    button.textContent = visible ? 'Hide scratch pad' : 'Show scratch pad'
-    button.title = visible ? 'Hide the scratch pad' : 'Show the scratch pad'
-    button.setAttribute('aria-pressed', String(visible))
-  }
-}
-
-function setScratchVisible(visible) {
-  try {
-    if (visible) localStorage.removeItem(SCRATCH_VISIBLE_KEY)
-    else localStorage.setItem(SCRATCH_VISIBLE_KEY, 'hidden')
-  } catch {}
-  applyScratchpad()
-}
-
-{
-  const text = document.getElementById('scratchpad-text')
-  try {
-    text.value = localStorage.getItem(SCRATCH_TEXT_KEY) || ''
-  } catch {}
-  text.addEventListener('input', () => {
-    try {
-      if (text.value) localStorage.setItem(SCRATCH_TEXT_KEY, text.value)
-      else localStorage.removeItem(SCRATCH_TEXT_KEY)
-    } catch {}
-  })
-  const copy = document.getElementById('btn-scratch-copy')
-  copy.addEventListener('click', () => {
-    navigator.clipboard.writeText(text.value).then(() => {
-      copy.textContent = 'Copied!'
-      setTimeout(() => {
-        copy.textContent = 'Copy'
-      }, 1200)
-    })
-  })
-  document.getElementById('btn-scratch-clear').addEventListener('click', () => {
-    if (text.value && !confirm('Erase everything in the scratch pad?')) return
-    text.value = ''
-    text.dispatchEvent(new Event('input'))
-    text.focus()
-  })
-  document
-    .getElementById('btn-scratch')
-    .addEventListener('click', () => setScratchVisible(!scratchVisible()))
-  document.querySelectorAll("input[name='scratch-visible']").forEach((radio) => {
-    radio.addEventListener('change', () => setScratchVisible(radio.value === 'show'))
-  })
-}
-
 // ─── Local data controls ─────────────────────────────────────────────
-document
-  .getElementById('btn-clear-commands')
-  .addEventListener('click', async () => {
-    if (
-      !confirm(
-        "Clear the browser's saved Spell Book commands?\n\nYour data/*.json files will not be changed. On HTTP(S), bundled JSON can seed a fresh browser; on file://, use Restore From File.",
-      )
-    )
-      return
-    localStorage.removeItem('spellbook_commands_v1')
-    localStorage.removeItem('spellbook_trash_v1')
-    localStorage.removeItem('spellbook_import_baseline_v1')
-    if (window.DataFile) await window.DataFile.flush()
-    location.reload()
-  })
-
 document.getElementById('btn-clear-settings').addEventListener('click', () => {
   if (
     !confirm(
@@ -1418,37 +1377,19 @@ document.getElementById('btn-clear-settings').addEventListener('click', () => {
     return
   localStorage.removeItem(SETTINGS_KEY)
   localStorage.removeItem(MODE_KEY)
-  localStorage.removeItem(LAYOUT_KEY)
   setCodeTheme('default')
   clearSyntaxOverrides()
-  resetSectionNames()
-  localStorage.removeItem('spellbook_hidden_filters_v1')
-  localStorage.removeItem('spellbook_hidden_columns_v1')
-  localStorage.removeItem('spellbook_modal_size_v1')
-  setMultiFilterEnabled(true)
-  syncFilterSelectionRadios()
   localStorage.removeItem(NAV_HISTORY_KEY)
   applyNavHistory()
-  localStorage.removeItem(SCRATCH_VISIBLE_KEY)
-  localStorage.removeItem(SCRATCH_HEIGHT_KEY)
-  applyScratchpad()
-  applyScratchHeight()
-  localStorage.removeItem('spellbook_collapsed_sections_v1')
-  applyCollapsedSections()
-  setPanesLayout('stacked')
-  localStorage.removeItem('spellbook_table_dock_v1')
-  localStorage.removeItem('spellbook_dock_split_v1')
-  resetControlsWidth()
-  applyControlsPosition('top')
-  const topRadio = document.querySelector(
-    "input[name='controls-position'][value='top']",
-  )
-  if (topRadio) topRadio.checked = true
+  if (window.NoteWidth) window.NoteWidth.reset()
+  window.SpellBook.setTabOrder(null)
+  window.SpellBook.allTabsOn()
   applyTheme({})
   fillColorInputs()
   updateModeButton()
-  clearCategoryColors()
-  renderCategoryColorSettings()
+  // Each module resets its own settings (Spells: layout, filters, category
+  // colors), listening for this event.
+  document.dispatchEvent(new CustomEvent('spellbook:settings-reset'))
 })
 
 document.getElementById('btn-clear-all').addEventListener('click', async () => {
@@ -1465,8 +1406,8 @@ document.getElementById('btn-clear-all').addEventListener('click', async () => {
   localStorage.removeItem('spellbook_baseline_terms_v1')
   localStorage.removeItem(SETTINGS_KEY)
   localStorage.removeItem(MODE_KEY)
-  localStorage.removeItem(CATEGORY_COLORS_KEY)
-  localStorage.removeItem(LAYOUT_KEY)
+  localStorage.removeItem('spellbook_category_colors_v1')
+  localStorage.removeItem('spellbook_layout_v1')
   localStorage.removeItem(CODE_THEME_KEY)
   localStorage.removeItem(SYNTAX_COLORS_KEY)
   localStorage.removeItem('spellbook_section_names_v1')
@@ -1474,22 +1415,28 @@ document.getElementById('btn-clear-all').addEventListener('click', async () => {
   localStorage.removeItem('spellbook_filter_renames_v1')
   localStorage.removeItem('spellbook_hidden_columns_v1')
   localStorage.removeItem('spellbook_modal_size_v1')
-  localStorage.removeItem(SCRATCH_VISIBLE_KEY)
-  localStorage.removeItem(SCRATCH_HEIGHT_KEY)
-  localStorage.removeItem(SCRATCH_TEXT_KEY)
+  localStorage.removeItem('spellbook_scratchpad_v1')
+  localStorage.removeItem('spellbook_scratch_height_v1')
+  localStorage.removeItem('spellbook_scratchpad_text_v1')
   localStorage.removeItem('spellbook_collapsed_sections_v1')
-  localStorage.removeItem(PANES_KEY)
+  localStorage.removeItem('spellbook_note_width_v1')
+  localStorage.removeItem('spellbook_note_branch_v1')
+  localStorage.removeItem('spellbook_sealed_branch_v1')
+  localStorage.removeItem('spellbook_sealed_list_width_v1')
+  localStorage.removeItem('spellbook_note_bars_v1')
+  localStorage.removeItem('spellbook_note_titles_v1')
+  localStorage.removeItem('spellbook_select_pane_width_v1')
+  localStorage.removeItem('spellbook_panes_v1')
   localStorage.removeItem('spellbook_table_dock_v1')
   localStorage.removeItem('spellbook_dock_split_v1')
   localStorage.removeItem('spellbook_split_v1')
   localStorage.removeItem('spellbook_split_w_v1')
-  localStorage.removeItem(CONTROLS_WIDTH_KEY)
+  localStorage.removeItem('spellbook_controls_width_v1')
   if (window.DataFile) await window.DataFile.flush()
   location.reload()
 })
 
 applyTheme(loadSettings())
-applyControlsPosition(loadControlsPosition())
 updateModeButton()
 applyCodeTheme(loadCodeTheme())
 // The sample block in Settings shows the chosen code theme with highlighting.
@@ -1497,9 +1444,3 @@ document.querySelectorAll('.code-preview').forEach((block) => {
   block.innerHTML = highlightCode(block.textContent, block.dataset.lang)
 })
 applySyntaxOverrides()
-restoreControlsWidth()
-window.restoreControlsWidth = restoreControlsWidth
-applyPanesLayout(loadPanesLayout())
-applyTableDock()
-placeScratchpad()
-applyScratchpad()

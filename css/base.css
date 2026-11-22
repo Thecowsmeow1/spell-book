@@ -1,6 +1,6 @@
 /*
   Spell Book visual system.
-  settings.js changes these custom properties at runtime; app.js adds state
+  settings.js changes these custom properties at runtime; the scripts add state
   classes and generated markup; index.html supplies the semantic regions.
   Keep selectors grouped by UI region so a new control can be documented and
   styled beside the region it belongs to.
@@ -22,6 +22,8 @@
   --ar: #a855f7;
   --danger: #f87171;
   --success: #4ade80;
+  /* Amber: archived notes, unsaved counts, can't-save warnings. */
+  --warning: #f59e0b;
   --mono: 'Consolas', 'Cascadia Code', 'Courier New', monospace;
   --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
   --code-bg: #0a0e14;
@@ -68,6 +70,7 @@
   --tok-operator: #be185d;
   --danger: #dc2626;
   --success: #15803d;
+  --warning: #d97706;
   --accent-text: color-mix(in srgb, var(--accent), #000 30%);
   color-scheme: light;
 }
@@ -139,6 +142,248 @@ header .controls-section {
 .nav-actions .btn {
   text-align: center;
 }
+/* Data file group in the top bar: the Save control and Tutorial. */
+.nav-data {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: 0.4rem;
+  padding-right: 0.8rem;
+  border-right: 1px solid var(--border);
+}
+.unsaved-count {
+  min-width: 1.4em;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: var(--warning);
+  color: #1a1a1a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.unsaved-count[hidden] {
+  display: none;
+}
+/* The Save control (js/settings.js): one button in two parts, joined
+   with a divider. The left part saves and shows the save state (or links
+   a data file); the arrow opens the data-file menu. */
+.save-control {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: 6px;
+  background: var(--surface2);
+}
+.save-control .btn {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+}
+.save-control .btn:hover,
+.save-control .btn[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--surface2), var(--text) 14%);
+}
+.save-main {
+  position: relative;
+  gap: 0.45rem;
+  padding: 0.45rem 0.6rem 0.45rem 0.75rem;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.save-link {
+  padding: 0.45rem 0.4rem;
+  border-left: 1px solid color-mix(in srgb, var(--text), transparent 75%) !important;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  color: var(--muted);
+}
+.save-link.needs-permission {
+  color: var(--warning);
+}
+.save-label {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.save-main .unsaved-count {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.45rem;
+  /* Above the amber outline (.save-control::after). */
+  z-index: 1;
+  pointer-events: none;
+}
+/* With autosave on, the label tells the state; the count isn't needed.
+   With no file linked there's nothing to save to, so no count either. */
+.save-control[data-mode='auto'] .unsaved-count,
+.save-control[data-mode='database'] .unsaved-count,
+.save-control[data-mode='unlinked'] .unsaved-count {
+  display: none;
+}
+/* The light: green while autosave is on, amber when it can't write. */
+.autosave-dot {
+  display: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex: none;
+}
+.save-control[data-mode='auto'] .autosave-dot,
+.save-control[data-mode='database'] .autosave-dot {
+  display: block;
+  background: var(--success);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--success), transparent 70%);
+}
+.save-control.is-saving .autosave-dot {
+  animation: save-pulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes save-pulse {
+  to {
+    opacity: 0.35;
+  }
+}
+/* An amber outline when it can't save. On a layer above both buttons: drawn
+   on the control itself, the buttons' backgrounds covered it but for bits
+   at their corners, so it looked broken. */
+.save-control[data-mode='blocked']::after,
+.save-control[data-mode='error']::after,
+.save-control.db-failed::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--warning);
+  pointer-events: none;
+}
+.save-control[data-mode='blocked'] .save-main,
+.save-control[data-mode='error'] .save-main,
+.save-control.db-failed .save-main {
+  color: var(--warning);
+}
+.save-control[data-mode='manual'] .save-label {
+  color: var(--muted);
+}
+.save-control.has-unsaved .save-label {
+  color: inherit;
+}
+@media (max-width: 1100px) {
+  .save-label {
+    display: none;
+  }
+  .save-control[data-mode='blocked'] .save-label,
+  .save-control[data-mode='unlinked'] .save-label,
+  .save-control.db-failed .save-label {
+    display: inline;
+  }
+}
+
+/* Menus that drop from the top bar. */
+.nav-menu {
+  position: fixed;
+  z-index: 900;
+  width: 18.5rem;
+  max-width: calc(100vw - 16px);
+  padding: 0.3rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  font-size: 0.88rem;
+}
+.nav-menu hr {
+  margin: 0.3rem 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+.nav-menu-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.7rem 0.55rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.nav-menu-head b {
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.nav-menu-warn {
+  color: var(--warning);
+}
+.nav-menu-note {
+  padding: 0.45rem 0.7rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.nav-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-menu-item:hover,
+.nav-menu-item:focus-visible {
+  background: var(--surface2);
+  outline: none;
+}
+.nav-menu-item[aria-disabled='true'] {
+  cursor: default;
+}
+.nav-menu-item .nav-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}
+.nav-menu-text {
+  display: flex;
+  flex-direction: column;
+}
+.nav-menu-text small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+/* A small on/off switch inside a menu item. */
+.nav-switch {
+  position: relative;
+  flex: none;
+  width: 1.9rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.15s;
+}
+.nav-switch::after {
+  content: '';
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+.nav-switch.on {
+  background: var(--success);
+}
+.nav-switch.on::after {
+  transform: translateX(0.85rem);
+}
 .brand h1 {
   font-size: 1.15rem;
   font-weight: 600;
@@ -209,4 +454,11 @@ header .controls-section {
 .btn.sm {
   padding: 0.3rem 0.6rem;
   font-size: 0.8rem;
+}
+
+/* Tabs in code (js/code-indent.js types them) show 4 columns wide. */
+textarea,
+pre,
+code {
+  tab-size: 4;
 }

@@ -1,0 +1,287 @@
+/* The ATT&CK page (modules/attack). The matrix styles come from spell-book-hk. */
+.attack-page:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem 1rem 1rem;
+}
+.attack-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.attack-tools input[type='search'] {
+  flex: 1 1 20rem;
+  min-width: 12rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.attack-tools label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.attack-tools .attack-muted {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.attack-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0.75rem;
+}
+.attack-matrix {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 0.5rem;
+  overflow: auto;
+  align-items: flex-start;
+  padding-bottom: 0.5rem;
+}
+.attack-matrix > .attack-muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.attack-empty {
+  flex: 0 0 auto;
+  align-self: center;
+}
+.attack-column {
+  flex: 0 0 12.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.attack-tactic {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.3rem;
+  white-space: nowrap;
+  padding: 0.4rem 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: 2px solid var(--accent);
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+  font-size: 0.82rem;
+  z-index: 1;
+}
+.attack-tactic .attack-muted {
+  color: var(--muted);
+  font-weight: 400;
+}
+.attack-cell {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.attack-cell.own {
+  border-style: dashed;
+}
+.attack-technique.focus {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.attack-technique {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.45rem;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.attack-technique:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.attack-technique code {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.attack-subcount,
+.attack-linkcount {
+  display: inline-block;
+  min-width: 1.2em;
+  padding: 0 0.3em;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  text-align: center;
+  background: color-mix(in srgb, var(--muted) 25%, transparent);
+  color: var(--text);
+}
+.attack-linkcount {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.attack-subs {
+  list-style: none;
+  margin: 0 0 0.25rem;
+  padding: 0 0 0 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.attack-subs .attack-technique {
+  font-size: 0.74rem;
+  padding: 0.25rem 0.4rem;
+}
+
+/* The technique panel on the right. */
+.attack-detail[hidden] {
+  display: none;
+}
+.attack-detail {
+  flex: 0 0 min(28rem, 45%);
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+.attack-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.attack-detail h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+.attack-detail h2 code {
+  color: var(--muted);
+}
+.attack-detail h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.attack-detail .section {
+  margin-top: 0.9rem;
+}
+.attack-detail .attack-muted {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.attack-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+.attack-labels .badge.muted {
+  background: color-mix(in srgb, var(--muted) 20%, transparent);
+  color: var(--text);
+}
+.attack-text {
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+.attack-subhead {
+  margin: 0.4rem 0 0.15rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.attack-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.attack-detail .link-btn {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--accent-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.attack-detail .link-btn:hover {
+  text-decoration: underline;
+}
+.attack-detail .row-remove {
+  color: var(--muted);
+}
+.attack-strategy {
+  margin: 0.35rem 0;
+}
+.attack-strategy summary {
+  cursor: pointer;
+}
+.attack-analytic {
+  margin: 0.35rem 0 0.5rem 0.75rem;
+  font-size: 0.82rem;
+}
+.attack-ioc-list {
+  list-style: none;
+  padding: 0;
+}
+.attack-ioc-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.attack-ioc-list code {
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+.attack-ioc-add {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.attack-ioc-add input,
+.attack-notes {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+.attack-notes {
+  width: 100%;
+  min-height: 5rem;
+  resize: vertical;
+  font-family: inherit;
+}
+.attack-source {
+  margin-top: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.attack-source a {
+  color: var(--accent-text);
+}
+
+@media (max-width: 760px) {
+  .attack-body {
+    flex-direction: column;
+  }
+  .attack-detail {
+    flex: 0 0 auto;
+    max-height: 55vh;
+  }
+}

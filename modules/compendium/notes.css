@@ -1,0 +1,1618 @@
+/* Notes page: notes.js renders the tree into #notes-tree and edits
+   #notes-editor. The tree width comes from --notes-tree-width on #notes-body. */
+.notes-tabbar {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0.35rem 0.5rem 0;
+  /* The bottom line is an inset shadow, not a border, so the open tab can
+     cover it without sticking out of the bar (which made it scroll). */
+  box-shadow: inset 0 -1px 0 var(--border);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.notes-tabs {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+}
+.notes-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 14rem;
+  padding: 0.35rem 0.85rem;
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.notes-tab .notes-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notes-tab .reorder-handle {
+  margin-right: 0;
+}
+.notes-tab:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.notes-tab[aria-selected='true'] {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+.notes-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* + Tome sits in the tab row and looks like a tab, so it reads as part of it. */
+.notes-tab-add {
+  flex: none;
+  font-weight: 600;
+}
+.notes-seal {
+  display: inline-flex;
+  flex: none;
+  color: var(--warning);
+}
+.notes-tree-row .notes-seal {
+  flex: none;
+}
+.notes-sealed-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  background: color-mix(in srgb, var(--warning), transparent 85%);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.notes-sealed-bar[hidden] {
+  display: none;
+}
+.notes-sealed-bar svg {
+  flex: none;
+  color: var(--warning);
+}
+.notes-sealed-bar span {
+  flex: 1;
+}
+.notes-editor-pane.is-sealed .notes-toolbar,
+.notes-editor-pane.is-sealed .notes-table-tools {
+  display: none;
+}
+/* Only in the sealed note itself (#notes-editor), not the other notes Whole
+   branch draws beside it. */
+.notes-editor-pane.is-sealed #notes-editor .note-command-remove,
+.notes-editor-pane.is-sealed #notes-editor .note-code-lang,
+.notes-editor-pane.is-sealed #notes-editor .note-code-save {
+  display: none;
+}
+.notes-title[readonly] {
+  cursor: default;
+}
+.notes-body {
+  --notes-tree-width: 280px;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.notes-tree-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--notes-tree-width);
+  min-width: 0;
+  background: var(--surface);
+}
+.notes-tree-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.5rem 0.5rem;
+}
+.notes-tree-search {
+  margin: 0.5rem 0.5rem 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+  min-width: 0;
+}
+/* Tag filter under the tree search (the Spellbook page's Tag filter, smaller) */
+.notes-tag-box {
+  position: relative;
+  margin: 0 0.5rem 0.5rem;
+}
+.notes-tag-box .tag-filter-wrap {
+  gap: 0.4rem;
+}
+.notes-tag-box .tag-filter-wrap label {
+  font-size: 0.68rem;
+}
+.notes-tag-box .tag-filter-wrap input {
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.notes-tag-box .active-tags {
+  margin-top: 0.35rem;
+}
+.notes-tag-suggestions {
+  top: calc(100% + 4px);
+  max-height: 16rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.notes-tag-suggestions .tag-pick.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+/* A note's tags, under its name */
+.notes-tags {
+  flex: none;
+  justify-content: flex-start;
+  margin: 0;
+  padding: 0.3rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.notes-tags[hidden] {
+  display: none;
+}
+.notes-tags .tag-chip:not(.tag-pick) {
+  cursor: pointer;
+}
+.notes-tags .tag-chip:not(.tag-pick):hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.notes-scope {
+  display: flex;
+  margin: 0 0.5rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.notes-scope-btn {
+  flex: 1;
+  padding: 0.25rem 0.4rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.notes-scope-btn + .notes-scope-btn {
+  border-left: 1px solid var(--border);
+}
+.notes-scope-btn:hover:not(:disabled) {
+  background: var(--surface2);
+  color: var(--text);
+}
+.notes-scope-btn.active {
+  background: color-mix(in srgb, var(--accent), transparent 72%);
+  color: var(--text);
+}
+.notes-scope-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.notes-scope-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: -0.2rem 0.5rem 0.5rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.notes-scope-label[hidden] {
+  display: none;
+}
+.notes-scope-label span {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notes-scope-clear {
+  flex: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.notes-scope-clear:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.notes-tree,
+.notes-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.notes-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 1rem;
+}
+.notes-tree-tome-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.notes-tree-tome:first-child > .notes-tree-tome-name {
+  margin-top: 0;
+}
+.notes-tree-tome-name:hover,
+.notes-tree-tome-name.current {
+  color: var(--text);
+}
+.notes-tree-none {
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+}
+.notes-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem 0.2rem calc(0.25rem + var(--depth, 0) * 1.1rem);
+  font-size: 0.875rem;
+  cursor: pointer;
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  outline-offset: -2px;
+}
+.notes-tree-row:hover {
+  background: var(--surface2);
+}
+.notes-tree-row.selected {
+  background: color-mix(in srgb, var(--accent), transparent 72%);
+}
+.notes-tree-row.drop-before {
+  border-top-color: var(--accent);
+}
+.notes-tree-row.drop-after {
+  border-bottom-color: var(--accent);
+}
+.notes-tree-row.drop-inside {
+  background: color-mix(in srgb, var(--accent), transparent 50%);
+}
+/* A node dragged below the last row, or onto a tome's tab (notes.js). */
+.notes-tree.drop-end {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.notes-tab.drop-tab {
+  background: color-mix(in srgb, var(--accent), transparent 60%);
+  color: var(--text);
+}
+.notes-twisty {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  line-height: 1;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.notes-twisty.leaf {
+  visibility: hidden;
+}
+.notes-dot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--danger);
+}
+.notes-dot[data-level='1'] {
+  background: var(--ws);
+}
+.notes-dot[data-level='2'] {
+  background: var(--success);
+}
+.notes-dot[data-level='3'] {
+  background: var(--accent);
+}
+.notes-dot[data-level='4'] {
+  background: var(--ar);
+}
+.notes-node-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notes-splitter {
+  flex: none;
+  width: 5px;
+  background: var(--border);
+  cursor: col-resize;
+  touch-action: none;
+}
+.notes-splitter:hover,
+.notes-splitter:focus-visible,
+.notes-splitter.dragging {
+  background: var(--accent);
+}
+.notes-editor-pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+}
+/* Expand off (note-width.js): the text is a centered column of the width
+   you set; on a narrower screen it still fits. */
+.notes-editor-pane.note-fixed-width .notes-editor {
+  padding-left: max(1.5rem, calc((100% - var(--note-width, 820px)) / 2));
+  padding-right: max(1.5rem, calc((100% - var(--note-width, 820px)) / 2));
+}
+.note-width-handle {
+  position: absolute;
+  z-index: 5;
+  width: 8px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.note-width-handle[hidden] {
+  display: none;
+}
+.note-width-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--border);
+  opacity: 0.6;
+}
+.note-width-handle:hover::after,
+body.note-width-resizing .note-width-handle::after {
+  background: var(--accent);
+  opacity: 1;
+}
+body.note-width-resizing,
+body.note-width-resizing * {
+  cursor: ew-resize !important;
+  user-select: none;
+}
+.notes-tool.notes-expand[aria-pressed='true'] {
+  color: var(--accent-text);
+}
+.note-width-px input {
+  width: 6rem;
+}
+.notes-empty {
+  display: none;
+  margin: auto;
+  text-align: center;
+  color: var(--muted);
+}
+.notes-empty p {
+  margin-bottom: 0.75rem;
+}
+.notes-editor-pane.is-empty > :not(.notes-empty) {
+  display: none;
+}
+.notes-editor-pane.is-empty > .notes-empty {
+  display: block;
+}
+.notes-title {
+  flex: none;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left;
+  min-width: 0;
+}
+/* The title row: the note's star, then its name, left-aligned. */
+.notes-title-row {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding-left: 0.75rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.notes-title-row .notes-title {
+  flex: 1;
+  padding-left: 0.35rem;
+  border-bottom: none;
+}
+.notes-title-row .notes-star {
+  visibility: visible;
+  font-size: 1.2rem;
+}
+.notes-title-row .notes-star[hidden] {
+  display: none;
+}
+/* Branch view: no title row; the note being edited has its title box, tags
+   row and Environment panel in its section (note-branch.js moves them). */
+.notes-editor-pane.branch-view .notes-title-row {
+  display: none;
+}
+/* (Only the Compendium's: Sealed Notes keeps its names, as nothing moves in.) */
+#notes-branch .notes-branch-note.active .notes-branch-name,
+#notes-branch .notes-branch-note.active > .notes-branch-tags,
+#notes-branch .notes-branch-note.active > .notes-branch-env {
+  display: none;
+}
+/* The name box fits its name, so the lock comes right after it. */
+.notes-branch-head .notes-title {
+  flex: 0 1 auto;
+  field-sizing: content;
+  min-width: 4ch;
+  max-width: 100%;
+  padding: 0.1rem 0.3rem;
+  margin-left: -0.3rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  text-align: left;
+}
+.notes-branch-head .notes-title:hover {
+  border-color: var(--border);
+}
+.notes-branch-note > .notes-tags {
+  padding: 0.35rem 1.5rem 0;
+  background: none;
+  border: 0;
+}
+.notes-branch-note > .env-panel {
+  margin: 0.4rem 1.5rem 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+/* The name has the same box, place and color as the title box that
+   replaces it when selected (.notes-branch-head .notes-title), so its text
+   and the lock after it stay put. */
+#notes-branch .notes-branch-name,
+.sealed-branch .notes-branch-name {
+  padding: 0.1rem 0.3rem;
+  margin-left: -0.3rem;
+  border: 1px solid transparent;
+  color: var(--text);
+}
+/* A sealed note's code (Branch view's unselected notes and Sealed Notes):
+   the editor's code box, as a sealed note shows it when selected: the same
+   text size, and only Copy at the top right. */
+.sealed-body pre.sealed-code {
+  overflow-wrap: break-word;
+}
+.sealed-body pre.sealed-code code {
+  font: inherit;
+}
+.sealed-body pre.sealed-code > .sealed-copy {
+  font-family: var(--sans);
+  position: absolute;
+  /* (Less the code box's border, which the editor's Copy sits outside of.) */
+  top: calc(0.5rem - 1px);
+  right: calc(0.5rem - 1px);
+  z-index: 2;
+}
+/* Drawn like the closed Variables panel (sealed-tomes.css .env-panel), so
+   it's the same size when the note is selected and the panel takes its place. */
+.notes-branch-env {
+  display: list-item;
+  list-style: disclosure-closed inside;
+  margin: 0.4rem 1.5rem 0;
+  padding: 0.4rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+.notes-branch-env[hidden] {
+  display: none;
+}
+/* The branch button at the right end of a note's name line (both here and
+   in Sealed Notes). */
+/* The open note's star always shows, as the title row's did. */
+.notes-branch-note.active .notes-branch-star {
+  visibility: visible;
+}
+.notes-branch-head .notes-branch-btn {
+  flex: none;
+  margin-left: auto;
+}
+.notes-branch-head .notes-branch-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+/* In the Archive, Open in (margin-left: auto) pushes it, Unarchive and the
+   branch button to the right together; the branch button mustn't push too. */
+.sealed-branch .notes-branch-head .notes-branch-btn {
+  margin-left: 0.3rem;
+}
+/* Note width with Expand off: the whole note page is the centered column, so
+   names, tags and text line up. */
+.notes-editor-pane.note-fixed-width .notes-branch {
+  padding-left: max(0px, calc((100% - var(--note-width, 820px)) / 2 - 1.5rem));
+  padding-right: max(0px, calc((100% - var(--note-width, 820px)) / 2 - 1.5rem));
+}
+.notes-editor-pane.note-fixed-width .notes-branch .notes-editor {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+.notes-title:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.notes-toolbar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.notes-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.25rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.notes-tool:hover {
+  background: var(--surface2);
+}
+.notes-tool.active {
+  background: color-mix(in srgb, var(--accent), transparent 65%);
+  border-color: var(--accent);
+}
+.notes-tool code {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+.notes-tool-sep {
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 0.25rem;
+  background: var(--border);
+}
+.notes-font {
+  max-width: 8.5rem;
+}
+.notes-size {
+  max-width: 4.75rem;
+}
+.notes-format {
+  height: 1.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+.notes-color {
+  position: relative;
+  flex-direction: column;
+  font-weight: 700;
+  line-height: 1;
+}
+.notes-color-hl {
+  padding: 0 0.2rem;
+  border-radius: 2px;
+}
+/* Text color and highlight: the button applies the color shown on it; the
+   arrow beside it opens the color picker. */
+.notes-color-group {
+  display: inline-flex;
+  align-items: center;
+}
+.notes-color-group .notes-color {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.notes-color-bar {
+  display: block;
+  width: 1rem;
+  height: 0.2rem;
+  margin-top: 2px;
+  border-radius: 1px;
+}
+.notes-color-pick {
+  position: relative;
+  min-width: 1.2rem;
+  padding: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  color: var(--muted);
+}
+.notes-color-pick:hover {
+  color: var(--text);
+}
+.notes-color-pick input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+}
+.notes-tool.notes-color.active {
+  background: var(--surface2);
+  border-color: var(--border);
+}
+.notes-editor {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 1.5rem 3rem;
+  outline: none;
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.notes-editor p,
+.notes-editor ul,
+.notes-editor ol,
+.notes-editor table {
+  margin: 0 0 0.6rem;
+}
+.notes-editor ul,
+.notes-editor ol {
+  padding-left: 1.75rem;
+}
+.notes-editor h1,
+.notes-editor h2,
+.notes-editor h3 {
+  margin: 1rem 0 0.5rem;
+  line-height: 1.25;
+}
+.notes-editor h1 {
+  font-size: 1.6rem;
+}
+.notes-editor h2 {
+  font-size: 1.3rem;
+}
+.notes-editor h3 {
+  font-size: 1.1rem;
+}
+.notes-editor a {
+  color: var(--accent-text);
+}
+.notes-editor blockquote {
+  margin: 0 0 0.6rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+/* The browser Indent command also writes a blockquote: keep it a plain indent. */
+.notes-editor blockquote[style*='margin'] {
+  padding-left: 0;
+  border-left: none;
+  color: inherit;
+}
+.notes-editor pre:not(.cmd):not(.note-code) {
+  margin: 0 0 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--code-fg, var(--text));
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
+.notes-editor code {
+  font-family: var(--mono);
+  font-size: 0.875em;
+}
+.notes-editor :not(pre) > code {
+  padding: 0.1em 0.3em;
+  background: var(--code-bg);
+  border-radius: 4px;
+  color: var(--code-fg, var(--text));
+}
+.notes-editor hr {
+  margin: 0.75rem 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+.notes-editor table {
+  width: 100%;
+  border-collapse: collapse;
+}
+/* Sizes set by hand (notes.js "Table sizes"): the columns keep their
+   widths whatever is typed in them. */
+.notes-editor table:has(> colgroup) {
+  table-layout: fixed;
+}
+/* Expand on (notes.js "Table options"): fills the note, columns fit their text. */
+.notes-editor table[data-expand] {
+  width: 100%;
+  table-layout: auto;
+}
+.notes-table-tools .notes-table-toggle[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.notes-editor.table-col-edge,
+body.table-col-resizing,
+body.table-col-resizing * {
+  cursor: col-resize !important;
+}
+.notes-editor.table-row-edge,
+body.table-row-resizing,
+body.table-row-resizing * {
+  cursor: row-resize !important;
+}
+.notes-editor td,
+.notes-editor th {
+  min-width: 3rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.notes-editor th {
+  background: var(--surface);
+  font-weight: 600;
+}
+.notes-editor td > p:last-child,
+.notes-editor th > p:last-child {
+  margin-bottom: 0;
+}
+/* Floats over the note next to the table holding the caret (notes.js
+   placeTableTools), so showing it never moves the note. */
+.notes-table-tools {
+  position: fixed;
+  z-index: 45;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: calc(100vw - 1rem);
+  padding: 0.25rem 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.notes-table-tools[hidden] {
+  display: none;
+}
+.notes-find-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.notes-find-bar[hidden] {
+  display: none;
+}
+.notes-find-bar span {
+  margin-right: 0.4rem;
+}
+.notes-find-bar .notes-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+::highlight(notes-match) {
+  background-color: rgba(250, 204, 21, 0.4);
+}
+::highlight(notes-match-current) {
+  background-color: #f97316;
+  color: #000;
+}
+.note-command .note-match-field {
+  border-color: #facc15;
+  box-shadow: 0 0 0 1px #facc15;
+}
+.note-command .note-match-field.current {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px #f97316;
+}
+.notes-table-tools-label {
+  margin-right: 0.25rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.notes-table-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+.notes-table-form label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+.notes-table-form input[type='number'] {
+  width: 4.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+}
+.notes-table-header {
+  flex-basis: 100%;
+}
+.notes-status {
+  flex: none;
+  display: flex;
+  gap: 1rem;
+  padding: 0.2rem 0.75rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.notes-path {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#notes-saved.error {
+  color: var(--danger);
+}
+.notes-menu {
+  position: fixed;
+  z-index: 90;
+  min-width: 170px;
+  padding: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.notes-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+.notes-menu button:hover,
+.notes-menu button:focus-visible {
+  background: var(--surface2);
+  outline: none;
+}
+.notes-menu button:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: none;
+}
+.notes-menu hr {
+  margin: 0.25rem 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+
+/* Images in notes (notes.js "Images") */
+.notes-editor img,
+.nb-rich img,
+.nb-rich-view img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: bottom;
+  border-radius: 4px;
+}
+.notes-editor img {
+  cursor: pointer;
+}
+.notes-editor-pane.is-sealed .notes-editor img {
+  cursor: default;
+}
+/* The frame over a clicked image: corner grip to resize, × to remove */
+.note-image-frame {
+  position: fixed;
+  z-index: 40;
+  box-sizing: border-box;
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.note-image-frame[hidden] {
+  display: none;
+}
+.note-image-grip {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  border-radius: 3px;
+  cursor: nwse-resize;
+  pointer-events: auto;
+  touch-action: none;
+}
+.note-image-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  background: color-mix(in srgb, var(--bg), transparent 15%);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  pointer-events: auto;
+}
+.note-image-remove:hover {
+  color: #ef4444;
+}
+.note-image-size {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 0.05rem 0.35rem;
+  background: color-mix(in srgb, var(--bg), transparent 15%);
+  border-radius: 3px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  opacity: 0;
+}
+.note-image-frame.resizing .note-image-size {
+  opacity: 1;
+}
+
+/* The note count at the foot of the tree (showNoteTotal). */
+.notes-count {
+  flex: none;
+  padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* Insert Command, Script and Term: a group labelled as coming from Spells
+   (module.js; hidden without Spells). */
+.notes-spells-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-left: 0.2rem;
+  padding: 0.1rem 0.15rem 0.1rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.notes-spells-group[hidden] {
+  display: none;
+}
+.notes-spells-label {
+  margin-right: 0.15rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: help;
+}
+
+/* Branch view (note-branch.js): the note and every note inside it as one
+   page. The editor sits in one section; the others are drawn read-only and
+   take the editor when clicked. */
+.notes-tool.notes-branch-toggle .nav-icon {
+  width: 16px;
+  height: 16px;
+}
+.notes-tool.notes-branch-toggle[aria-pressed='true'] {
+  color: var(--accent-text);
+  background: var(--surface2);
+}
+.notes-branch {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.5rem 0 3rem;
+}
+.notes-branch[hidden] {
+  display: none;
+}
+.notes-branch-note {
+  --level-color: var(--danger);
+  --bar-color: var(--level-color);
+  position: relative;
+  margin: 0 0 0.25rem calc(var(--depth, 0) * 1.1rem);
+  /* The space for the bar, which .notes-branch-bar draws. */
+  border-left: 2px solid transparent;
+}
+:root[data-note-bars='accent'] .notes-branch-note {
+  --bar-color: var(--accent);
+}
+:root[data-note-bars='plain'] .notes-branch-note {
+  --bar-color: var(--muted);
+}
+:root[data-note-indent='off'] .notes-branch-note {
+  margin-left: 0;
+}
+/* The bar: a wider strip to click (it switches the bars' color), thicker
+   on hover. */
+.notes-branch-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -7px;
+  z-index: 1;
+  width: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.notes-branch-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 2px;
+  background: color-mix(in srgb, var(--bar-color) 35%, transparent);
+}
+.notes-branch-note.active > .notes-branch-bar::after,
+.notes-branch-bar:hover::after {
+  background: var(--bar-color);
+}
+.notes-branch-bar:hover::after {
+  left: 4px;
+  width: 4px;
+}
+.notes-branch-note[data-level='1'] {
+  --level-color: var(--ws);
+}
+.notes-branch-note[data-level='2'] {
+  --level-color: var(--success);
+}
+.notes-branch-note[data-level='3'] {
+  --level-color: var(--accent);
+}
+.notes-branch-note[data-level='4'] {
+  --level-color: var(--ar);
+}
+.notes-branch-note.active {
+  background: color-mix(in srgb, var(--surface2) 35%, transparent);
+}
+.notes-branch-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.5rem 0;
+  font-weight: 600;
+  font-size: calc(var(--title-size, 1.6rem) * var(--title-scale, 1));
+  line-height: 1.25;
+  color: var(--text);
+  cursor: pointer;
+}
+/* Names as headings: a step smaller for each level inside the top note, and
+   the whole ladder scaled by Settings → Compendium → Note titles. */
+.notes-branch-note[data-depth='1'] {
+  --title-size: 1.35rem;
+}
+.notes-branch-note[data-depth='2'] {
+  --title-size: 1.2rem;
+}
+.notes-branch-note[data-depth='3'] {
+  --title-size: 1.1rem;
+}
+:root[data-note-titles='small'] {
+  --title-scale: 0.8;
+}
+:root[data-note-titles='large'] {
+  --title-scale: 1.25;
+}
+.notes-branch-head .notes-branch-star {
+  font-size: 0.7em;
+}
+/* The star hangs in the margin, so the name lines up with the note's text. */
+.notes-branch-head {
+  position: relative;
+}
+.notes-branch-head .notes-branch-star {
+  position: absolute;
+  transform: translateX(calc(-100% - 0.2rem));
+}
+.notes-branch-note:not(.active) .notes-branch-head {
+  color: var(--muted);
+}
+/* A sealed note's lock, just after its name: click it to unseal. */
+.notes-branch-seal {
+  flex: none;
+  display: inline-flex;
+  padding: 0.15rem;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--warning);
+  cursor: pointer;
+}
+.notes-branch-seal:hover {
+  background: color-mix(in srgb, var(--warning), transparent 85%);
+}
+/* A note that starts or ends with a block: room above or below it to click
+   for a line there. */
+.notes-branch .notes-editor:has(> .note-command:first-child, > pre.note-code:first-child, > .note-block-section:first-child) {
+  padding-top: 0.9rem;
+}
+.notes-branch .notes-editor:has(> .note-command:last-child, > pre.note-code:last-child, > .note-block-section:last-child) {
+  padding-bottom: 1.4rem;
+}
+/* The line between a note's name, tags and variables and its text. */
+.notes-branch-rule {
+  height: 1px;
+  margin: 0.55rem 1.5rem 0.15rem;
+  background: var(--border);
+}
+.notes-branch-slot {
+  min-height: 2rem;
+}
+/* A note's tags under its name (Sealed Notes draws its branches the same way). */
+/* The same gap as the selected note's tag row (#notes-tags); Sealed Notes'
+   rows as a tome's. */
+.notes-branch-tags,
+.sealed-branch .sealed-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.35rem 1.5rem 0;
+}
+.notes-branch-tags[hidden] {
+  display: none;
+}
+.notes-branch-tags .tag-chip {
+  cursor: pointer;
+}
+.notes-branch-tags .tag-add-input {
+  cursor: pointer;
+}
+.notes-branch-tags .tag-chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.notes-branch .notes-editor,
+.notes-branch .notes-branch-preview,
+.sealed-branch .notes-branch-preview {
+  flex: none;
+  overflow: visible;
+  min-height: 2.5rem;
+  padding: 0.35rem 1.5rem 1rem;
+}
+.notes-branch .notes-branch-preview {
+  cursor: text;
+}
+/* Drawn like the editor but inert: the slot under it takes the click. */
+.notes-branch-slot:has(> .looks-editable) {
+  cursor: text;
+}
+.sealed-branch .notes-branch-head {
+  cursor: default;
+}
+.notes-branch-note.is-sealed .notes-branch-preview {
+  cursor: default;
+}
+/* The hint sits over the empty line, so a blank note is as tall as when
+   it's selected. */
+.notes-branch-preview.is-blank {
+  position: relative;
+}
+.notes-branch-preview.is-blank::before {
+  position: absolute;
+  content: attr(data-placeholder);
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Stars (favorites): a ☆ at the end of a tree row (shown on hover), ★ when
+   starred; the ★ button by the search box shows only starred notes. */
+.notes-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0.5rem;
+}
+.notes-search-row .notes-tree-search {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.notes-star-filter {
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.notes-star-filter:hover {
+  color: var(--text);
+}
+.notes-star-filter[aria-pressed='true'] {
+  color: var(--star, #e8a317);
+  border-color: var(--star, #e8a317);
+}
+/* The archive box beside it: archived notes shown (the archive's amber). */
+.notes-archive-filter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.notes-archive-filter[aria-pressed='true'] {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+.notes-star {
+  flex: none;
+  padding: 0 0.15rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  visibility: hidden;
+}
+.notes-tree-row:hover .notes-star,
+.notes-tree-row.selected .notes-star,
+.notes-branch-head:hover .notes-star,
+.notes-star.on {
+  visibility: visible;
+}
+.notes-tree-row .notes-star {
+  margin: 0 -0.1rem 0 -0.05rem;
+  font-size: 0.85rem;
+}
+.notes-star.on {
+  color: var(--star, #e8a317);
+}
+.notes-star:hover {
+  color: var(--star, #e8a317);
+}
+
+/* Select & Export (note-select.js): the wide button under the list, the ＋ on
+   each note while the export list is open, the list beside the tree, and the
+   export preview where the note is. */
+.note-select-bar {
+  flex: none;
+  padding: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+.note-select-open {
+  width: 100%;
+}
+.note-select-open.active {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.note-select-add {
+  flex: none;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+/* The ＋ keeps to the row's right end. */
+.notes-tree-row .note-select-add {
+  margin-left: auto;
+}
+.note-select-add:hover {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.note-select-add.on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.select-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 250px;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.select-pane[hidden],
+.select-pane[hidden] + .side-splitter,
+.select-preview[hidden],
+.select-pane [hidden] {
+  display: none;
+}
+.select-pane-head {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.5rem 0.35rem 0.75rem;
+}
+.select-pane-head h3 {
+  flex: 1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.select-pane-tools {
+  padding: 0 0.5rem 0.4rem;
+}
+.select-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0 0.4rem 0.4rem;
+}
+.select-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid transparent;
+  border-top-width: 2px;
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.select-item:hover {
+  background: var(--surface2);
+}
+.select-item.current {
+  background: color-mix(in srgb, var(--accent), transparent 80%);
+}
+.select-item.dragging {
+  opacity: 0.45;
+}
+.select-item.drop-before {
+  border-top-color: var(--accent);
+}
+.select-item.drop-after {
+  border-bottom-color: var(--accent);
+}
+.select-grip {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: -0.1em;
+  cursor: grab;
+}
+.select-number {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.select-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.select-name {
+  overflow: hidden;
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-where {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-remove {
+  flex: none;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  visibility: hidden;
+}
+.select-item:hover .select-remove,
+.select-item:focus-within .select-remove,
+.select-item.current .select-remove {
+  visibility: visible;
+}
+.select-remove:hover {
+  color: var(--danger);
+}
+.select-empty {
+  margin: 0.25rem 0.9rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.select-pane-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+.select-count {
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.select-covered {
+  display: none !important;
+}
+.select-preview {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+}
+.select-preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.select-preview-title {
+  flex: 1;
+  font-weight: 600;
+}
+.select-preview-as {
+  margin: 0;
+}
+.select-preview-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 1.5rem 3rem;
+}
+.select-preview-note h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+.select-preview-note.current h1 {
+  color: var(--accent-text);
+}
+.select-preview-about {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+.select-preview-note > hr {
+  margin: 1.75rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.select-preview-markdown {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: Consolas, 'Cascadia Code', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* An icon before a button's text (From Preset, + Variable). */
+.btn .btn-icon {
+  flex: none;
+  vertical-align: -2px;
+  margin-right: 0.35em;
+}
+/* A button that is only its icon (Insert Template, Insert Variable). */
+.btn.btn-icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
+}
+.btn.btn-icon-only .btn-icon {
+  margin-right: 0;
+}
+
+/* Superscript and subscript buttons: x² and x₂, the small 2 kept from
+   pushing the button taller. */
+/* The button is a flex box, which ignores vertical-align, so the 2 is moved
+   up or down instead. */
+.notes-tool.notes-script-tool sup,
+.notes-tool.notes-script-tool sub {
+  font-size: 0.65em;
+  line-height: 1;
+  position: relative;
+  vertical-align: baseline;
+}
+.notes-tool.notes-script-tool sup {
+  top: -0.45em;
+}
+.notes-tool.notes-script-tool sub {
+  top: 0.45em;
+}

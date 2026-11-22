@@ -1,0 +1,457 @@
+/* Sealed Notes (sealed-tomes.js): the Compendium panel and the Sealed Notes view. */
+.env-panel {
+  position: relative;
+  flex: none;
+  padding: 0.4rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.env-panel[hidden] {
+  display: none;
+}
+.env-summary {
+  color: var(--muted);
+  cursor: pointer;
+  /* Clicking (or double-clicking) to open it doesn't select its text. */
+  user-select: none;
+}
+.env-vars {
+  margin-top: 0.5rem;
+}
+.env-var-rows {
+  margin-bottom: 0.2rem;
+}
+.env-var-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+.env-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+/* Only there while the panel is open (it's inside .env-vars): top right. */
+.env-advanced {
+  position: absolute;
+  top: 0.3rem;
+  right: 1rem;
+}
+.env-advanced.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.env-tools:has(> .env-convert[hidden]) {
+  display: none;
+}
+/* Name | Value; with Advanced also Component | Default value | Ghost text | Description. */
+.env-var-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 1.6rem;
+  gap: 0.4rem;
+  align-items: center;
+}
+.env-var-header {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.env-var-row input {
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.env-panel.advanced .env-var-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1.4fr) 1.6rem;
+}
+.env-var-row input.env-var-mono {
+  font-family: var(--mono);
+}
+.env-var-remove {
+  width: 1.6rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+.env-var-remove:hover {
+  color: var(--danger);
+}
+
+.sealed-pane {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: row;
+}
+.sealed-pane[hidden] {
+  display: none;
+}
+/* The Sealed Notes tab is open: the tree and editor give way to it, and no
+   tome tab looks selected. */
+.notes-page.sealed-open #notes-body {
+  display: none;
+}
+.notes-page.sealed-open .notes-tabs .notes-tab[aria-selected='true'] {
+  background: none;
+  border-color: transparent;
+  color: var(--muted);
+  font-weight: 400;
+}
+.sealed-list-pane {
+  flex: 0 0 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+.sealed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem;
+}
+.sealed-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.sealed-item:hover {
+  background: color-mix(in srgb, var(--accent), transparent 90%);
+}
+.sealed-item.selected {
+  background: color-mix(in srgb, var(--accent), transparent 80%);
+}
+.sealed-item-path {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.sealed-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.sealed-empty {
+  display: none;
+  margin: auto;
+  max-width: 28rem;
+  text-align: center;
+  color: var(--muted);
+}
+.sealed-pane.is-empty .sealed-empty {
+  display: block;
+}
+.sealed-pane.is-empty .sealed-head,
+.sealed-pane.is-empty .sealed-body-wrap,
+.sealed-pane.is-empty .sealed-list-pane,
+.sealed-pane.is-empty .side-splitter {
+  display: none;
+}
+.sealed-head {
+  display: block;
+  flex: none;
+  padding: 0.8rem 1.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.sealed-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.sealed-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.3rem;
+}
+.sealed-path {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.sealed-path[hidden] {
+  display: none;
+}
+/* The tags, right under the title, as in a tome's note. */
+.sealed-head .sealed-head-tags {
+  margin-top: 0.35rem;
+}
+.sealed-head-tags .tag-chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.sealed-body-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Read-only: cards can't be removed from a sealed note. (Branch view's
+   unselected notes that aren't sealed keep theirs, as when selected.) */
+.sealed-body:not(.looks-editable) .note-command-remove {
+  display: none;
+}
+
+/* Environment table at the top of a sealed note. */
+.sealed-body-wrap {
+  padding: 1rem 1.5rem 3rem;
+}
+.sealed-env {
+  margin-bottom: 1.2rem;
+}
+.sealed-env h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+.sealed-env-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.sealed-env-table th,
+.sealed-env-table td {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+.sealed-env-table th {
+  background: var(--surface);
+  font-weight: 600;
+}
+.sealed-env-table td:nth-child(2) {
+  width: 38%;
+}
+.sealed-env-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.25rem 0.45rem;
+  background: var(--code-bg);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--code-fg, var(--text));
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.sealed-env-input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+.sealed-env-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.sealed-body {
+  padding: 0;
+  overflow: visible;
+}
+
+/* Settings → Compendium can hide the Sealed Notes tab. */
+/* The Archive tab sits at the right end of the tome bar, after a thin line,
+   so it doesn't read as one of the tomes. */
+.notes-tab-sealed {
+  flex: none;
+  margin-left: auto;
+  position: relative;
+}
+.notes-tab-sealed::before {
+  content: '';
+  position: absolute;
+  left: -0.5rem;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  border-left: 1px solid var(--border);
+}
+.notes-tab-sealed[hidden] {
+  display: none;
+}
+
+/* A sealed branch lists every note inside it, indented under the sealed one;
+   a note's page shows the notes inside it under their names. */
+.sealed-item-sub {
+  margin-left: calc(var(--depth, 0) * 0.9rem);
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+/* Whole branch: drawn like the Compendium's Branch view (notes.css), reaching
+   the pane's edges as it does there. */
+.sealed-branch {
+  margin: -0.5rem -1.5rem 0;
+}
+
+/* The list: one box per tome, with its sealed notes inside, and a search box
+   above it (styled like the tree's search). */
+.sealed-list-pane {
+  display: flex;
+  flex-direction: column;
+}
+.sealed-search {
+  flex: none;
+}
+.sealed-list {
+  padding-top: 0;
+}
+.sealed-tome {
+  margin-bottom: 0.6rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 45%, transparent);
+}
+.sealed-tome > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sealed-tome-name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem 0.35rem;
+  margin-bottom: 0.2rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.sealed-tome-mark {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* An archived tome's lock (the archive color): click to unarchive it. */
+.sealed-tome-unarchive {
+  display: inline-flex;
+  align-self: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--warning);
+  cursor: pointer;
+}
+.sealed-tome-unarchive:hover {
+  color: var(--text);
+}
+.sealed-item-context {
+  opacity: 0.55;
+}
+.sealed-none {
+  margin: 0.5rem 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.sealed-none[hidden] {
+  display: none;
+}
+
+.sealed-head[hidden] {
+  display: none;
+}
+/* "Open in <tome>", at the end of a note's name line. */
+.sealed-source {
+  flex: none;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sealed-branch .sealed-source {
+  margin-left: auto;
+  font-size: 0.75rem;
+}
+/* A note's own Environment table in Whole branch. */
+.sealed-branch .sealed-env-note {
+  margin: 0.5rem 1.5rem 0;
+}
+.sealed-branch .sealed-env-note h3 {
+  font-size: 0.9rem;
+}
+
+/* A sealed note's tags: under its path, and under each subnote's name.
+   Click one to filter the list by it. */
+.sealed-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+/* Settings → Compendium → Show tags in the Archive, off. */
+.sealed-pane.hide-tags .sealed-tags {
+  display: none;
+}
+.sealed-tags[hidden] {
+  display: none;
+}
+.sealed-tags .tag-chip {
+  cursor: pointer;
+}
+.sealed-tag-box,
+.sealed-scope {
+  flex: none;
+}
+/* Four scope buttons: two to a row, so none of them wraps. */
+.sealed-scope {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.sealed-scope .notes-scope-btn {
+  white-space: nowrap;
+}
+.sealed-scope .notes-scope-btn:nth-child(odd) {
+  border-left: none;
+}
+.sealed-scope .notes-scope-btn:nth-child(n + 3) {
+  border-top: 1px solid var(--border);
+}
+
+/* Stars and Select in Sealed Notes. */
+/* Stars sit before names: the page's title, list items and subnote names. */
+.sealed-item-line {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.sealed-item-line .notes-star {
+  margin-left: -0.2rem;
+  font-size: 0.85rem;
+}
+.sealed-item:hover .notes-star,
+.sealed-item.selected .notes-star {
+  visibility: visible;
+}
+.sealed-star {
+  visibility: visible;
+  margin-left: -0.25rem;
+  font-size: 1.2rem;
+}
+.sealed-select-bar {
+  flex: none;
+  margin-top: auto;
+}
+
+/* Select & Export's ＋ on a sealed note (note-select.js). */
+.sealed-item.has-select-add {
+  position: relative;
+  padding-right: 2rem;
+}
+.sealed-item .note-select-add {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+}
+.sealed-title-row .sealed-star {
+  margin-right: -0.6rem;
+}

@@ -6,7 +6,7 @@
  * Spell Book is opened over http(s); delete the remote-db folder and Spell Book
  * works exactly as before.
  *
- * It plugs into js/datafile.js (window.DataFile.useRemote), which owns the
+ * It plugs into js/core/datafile.js (window.DataFile.useRemote), which owns the
  * change tracking, the unsaved flag and the banners, and adds its own section
  * to Settings → Data. The server API is documented in remote-db/README.md.
  *
@@ -17,6 +17,10 @@
  * which parts IT changed and which parts SOMEONE ELSE changed. Parts changed
  * on only one side merge on their own; only a part changed in both browsers
  * is a conflict, and then the user chooses.
+ *
+ * With sign-in on (SPELLBOOK_PASSWORD on the server), a request made after
+ * the session ended gets 401: a banner offers Sign in. Changes stay in this
+ * browser meanwhile and are saved after signing in. Settings has Sign Out.
  */
 ;(() => {
   if (!window.DataFile || typeof window.DataFile.useRemote !== 'function') return
@@ -39,6 +43,7 @@
     spellbook_scripts_v1: 'Scripts',
     spellbook_terms_v1: 'Terms',
     spellbook_notes_v1: 'Compendium notes',
+    spellbook_block_types_v1: 'Templates',
   }
   const labelOf = (key) => LABELS[key] || 'Settings'
   const labelsOf = (keys) => [...new Set(keys.map(labelOf))].join(', ')
@@ -59,7 +64,8 @@
   const fingerprint = (value) => (typeof value === 'string' ? hash(value) : null)
 
   window.DataFile.useRemote((host) => {
-    const server = { available: false, active: false, db: '' }
+    const server = { available: false, active: false, db: '', auth: false }
+    let signInShown = false
     let conflicts = [] // keys changed in both browsers, waiting for a choice
     let announced = '' // the "changed elsewhere" notice already shown
     let pollTimer = null
@@ -114,10 +120,31 @@
       }
     }
 
+    // The session ended (sign-in is on): say so once, with a way back in.
+    // Changes made meanwhile stay in this browser and are saved afterwards.
+    function signedOut() {
+      host.setError('Signed out: sign in again to save to the database.')
+      if (signInShown) return
+      signInShown = true
+      host.showBanner('You were signed out of the Spell Book server. Your changes are kept in this browser until you sign in again.', [
+        {
+          label: 'Sign in',
+          primary: true,
+          run: () => location.assign(`/login?next=${encodeURIComponent(location.pathname + location.hash)}`),
+        },
+        { label: 'Not now', run: host.closeBanner },
+      ])
+    }
+    const signInError = () => Object.assign(new Error('Signed out: sign in again to save to the database.'), { signIn: true })
+
     async function status(timeout) {
       if (!/^https?:$/.test(location.protocol)) return null
       try {
         const response = await request('/api/status', {}, timeout)
+        if (response.status === 401) {
+          if (server.active) signedOut()
+          return null
+        }
         if (!response.ok) return null
         const body = await response.json()
         return body && body.app === 'spellbook-server' ? body : null
@@ -128,6 +155,7 @@
 
     async function getSnapshot() {
       const response = await request('/api/snapshot')
+      if (response.status === 401) throw signInError()
       if (!response.ok) throw new Error('The database server did not answer.')
       return response.json()
     }
@@ -142,6 +170,7 @@
         keepalive: text.length < 60000,
         body: text,
       })
+      if (response.status === 401) throw signInError()
       if (!response.ok) {
         let message = 'The database server could not save.'
         try {
@@ -215,7 +244,7 @@
       saveBase(base)
       conflicts = conflicts.filter((key) => !keys.includes(key))
       host.markSaved()
-      location.reload()
+      window.DataFile.reload()
     }
 
     function showConflict(keys) {
@@ -243,6 +272,7 @@
       if (!found) return null
       server.available = true
       server.db = found.db
+      server.auth = Boolean(found.auth)
       if (!enabled()) return { status: 'remote-off', db: found.db }
       server.active = true
       const done = (name, extra = {}) => ({
@@ -322,7 +352,8 @@
         if (!conflicts.length) host.markSaved()
         return true
       } catch (err) {
-        host.setError(errorText(err))
+        if (err.signIn) signedOut()
+        else host.setError(errorText(err))
         return false
       }
     }
@@ -377,6 +408,7 @@
         active: server.active,
         enabled: enabled(),
         db: server.db,
+        auth: server.auth,
         waiting: labelsOf(conflicts),
       }),
 
@@ -403,12 +435,52 @@
 
       push,
       pull,
+      // Saves what's waiting, then ends this browser's session.
+      async signOut() {
+        if (server.active) await save()
+        await request('/logout', { method: 'POST' })
+        location.assign('/login')
+      },
       setEnabled(on) {
         host.setLocal(USE_KEY, on ? null : '0')
         server.active = on && server.available
         if (!server.active) clearInterval(pollTimer)
         host.notify()
       },
+    }
+
+    // Attachments (js/core/attachments.js) are kept on the server too, as
+    // files beside the database (server.js "Attachments").
+    if (window.Attachments && window.Attachments.useRemote) {
+      const fileCall = async (url, options, timeout) => {
+        const response = await request(url, options, timeout)
+        if (response.status === 401) throw new Error('Sign in again to sync attachments with the database server.')
+        if (!response.ok && response.status !== 404) {
+          let message = `The server answered ${response.status}.`
+          try {
+            message = (await response.json()).error || message
+          } catch {}
+          throw new Error(message)
+        }
+        return response
+      }
+      window.Attachments.useRemote({
+        active: () => server.active,
+        // { ids, sizes }
+        async list() {
+          return (await fileCall('/api/files', {}, 15000)).json()
+        },
+        async get(id) {
+          const response = await fileCall(`/api/files/${id}`, {}, 300000)
+          return response.status === 404 ? null : response.blob()
+        },
+        async put(id, blob) {
+          await fileCall(`/api/files/${id}`, { method: 'PUT', body: blob, headers: { 'Content-Type': 'application/octet-stream' } }, 300000)
+        },
+        async del(id) {
+          await fileCall(`/api/files/${id}`, { method: 'DELETE' }, 15000)
+        },
+      })
     }
 
     addSettingsSection(adapter, host)
@@ -452,6 +524,16 @@
         },
         'Replace This Browser With Database',
       )
+      const signOut = el(
+        'button',
+        {
+          type: 'button',
+          className: 'btn secondary',
+          id: 'btn-remote-db-signout',
+          hidden: true,
+        },
+        'Sign Out',
+      )
       section.append(
         el('h3', {}, 'Database Server'),
         el(
@@ -466,7 +548,7 @@
           toggle,
           ' Use the database when the server is running',
         ),
-        el('div', { className: 'settings-data-actions' }, push, pull),
+        el('div', { className: 'settings-data-actions' }, push, pull, signOut),
       )
       const before = document.getElementById('datafile-section')
       if (before) before.before(section)
@@ -495,7 +577,16 @@
         toggle.disabled = !state.available
         toggle.checked = state.enabled
         push.disabled = pull.disabled = !state.active
+        // Only when the server asks for a password (SPELLBOOK_PASSWORD).
+        signOut.hidden = !state.auth
       }
+      signOut.addEventListener('click', async () => {
+        try {
+          await adapter.signOut()
+        } catch (err) {
+          alert('Could not sign out: ' + (err.message || err))
+        }
+      })
 
       toggle.addEventListener('change', () => {
         adapter.setEnabled(toggle.checked)
@@ -516,7 +607,7 @@
         if (!confirm("Replace the data in this browser with the database's data?")) return
         try {
           await adapter.pull()
-          location.reload()
+          window.DataFile.reload()
         } catch (err) {
           alert('Could not load from the database: ' + (err.message || err))
         }

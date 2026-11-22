@@ -1,0 +1,104 @@
+/* The Games tab (games.js): the list of games and the player. */
+.games-library {
+  flex: 1;
+  min-height: 0;
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+}
+.games-head h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.2rem;
+}
+.games-head .form-hint {
+  margin: 0 0 1rem;
+}
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: 0.75rem;
+}
+.games-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+.games-card:hover,
+.games-card:focus-visible {
+  border-color: var(--accent);
+  background: var(--surface2);
+}
+.games-card-icon {
+  display: flex;
+  color: var(--accent);
+  flex: none;
+}
+.games-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+.games-card-text span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.games-card-play {
+  flex: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.games-empty {
+  color: var(--muted);
+}
+
+.games-player {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.games-player[hidden],
+.games-library[hidden] {
+  display: none;
+}
+.games-player-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.games-player-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.games-frame-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: var(--bg);
+}
+.games-frame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: var(--bg);
+}

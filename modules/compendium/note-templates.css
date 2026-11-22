@@ -1,0 +1,32 @@
+/* Note templates (note-templates.js): the tree mark and the New from
+  Template dialog. */
+.notes-template-mark {
+  display: inline-flex;
+  flex: none;
+  color: var(--accent-text, var(--accent));
+  margin-left: auto;
+}
+/* When a node is both, the seal sits right after the template mark. */
+.notes-tree-row .notes-template-mark + .notes-seal {
+  margin-left: 0.25rem;
+}
+.template-dialog {
+  max-width: 520px;
+}
+.template-dialog .template-has[hidden],
+.template-dialog .template-none[hidden],
+.template-dialog .template-starter[hidden] {
+  display: none;
+}
+.template-none p {
+  margin-bottom: 0.75rem;
+}
+.template-starter {
+  background: none;
+  border: none;
+  color: var(--accent-text, var(--accent));
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+  text-decoration: underline;
+}

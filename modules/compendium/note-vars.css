@@ -1,0 +1,159 @@
+/* Environment variable chips, their tooltip and the Insert Variable box (note-vars.js). */
+.note-var {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0 0.4em;
+  margin: 0 0.05em;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.88em;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  vertical-align: baseline;
+  cursor: default;
+}
+/* Showing the name: no value yet. */
+.note-var:not(.has-value) {
+  color: var(--muted);
+  font-style: italic;
+}
+/* Its variable was removed from the panel (or the chip came from another note). */
+.note-var.missing {
+  border-style: dashed;
+  border-color: var(--muted);
+  background: transparent;
+}
+/* In a note you can edit, click it to restore its variable or make it text. */
+.notes-editor[contenteditable='true'] .note-var.missing {
+  cursor: pointer;
+}
+
+.var-tip {
+  position: fixed;
+  z-index: 300;
+  max-width: 22rem;
+  padding: 0.35rem 0.55rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.var-tip[hidden] {
+  display: none;
+}
+.var-tip-name {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+.var-tip-key {
+  margin-right: 0.4rem;
+  color: var(--muted);
+}
+.var-tip-mono {
+  font-family: var(--mono);
+}
+.var-tip-desc,
+.var-tip-note {
+  margin-top: 0.15rem;
+  color: var(--muted);
+}
+
+.var-picker {
+  position: fixed;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+.var-picker[hidden] {
+  display: none;
+}
+.var-picker-input.note-var {
+  min-width: 8ch;
+  color: var(--text);
+  font-style: normal;
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+  cursor: text;
+}
+.var-picker-list {
+  min-width: 14rem;
+  max-width: 24rem;
+  max-height: 14rem;
+  margin: 0;
+  padding: 0.2rem;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.var-picker-list[hidden] {
+  display: none;
+}
+.var-picker-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.var-picker-item:hover,
+.var-picker-item.active,
+.var-picker-item.top {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.var-picker-name {
+  font-family: var(--mono);
+}
+.var-picker-detail {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.var-picker-hint {
+  padding: 0.15rem 0.45rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.var-picker-hint kbd {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+}
+
+/* In a code block (note-vars.js "Variables in code blocks"). While the block
+   is typed in, the chip must take exactly the room of its text so the colored
+   view lines up with the text box over it: no padding, border or font change. */
+.note-var.code-var {
+  display: inline;
+  font: inherit;
+  white-space: inherit;
+}
+.note-var.code-var:not(.shows-value) {
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 2px;
+  outline: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  font-style: normal;
+}
+.note-var.code-var.missing:not(.shows-value) {
+  outline-style: dashed;
+  outline-color: var(--muted);
+}
