@@ -3,8 +3,10 @@
   A local command reference manager for IT professionals, sysadmins, and hackers.
 -->
 <!--
-  File contract: this document owns the DOM only. Behavior is delegated to
-  js/app.js, js/settings.js, js/notes.js, js/datafile.js, and js/highlight.js below.
+  File contract: this document owns the shared DOM (navigation bar, the shared
+  editors and dialogs). Each tab's page is a module in modules/ (js/core/pages.js).
+  Behavior is in js/core/ (the shared parts), js/settings.js, js/transfer.js and
+  the modules' own scripts (Spells: modules/spells/spells.js).
   Button ids are the public wiring points used by those files; keep an id
   stable when changing its visible label or layout.
 -->
@@ -36,18 +38,14 @@
 <link href="css/control-bar-and-panes.css" rel="stylesheet"/>
 <link href="css/import-manager.css" rel="stylesheet"/>
 <link href="css/editors-and-scratch.css" rel="stylesheet"/>
-<link href="css/notes.css" rel="stylesheet"/>
-<link href="css/notes-blocks.css" rel="stylesheet"/>
-<link href="css/notes-callouts.css" rel="stylesheet"/>
-<link href="css/sealed-tomes.css" rel="stylesheet"/>
-<link href="css/entry-tables.css" rel="stylesheet"/>
-<link href="css/notes-codesave.css" rel="stylesheet"/>
 <link href="css/transfer.css" rel="stylesheet"/>
+<link href="css/nav-icons.css" rel="stylesheet"/>
+<link href="css/tutorial.css" rel="stylesheet"/>
 </head>
 <body>
-<!-- Main navigation: hash links switch pages in js/app.js; action buttons
-          with ids btn-trash, btn-readme, btn-settings, and btn-mode are wired
-          by app.js/settings.js. -->
+<!-- Main navigation: hash links switch pages in js/core/router.js; action buttons
+          with ids btn-trash, btn-readme and btn-settings are wired
+          by js/core/trash.js, js/core/about.js and js/settings.js. -->
 <nav aria-label="Main" class="navbar">
 <div class="brand">
 <img alt="" class="brand-icon" height="64" src="icons/bookSB256BW.png" width="64"/>
@@ -57,382 +55,30 @@
 <button aria-label="Back" class="btn secondary icon-btn" disabled="" id="btn-back" title="Back" type="button"><svg aria-hidden="true" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg></button>
 <button aria-label="Forward" class="btn secondary icon-btn" disabled="" id="btn-forward" title="Forward" type="button"><svg aria-hidden="true" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
 </div>
-<div class="nav-links">
-<a class="nav-link" data-page="spellbook" href="#/">Spell Book</a>
-<a class="nav-link" data-page="notes" href="#/compendium">Compendium</a>
-</div>
+<!-- Tabs: one per module in modules/modules.js (js/core/pages.js). -->
+<div class="nav-links"></div>
 <div class="nav-actions">
-<button class="btn secondary" id="btn-transfer" title="Import or export only the parts you choose" type="button">
-          Import / Export
-        </button>
-<button class="btn secondary" id="btn-trash" title="View deleted commands">
-          Trash (<span id="trash-count">0</span>)
-        </button>
-<button class="btn secondary" id="btn-readme" title="View the Spell Book README">
-          About
-        </button>
-<button class="btn secondary" id="btn-settings" title="Pretty self explanatory">
-          Settings
-        </button>
-<button aria-label="Switch to light mode" class="btn secondary icon-btn" id="btn-mode" title="Switch to light mode" type="button">
-<svg aria-hidden="true" class="icon-sun" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24" width="18">
-<circle cx="12" cy="12" r="4"></circle>
-<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
-</svg>
-<svg aria-hidden="true" class="icon-moon" fill="currentColor" height="18" viewbox="0 0 24 24" width="18">
-<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
-</svg>
-</button>
+<!-- Data file: one Save control (js/settings.js). The main part saves and
+     shows the save state, with the unsaved-change count (js/core/unsaved.js),
+     or links a data file when none is; the arrow opens a menu with Autosave
+     and where things are saved. Import / Export, then Trash, sit beside it. The Tutorial button
+     tours whichever tab is open (js/core/tutorial.js); light / dark mode is in Settings. -->
+<div aria-label="Data file" class="nav-data" role="group">
+<div class="save-control" id="save-control">
+<button aria-label="Save" class="btn secondary save-main" id="btn-quick-save" title="Save" type="button"><span aria-hidden="true" class="autosave-dot"></span><span class="save-label" id="save-label">Save</span><span aria-hidden="true" class="nav-icon nav-icon-save"></span><span class="unsaved-count" hidden="" id="unsaved-count">0</span></button>
+<button aria-expanded="false" aria-haspopup="menu" aria-label="Data file and Autosave" class="btn secondary save-link" id="btn-quick-link" title="Data file and Autosave" type="button"><svg aria-hidden="true" class="save-caret" fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="14"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+<button aria-label="Import / Export" class="btn secondary icon-btn nav-icon-btn" id="btn-transfer" title="Import / Export: copy only the parts you choose to or from a file" type="button"><span aria-hidden="true" class="nav-icon nav-icon-transfer"></span></button>
+<button aria-label="Trash" class="btn secondary icon-btn nav-icon-btn" id="btn-trash" title="View deleted items" type="button"><span aria-hidden="true" class="nav-icon nav-icon-trash"></span><span class="trash-count" hidden="" id="trash-count">0</span></button>
+</div>
+<button aria-label="Settings" class="btn secondary icon-btn nav-icon-btn" id="btn-settings" title="Settings" type="button"><span aria-hidden="true" class="nav-icon nav-icon-settings"></span></button>
+<button aria-label="Tutorial for this tab" class="btn secondary icon-btn nav-icon-btn" id="btn-tutorial" title="Tutorial: a tour of this tab" type="button"><span aria-hidden="true" class="nav-icon nav-icon-tutorial"></span></button>
+<button aria-label="About" class="btn secondary icon-btn nav-icon-btn" id="btn-readme" title="About: the Spell Book README" type="button"><span aria-hidden="true" class="nav-icon nav-icon-about"></span></button>
 </div>
 </nav>
-<!-- Primary Spell Book page: filters and CRUD controls are in the header;
-          the table, selected-item detail, and scratch pad are in .main. -->
-<div class="page spellbook-page" data-controls="top" id="page-spellbook">
-<div aria-label="Resize the control bar" aria-orientation="vertical" class="controls-resizer" id="controls-resizer" role="separator" tabindex="0" title="Drag to resize (double-click to reset)"></div>
-<header>
-<div class="control-sections" id="control-sections">
-<div class="header-left">
-<div class="sidebar-count" id="sidebar-count">
-<div class="count-row">
-<span id="command-total">0 commands</span>
-<span aria-label="Changes since last import" class="command-changes">
-<span class="added" id="added-command-count">+0</span>
-<span class="deleted" id="deleted-command-count">-0</span>
-</span>
-</div>
-<div class="count-row">
-<span id="script-total">0 scripts</span>
-<span aria-label="Changes since the last import" class="command-changes">
-<span class="added" id="added-script-count">+0</span>
-<span class="deleted" id="deleted-script-count">-0</span>
-</span>
-</div>
-<div class="count-row">
-<span id="term-total">0 terms</span>
-<span aria-label="Changes since the last import" class="command-changes">
-<span class="added" id="added-term-count">+0</span>
-<span class="deleted" id="deleted-term-count">-0</span>
-</span>
-</div>
-</div>
-<div class="data-quick-actions" aria-label="Data file shortcuts">
-<button class="btn secondary sm" id="btn-quick-link" type="button" title="Link an existing Spell Book data file">Link</button>
-<button class="btn secondary sm" id="btn-quick-save" type="button" title="Save linked data file, or download a backup">Save</button>
-<span id="quick-save-time" class="quick-save-time" aria-live="polite">Not saved</span>
-</div>
-<div aria-label="Legacy layout controls" class="layout-switch" hidden="">
-<span aria-label="Control bar position" class="layout-seg" role="group">
-<button class="btn secondary sm" data-controls-pos="left" title="Control bar on the left" type="button">
-                  Left
-                </button>
-<button class="btn secondary sm" data-controls-pos="top" title="Control bar on top" type="button">
-                  Top
-                </button>
-<button class="btn secondary sm" data-controls-pos="right" title="Control bar on the right" type="button">
-                  Right
-                </button>
-</span>
-<button class="btn secondary sm" id="btn-panes" title="Put the table and the details side by side" type="button">
-                Side by side
-              </button>
-<button class="btn secondary sm" id="btn-dock" title="Put the table pane in the control bar" type="button">
-                Dock table
-              </button>
-<button class="btn secondary sm" id="btn-scratch" title="Hide the scratch pad" type="button">
-                Hide scratch pad
-              </button>
-</div>
-</div>
-<!-- Commands controls: btn-add opens the editor; filters are rendered by app.js. Import and export are in the header (js/transfer.js). -->
-<div class="controls-section" id="commands-panel">
-<div class="section-head">
-<span class="section-heading"><button aria-controls="commands-panel" aria-expanded="true" class="section-toggle" id="toggle-commands" title="Fold this section away" type="button">
-                  ▾</button><span class="section-title" data-section="commands" id="title-commands" tabindex="0" title="Double-click to rename (or press F2)">Commands</span></span>
-<span class="section-actions"><button class="btn sm" id="btn-add" title="Add a new command (A)">
-                  + New Command
-                </button>
-<button class="btn secondary sm" id="btn-filters-edit-commands" title="Rename or remove quick filters" type="button">
-                  Edit
-                </button>
-</span>
-</div>
-<div class="filters" id="filters"></div>
-</div>
-<!-- Scripts controls: app.js owns the form and list. -->
-<div class="controls-section scripts-section" id="scripts-panel">
-<div class="section-head">
-<span class="section-heading"><button aria-controls="scripts-panel" aria-expanded="true" class="section-toggle" id="toggle-scripts" title="Fold this section away" type="button">
-                  ▾</button><span class="section-title" data-section="scripts" id="title-scripts" tabindex="0" title="Double-click to rename (or press F2)">Scripts</span></span>
-<span class="section-actions">
-<button class="btn sm" id="btn-script-new" type="button">
-                  + New Script
-                </button>
-<button class="btn secondary sm" id="btn-filters-edit-scripts" title="Rename or remove quick filters" type="button">
-                  Edit
-                </button>
-</span>
-</div>
-<div class="filters scripts-filters" id="scripts-list"></div>
-</div>
-<!-- Terms controls: app.js owns the form and list. -->
-<div class="controls-section terms-section" id="terms-panel">
-<div class="section-head">
-<span class="section-heading"><button aria-controls="terms-panel" aria-expanded="true" class="section-toggle" id="toggle-terms" title="Fold this section away" type="button">
-                  ▾</button><span class="section-title" data-section="terms" id="title-terms" tabindex="0" title="Double-click to rename (or press F2)">Terms</span></span>
-<span class="section-actions">
-<button class="btn sm" id="btn-term-new" type="button">
-                  + New Term
-                </button>
-<button class="btn secondary sm" id="btn-filters-edit-terms" title="Rename or remove quick filters" type="button">
-                  Edit
-                </button>
-</span>
-</div>
-<div class="filters terms-filters" id="terms-list"></div>
-</div>
-</div>
-<div aria-label="Resize the sections and the table pane" aria-orientation="horizontal" class="dock-splitter" hidden="" id="dock-splitter" role="separator" tabindex="0" title="Drag to resize (double-click to reset)"></div>
-</header>
-<!-- Shared search/tag/column controls; app.js reads these ids and redraws
-         the list without navigating away from the current page. -->
-<div class="filter-bar">
-<div class="search-wrap">
-<input autocomplete="off" id="search" placeholder="Search commands, descriptions, use cases…" title="Search commands (/)" type="search"/>
-</div>
-<div class="tag-filter-wrap">
-<label for="tag-filter">Tag</label>
-<input autocomplete="off" id="tag-filter" placeholder="Filter by tags, comma separated…" type="text"/>
-</div>
-<div class="active-tags" hidden="" id="active-tags"></div>
-<button class="btn secondary sm columns-button" hidden="" id="btn-columns" title="Show or hide table columns" type="button">
-          Columns
-        </button>
-<div class="tag-suggestions" hidden="" id="tag-suggestions"></div>
-</div>
-<!-- Main work area: cmd-list is generated by app.js; detail and scratch
-         controls are populated or persisted by app.js. -->
-<div class="main">
-<div class="table-wrap" id="cmd-list"></div>
-<div aria-label="Resize table and output" aria-orientation="horizontal" class="splitter" id="splitter" role="separator" tabindex="0" title="Drag to resize (double-click to reset)"></div>
-<div class="detail-column" id="detail-column">
-<main class="detail" id="detail">
-<div class="empty-state">
-              Select a command from the list or use search.
-            </div>
-</main>
-<div aria-label="Resize the scratch pad" aria-orientation="horizontal" class="scratch-splitter" id="scratch-splitter" role="separator" tabindex="0" title="Drag to resize (double-click to reset)"></div>
-<section aria-label="Scratch pad" class="scratchpad" id="scratchpad">
-<div class="scratchpad-head">
-<span class="scratchpad-title">Scratch pad</span>
-<span class="scratchpad-actions">
-<button class="btn secondary sm" id="btn-scratch-copy" title="Copy the scratch pad text" type="button">
-                  Copy
-                </button>
-<button class="btn secondary sm" id="btn-scratch-clear" title="Erase the scratch pad" type="button">
-                  Clear
-                </button>
-</span>
-</div>
-<textarea id="scratchpad-text" placeholder="Jot anything here: commands in progress, notes, pasted output. It is saved as you type." spellcheck="false"></textarea>
-</section>
-</div>
-</div>
-</div>
-<!-- Notes page: a CherryTree style node tree and rich text editor. js/notes.js
-          owns everything here and saves to spellbook_notes_v1. -->
-<section class="page notes-page" hidden="" id="page-notes">
-<div class="notes-tabbar">
-<div aria-label="Tomes" class="notes-tabs" id="notes-tabs" role="tablist"></div>
-<button class="notes-tab notes-tab-add" id="notes-add-tome" title="Start a new tome: a separate tree of notes" type="button">+ Tome</button>
-</div>
-<div class="notes-body" id="notes-body">
-<aside aria-label="Note tree" class="notes-tree-pane">
-<div class="notes-tree-tools">
-<button class="btn sm" id="notes-add-node" title="Add a node after the selected one" type="button">+ Node</button>
-<button class="btn secondary sm" id="notes-add-child" title="Add a node inside the selected one" type="button">+ Subnode</button>
-<button class="btn secondary sm" id="notes-delete-node" title="Delete the selected node and everything inside it (Delete key)" type="button">Delete</button>
-</div>
-<input aria-label="Search notes" class="notes-tree-search" id="notes-tree-search" placeholder="Search this tome…" type="search"/>
-<div aria-label="Search scope" class="notes-scope" role="group">
-<button aria-pressed="true" class="notes-scope-btn active" id="notes-scope-all" title="Search and show every note in this tome" type="button">Whole tome</button>
-<button aria-pressed="false" class="notes-scope-btn" id="notes-scope-branch" title="Search and show only the selected node and its subnodes" type="button">This branch</button>
-<button aria-pressed="false" class="notes-scope-btn" id="notes-scope-tomes" title="Search and show every tome in the Compendium" type="button">All tomes</button>
-</div>
-<div class="notes-scope-label" hidden="" id="notes-scope-label">
-<span id="notes-scope-path"></span>
-<button aria-label="Search the whole tome" class="notes-scope-clear" id="notes-scope-clear" title="Search the whole tome" type="button">×</button>
-</div>
-<ul aria-label="Notes" class="notes-tree" id="notes-tree" role="tree"></ul>
-</aside>
-<div aria-label="Resize the note tree" aria-orientation="vertical" class="notes-splitter" id="notes-splitter" role="separator" tabindex="0" title="Drag to resize (double-click to reset)"></div>
-<div class="notes-editor-pane" id="notes-editor-pane">
-<div class="notes-empty" id="notes-empty">
-<p>This tome is empty.</p>
-<button class="btn" id="notes-empty-add" type="button">+ Add your first node</button>
-</div>
-<input aria-label="Node name" class="notes-title" id="notes-title" placeholder="Node name" type="text"/>
-<div class="notes-sealed-bar" hidden="" id="notes-sealed-bar" role="status">
-<svg aria-hidden="true" fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><rect height="11" rx="2" width="16" x="4" y="11"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
-<span id="notes-sealed-text"></span>
-<button class="btn secondary sm" id="notes-unseal" type="button">Unseal</button>
-</div>
-<div aria-controls="notes-editor" aria-label="Text formatting" class="notes-toolbar" id="notes-toolbar" role="toolbar">
-<button aria-label="Undo" class="notes-tool" data-cmd="undo" title="Undo (Ctrl+Z)" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-3"></path></svg></button>
-<button aria-label="Redo" class="notes-tool" data-cmd="redo" title="Redo (Ctrl+Y)" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="m15 14 5-5-5-5"></path><path d="M20 9H10a6 6 0 0 0 0 12h3"></path></svg></button>
-<span class="notes-tool-sep"></span>
-<select aria-label="Paragraph style" class="notes-format" id="notes-format" title="Paragraph style">
-<option value="p">Normal</option>
-<option value="h1">Heading 1</option>
-<option value="h2">Heading 2</option>
-<option value="h3">Heading 3</option>
-<option value="pre">Code block</option>
-<option value="blockquote">Quote</option>
-</select>
-<span class="notes-tool-sep"></span>
-<button aria-label="Bold" class="notes-tool" data-cmd="bold" title="Bold (Ctrl+B)" type="button"><b>B</b></button>
-<button aria-label="Italic" class="notes-tool" data-cmd="italic" title="Italic (Ctrl+I)" type="button"><i>I</i></button>
-<button aria-label="Underline" class="notes-tool" data-cmd="underline" title="Underline (Ctrl+U)" type="button"><u>U</u></button>
-<button aria-label="Strikethrough" class="notes-tool" data-cmd="strikeThrough" title="Strikethrough" type="button"><s>S</s></button>
-<button aria-label="Inline code" class="notes-tool" id="notes-inline-code" title="Inline code: a short piece of code inside a sentence" type="button"><code>&lt;/&gt;</code></button>
-<button aria-label="Code block" class="notes-tool" id="notes-code-block" title="Code block: several lines of code with syntax colors" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2" width="18" x="3" y="4"></rect><path d="m7 9 3 3-3 3"></path><path d="M12 15h5"></path></svg></button>
-<label class="notes-tool notes-color" title="Text color"><span aria-hidden="true">A</span><input aria-label="Text color" id="notes-fore" type="color" value="#f87171"/></label>
-<label class="notes-tool notes-color" title="Highlight color"><span aria-hidden="true" class="notes-color-hl">A</span><input aria-label="Highlight color" id="notes-back" type="color" value="#854d0e"/></label>
-<button aria-label="Clear formatting" class="notes-tool" data-cmd="removeFormat" title="Clear formatting" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M5 5h14"></path><path d="M12 5 9 19"></path><path d="m15 14 5 5"></path><path d="m20 14-5 5"></path></svg></button>
-<span class="notes-tool-sep"></span>
-<button aria-label="Bulleted list" class="notes-tool" data-cmd="insertUnorderedList" title="Bulleted list" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M9 6h11M9 12h11M9 18h11"></path><path d="M4 6h.01M4 12h.01M4 18h.01"></path></svg></button>
-<button aria-label="Numbered list" class="notes-tool" data-cmd="insertOrderedList" title="Numbered list" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M10 6h10M10 12h10M10 18h10"></path><path d="M4 4h1v5"></path><path d="M3.5 15.5c.5-1 2.5-1 2.5.3 0 1-2.5 1.7-2.5 3.2h2.5"></path></svg></button>
-<button aria-label="Decrease indent" class="notes-tool" data-cmd="outdent" title="Decrease indent" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M11 6h9M11 12h9M11 18h9"></path><path d="m7 8-4 4 4 4"></path></svg></button>
-<button aria-label="Increase indent" class="notes-tool" data-cmd="indent" title="Increase indent" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M11 6h9M11 12h9M11 18h9"></path><path d="m3 8 4 4-4 4"></path></svg></button>
-<span class="notes-tool-sep"></span>
-<button aria-label="Align left" class="notes-tool" data-cmd="justifyLeft" title="Align left" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M4 6h16M4 12h10M4 18h13"></path></svg></button>
-<button aria-label="Align center" class="notes-tool" data-cmd="justifyCenter" title="Align center" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M4 6h16M7 12h10M6 18h12"></path></svg></button>
-<button aria-label="Align right" class="notes-tool" data-cmd="justifyRight" title="Align right" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M4 6h16M10 12h10M7 18h13"></path></svg></button>
-<span class="notes-tool-sep"></span>
-<button aria-label="Insert link" class="notes-tool" id="notes-link" title="Insert link (Ctrl+K). Ctrl+click a link in a note to open it." type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"></path><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"></path></svg></button>
-<button aria-label="Insert table" class="notes-tool" id="notes-table" title="Insert table" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="1" width="18" x="3" y="4"></rect><path d="M3 10h18M3 15h18M9 4v16M15 4v16"></path></svg></button>
-<button aria-label="Insert horizontal line" class="notes-tool" data-cmd="insertHorizontalRule" title="Insert horizontal line" type="button"><svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M3 12h18"></path></svg></button>
-<span class="notes-tool-sep"></span>
-<button class="btn sm" data-insert="command" title="Search your commands or build a new one, and put it in this note" type="button">Insert Command</button>
-<button class="btn sm" data-insert="script" title="Search your scripts or write a new one, and put it in this note" type="button">Insert Script</button>
-<button class="btn sm" data-insert="term" title="Search your terms or add a new one, and link it at the cursor" type="button">Insert Term</button>
-</div>
-<div aria-controls="notes-editor" aria-label="Table" class="notes-table-tools" hidden="" id="notes-table-tools" role="toolbar">
-<span class="notes-table-tools-label">Table:</span>
-<button class="btn secondary sm" data-table-action="row-above" type="button">+ Row above</button>
-<button class="btn secondary sm" data-table-action="row-below" type="button">+ Row below</button>
-<button class="btn secondary sm" data-table-action="col-left" type="button">+ Column left</button>
-<button class="btn secondary sm" data-table-action="col-right" type="button">+ Column right</button>
-<button class="btn secondary sm" data-table-action="del-row" type="button">Delete row</button>
-<button class="btn secondary sm" data-table-action="del-col" type="button">Delete column</button>
-<button class="btn secondary sm" data-table-action="del-table" type="button">Delete table</button>
-</div>
-<div aria-label="Search matches in this note" class="notes-find-bar" hidden="" id="notes-find-bar" role="toolbar">
-<span aria-live="polite" id="notes-find-status"></span>
-<button aria-label="Previous match" class="notes-tool" id="notes-find-prev" title="Previous match (Shift+Enter in the search box)" type="button">↑</button>
-<button aria-label="Next match" class="notes-tool" id="notes-find-next" title="Next match (Enter in the search box)" type="button">↓</button>
-</div>
-<div aria-label="Note text" aria-multiline="true" class="notes-editor" contenteditable="true" id="notes-editor" role="textbox" spellcheck="false"></div>
-<div class="notes-status">
-<span class="notes-path" id="notes-path"></span>
-<span id="notes-words"></span>
-<span aria-live="polite" id="notes-saved"></span>
-</div>
-</div>
-</div>
-</section>
-<!-- Script modal: btn-script-new opens it; app.js saves/deletes/copies the
-          record and persists it under spellbook_scripts_v1. -->
-<div class="modal-overlay" id="script-modal">
-<div class="modal resizable-modal">
-<h2 id="script-modal-title">New Script</h2>
-<form id="script-form">
-<input id="script-id" type="hidden"/>
-<div class="form-group">
-<label for="script-name">Name *</label>
-<input id="script-name" placeholder="e.g. Disk cleanup" required="" type="text"/>
-</div>
-<div class="form-group">
-<label for="script-language">Language *</label>
-<input id="script-language" required="" placeholder="PowerShell, Bash, Python…" type="text"/>
-<datalist id="script-languages">
-<option value="PowerShell"></option>
-<option value="Bash"></option>
-<option value="Python"></option>
-<option value="Batch"></option>
-<option value="SQL"></option>
-</datalist>
-</div>
-<div class="form-group">
-<label for="script-tags">Tags</label>
-<div data-input-id="script-tags" id="script-tags-box"></div>
-</div>
-<div class="form-group">
-<label for="script-body">Script *</label>
-<textarea class="script-body" id="script-body" placeholder="Paste or write the script here…" required="" spellcheck="false"></textarea>
-</div>
-<div class="form-group">
-<label for="script-notes">Notes</label>
-<textarea id="script-notes" placeholder="Anything worth remembering…"></textarea>
-</div>
-<div class="modal-actions">
-<button class="btn danger" hidden="" id="btn-script-delete" type="button">
-              Delete
-            </button>
-<button class="btn secondary" id="btn-script-copy" type="button">
-              Copy
-            </button>
-<button class="btn secondary" id="btn-script-cancel" type="button">
-              Cancel
-            </button>
-<button class="btn" type="submit">Save</button>
-</div>
-</form>
-</div>
-</div>
-<!-- Term modal: btn-term-new opens it; app.js saves/deletes/copies the
-          record and persists it under spellbook_terms_v1. -->
-<div class="modal-overlay" id="term-modal">
-<div class="modal resizable-modal">
-<h2 id="term-modal-title">New Term</h2>
-<form id="term-form">
-<input id="term-id" type="hidden"/>
-<div class="form-group">
-<label for="term-name">Term *</label>
-<input id="term-name" placeholder="e.g. Kerberoasting" required="" type="text"/>
-</div>
-<div class="form-group">
-<label for="term-category">Category *</label>
-<input id="term-category" required="" placeholder="e.g. Active Directory" type="text"/>
-<datalist id="term-categories"></datalist>
-</div>
-<div class="form-group">
-<label for="term-tags">Tags</label>
-<div data-input-id="term-tags" id="term-tags-box"></div>
-</div>
-<div class="form-group">
-<label for="term-definition">Definition *</label>
-<textarea id="term-definition" placeholder="What this term means…" required=""></textarea>
-</div>
-<div class="form-group">
-<label for="term-notes">Notes</label>
-<textarea id="term-notes" placeholder="Anything worth remembering…"></textarea>
-</div>
-<div class="modal-actions">
-<button class="btn danger" hidden="" id="btn-term-delete" type="button">
-              Delete
-            </button>
-<button class="btn secondary" id="btn-term-copy" type="button">
-              Copy
-            </button>
-<button class="btn secondary" id="btn-term-cancel" type="button">
-              Cancel
-            </button>
-<button class="btn" type="submit">Save</button>
-</div>
-</form>
-</div>
-</div>
-<!-- README modal: btn-readme opens it; app.js renders the embedded source. -->
+<!-- The pages: each module in modules/ puts its page here (js/core/pages.js). -->
+<div hidden="" id="pages-end"></div>
+<!-- README modal: btn-readme opens it; js/core/about.js renders the embedded source. -->
 <div class="modal-overlay" id="readme-modal">
 <div class="modal readme-modal">
 <div class="readme-header">
@@ -460,10 +106,18 @@
 
 
 
-<button aria-selected="true" class="settings-tab active" data-tab="layout" role="tab" type="button">Layout &amp; Theme</button><button aria-selected="false" class="settings-tab" data-tab="categories" role="tab" type="button">Category Colors</button><button aria-selected="false" class="settings-tab" data-tab="code" role="tab" type="button">Code Blocks</button><button aria-selected="false" class="settings-tab" data-tab="fonts" role="tab" type="button">Typography</button><button aria-selected="false" class="settings-tab" data-tab="data" role="tab" type="button">Data &amp; Backups</button></div>
+<button aria-selected="true" class="settings-tab active" data-tab="layout" role="tab" type="button">Layout &amp; Theme</button><button aria-selected="false" class="settings-tab" data-tab="code" role="tab" type="button">Code Blocks</button><button aria-selected="false" class="settings-tab" data-tab="fonts" role="tab" type="button">Typography</button><button aria-selected="false" class="settings-tab" data-tab="data" role="tab" type="button">Data &amp; Backups</button></div>
 <!-- Appearance tab: settings.js maps color ids to CSS variables and
              stores overrides under cmdref_settings_v1. -->
-<div class="settings-panel" data-panel="layout" hidden=""><h3>Application Theme</h3><div class="settings-grid">
+<div class="settings-panel" data-panel="layout" hidden=""><h3>Application Theme</h3>
+<!-- Light / dark mode (js/settings.js setMode). -->
+<div aria-label="Mode" class="mode-choice" id="mode-choice" role="radiogroup">
+<button aria-checked="false" class="mode-option" data-mode-choice="dark" role="radio" type="button"><svg aria-hidden="true" fill="currentColor" height="18" viewbox="0 0 24 24" width="18"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg><span>Dark mode</span></button>
+<button aria-checked="false" class="mode-option" data-mode-choice="light" role="radio" type="button"><svg aria-hidden="true" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24" width="18"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg><span>Light mode</span></button>
+</div>
+<div aria-label="Theme presets" class="theme-presets" id="theme-presets" role="radiogroup"></div>
+<p class="form-hint theme-preset-custom" hidden="" id="theme-preset-custom">Custom colors: pick a preset to replace them.</p>
+<div class="settings-grid">
 <label>Background
               <input class="color-setting" data-key="bg" id="color-bg" type="color"/></label>
 <label>Surface
@@ -486,23 +140,7 @@
 
 </div><p class="form-hint">Save or load these colors and the light/dark mode with <strong>Import / Export</strong> in the top bar.</p>
 <div class="settings-data-section">
-<h3>Layout</h3>
-<fieldset class="layout-options">
-<legend>Control bar position</legend>
-<label><input name="controls-position" type="radio" value="top"/><img alt="" class="layout-preview" loading="lazy" src="icons/Rows-Layout.png"/>
-                Top</label>
-<label><input name="controls-position" type="radio" value="left"/><img alt="" class="layout-preview" loading="lazy" src="icons/2L1R-Layout-%20thick.png"/>
-                Left</label>
-<label><input name="controls-position" type="radio" value="right"/><img alt="" class="layout-preview" loading="lazy" src="icons/2L1R-Layout-thick-mirrored.png"/>
-                Right</label>
-</fieldset>
-<fieldset class="layout-options">
-<legend>Table and details</legend>
-<label><input name="panes-layout" type="radio" value="stacked"/><img alt="" class="layout-preview" loading="lazy" src="icons/Rows-Layout.png"/>
-                Table above details</label>
-<label><input name="panes-layout" type="radio" value="side"/><img alt="" class="layout-preview" loading="lazy" src="icons/Side-Layout.png"/> Table
-                beside details</label>
-</fieldset>
+<h3>Navigation</h3>
 <fieldset class="layout-options">
 <legend>Back and Forward buttons</legend>
 <label><input name="nav-history" type="radio" value="show"/>
@@ -512,59 +150,15 @@
 <span class="form-hint">The ← and → buttons beside the logo, which go back and
                 forward through the commands, scripts, terms and notes you've viewed.</span>
 </fieldset>
-<fieldset class="layout-options">
-<legend>Scratch pad</legend>
-<label><input name="scratch-visible" type="radio" value="show"/>
-                Show</label>
-<label><input name="scratch-visible" type="radio" value="hide"/>
-                Hide</label>
-<span class="form-hint">The note area under the Spell Book's detail pane. Its text
-                is kept while it's hidden.</span>
-</fieldset>
-<fieldset class="layout-options">
-<legend>Quick filters</legend>
-<label><input name="filter-selection" type="radio" value="multiple"/>
-                Select several at once</label>
-<label><input name="filter-selection" type="radio" value="single"/>
-                Select one at a time</label>
-<span class="form-hint">Applies to the Command, Script and Term filter buttons.
-                Several at once shows entries matching any selected filter, such as
-                PowerShell + CMD.</span>
-</fieldset>
-<fieldset class="layout-options">
-<legend>Options in the detail pane</legend>
-<label><input name="options-default" type="radio" value="expanded"/>
-                Expanded</label>
-<label><input name="options-default" type="radio" value="collapsed"/>
-                Collapsed</label>
-<span class="form-hint">Whether the Options section starts open. You can still open or
-                close it for any command.</span>
-</fieldset>
-<fieldset class="layout-options">
-<legend>Table pane location</legend>
-<label><input name="table-dock" type="radio" value="main"/> In the
-                main area</label>
-<label><input name="table-dock" type="radio" value="control"/> In the
-                control bar</label>
-<span class="form-hint">"In the control bar" puts the table pane under the sections,
-                with a draggable divider, and the detail pane fills the rest. It
-                takes effect when the control bar is on the left or right.</span>
+<fieldset class="layout-options tab-switches-field" id="tab-switches-section">
+<legend>Tabs</legend>
+<div class="tab-switches" id="tab-switches"></div>
+<div class="tab-switches-reload" hidden="" id="tab-switches-reload"><span class="form-hint">Reload Spell Book to load the tabs you turned on.</span><button class="btn sm" id="tab-switches-reload-btn" type="button">Reload Now</button></div>
+<p class="form-hint">Turn a tab off to take it out of the bar. It isn't loaded the next time Spell Book starts, and the other tabs work as if it weren't there; its data stays in the data file. Turn it on again any time. One tab always stays on.</p>
 </fieldset>
 </div>
-</div><div class="settings-panel" data-panel="categories" hidden="">
-<h3>Theme Colors</h3>
-
-
-
-<div class="settings-data-section">
-<h3>Individual Category Colors</h3>
-<p class="form-hint">Set a distinct color for each command platform, script language, or term category. These colors apply to both badges and filter buttons.</p>
-<p class="form-hint">Save or load these colors with <strong>Import / Export</strong> in the top bar.</p>
-<div id="category-colors"></div>
-</div>
-</div>
-<!-- Code Blocks tab: settings.js applies data-code-theme and syntax
-             variable overrides; app.js supplies the preview highlighter. -->
+</div><!-- Code Blocks tab: settings.js applies data-code-theme and syntax
+             variable overrides; js/core/highlight.js supplies the preview highlighter. -->
 <div class="settings-panel" data-panel="code" hidden="">
 <div class="settings-data-section">
 <h3>Code Blocks</h3>
@@ -622,8 +216,6 @@ Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1<
 </div>
 </div>
 </div>
-<!-- Categories tab: settings.js calls category helpers in app.js and
-             serializes the result through the Import / Export Manager (js/transfer.js). -->
 
 <!-- Data tab: settings.js renders status and calls window.DataFile for
              linked-file actions; fallback download/restore uses file inputs. -->
@@ -683,9 +275,6 @@ Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1<
               delete or modify the JSON files in <code>data/</code>.
             </p>
 <div class="settings-data-actions">
-<button class="btn secondary" id="btn-clear-commands" type="button">
-                Clear Local Commands
-              </button>
 <button class="btn secondary" id="btn-clear-settings" type="button">
                 Clear Settings
               </button>
@@ -694,8 +283,8 @@ Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1<
               </button>
 </div>
 <p class="form-hint">
-              Clear Local Commands reloads the
-              bundled JSON files on the next HTTP(S) load if no local records remain. On <code>file://</code>, use Restore From File. Reset All clears locally saved records and settings.
+              Reset All clears locally saved records and settings; on the next HTTP(S) load the
+              bundled JSON files fill in what's missing. On <code>file://</code>, use Restore From File.
             </p>
 </div>
 </div>
@@ -711,147 +300,11 @@ Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1<
 </div>
 </div>
 </div>
-<!-- Insert Command / Script / Term dialog: js/notes.js searches the loaded entries,
-          and its New button opens the same editor the Spell Book page uses. -->
-<div aria-labelledby="notes-cmd-heading" aria-modal="true" class="modal-overlay" id="notes-cmd-modal" role="dialog">
-<div class="modal notes-cmd-dialog">
-<h2 id="notes-cmd-heading">Insert Command</h2>
-<div class="notes-cmd-search-row">
-<input aria-controls="notes-cmd-results" aria-label="Search commands" id="notes-cmd-search" type="search"/>
-<button class="btn" id="notes-cmd-new" type="button">+ New Command</button>
-</div>
-<div aria-label="Results" class="notes-cmd-results" id="notes-cmd-results" role="listbox"></div>
-<div class="modal-actions">
-<span class="form-hint notes-cmd-count" id="notes-cmd-count"></span>
-<button class="btn secondary" id="notes-cmd-cancel" type="button">Cancel</button>
-</div>
-</div>
-</div>
-<!-- Notes confirm/input dialog: replaces window.confirm and prompt, which some
-          browsers and embedded panes answer "no" to without showing anything. -->
-<div aria-labelledby="notes-ask-title" aria-modal="true" class="modal-overlay" id="notes-ask" role="alertdialog">
-<div class="modal notes-ask-dialog">
-<h2 id="notes-ask-title"></h2>
-<p class="notes-ask-message" id="notes-ask-message"></p>
-<div id="notes-ask-extra"></div>
-<input aria-labelledby="notes-ask-title" class="notes-ask-input" hidden="" id="notes-ask-input" type="text"/>
-<p class="notes-ask-error" id="notes-ask-error"></p>
-<div class="modal-actions">
-<button class="btn secondary" id="notes-ask-cancel" type="button">Cancel</button>
-<button class="btn" id="notes-ask-ok" type="button">OK</button>
-</div>
-</div>
-</div>
-<!-- Command editor: app.js validates the form, builds placeholder metadata,
-          then saves the command in spellbook_commands_v1. -->
-<div class="modal-overlay" id="modal">
-<div class="modal resizable-modal">
-<h2 id="modal-title">New Command</h2>
-<form id="cmd-form">
-<input id="edit-id" type="hidden"/>
-<div class="form-group">
-<label for="f-title">Title *</label>
-<input id="f-title" placeholder="e.g. Remote WMIC Query" required="" type="text"/>
-</div>
-<div class="form-group">
-<label for="f-platform">Platform / Tool *</label>
-<input id="f-platform" type="text" required="" autocomplete="off" placeholder="e.g. PowerShell, Bash, GRUB…"/><datalist id="command-platform-suggestions"></datalist>
-</div>
-<div class="form-group">
-<label for="f-tags">Tags</label>
-<div data-input-id="f-tags" id="f-tags-box"></div>
-<div class="form-hint">
-              Type a tag and press Enter or a comma. Existing tags are suggested
-              as you type, and every tag becomes available in the Tag filter.
-            </div>
-</div>
-<div class="form-group">
-<label for="f-desc">Description / Use Case</label>
-<textarea id="f-desc" placeholder="What this command is for…"></textarea>
-</div>
-<div class="form-group">
-<label for="f-cmd">Command Template *</label>
-<textarea id="f-cmd" placeholder="Use &lt;placeholder&gt; for variables
-e.g. nmap &lt;-sV | -sn | -sT&gt; &lt;target&gt; [-p &lt;ports&gt;] [--script &lt;nse_script&gt; [--script-args &lt;script_args&gt;]] [-oN &lt;output_file&gt;]" required=""></textarea>
-<div class="form-hint">
-              Use &lt;name&gt; for required placeholders and [name] for optional
-              placeholders. Both become editable fields; optional placeholders
-              are omitted from the generated command until populated. All
-              placeholders must NOT contain whitespace (e.g. spaces, tabs,
-              etc.), e.g. use "&lt;variable_name&gt;", NOT "&lt;variable
-              name&gt;" For dropdown lists, use &lt;option1 | option2 |
-              option3&gt; syntax
-            </div>
-</div>
-<div class="form-group">
-<label for="var-add-first">Variables</label>
-<div class="var-editor" id="var-editor"></div>
-<div class="var-editor-actions">
-<button class="btn secondary sm" id="btn-var-add" type="button">
-                + Add variable
-              </button>
-<button class="btn secondary sm" id="btn-var-add-option" title="A man page style option such as -a, --all or -w, --width=COLS" type="button">
-                + Add option
-              </button>
-<button class="btn secondary sm" id="btn-var-paste" title="Paste the OPTIONS section of a man page or --help output" type="button">
-                Paste man page options…
-              </button>
-<button class="btn secondary sm" id="btn-var-detect" title="Add a variable for every placeholder found in the command template" type="button">
-                Add from template
-              </button>
-</div>
-<div class="var-paste" hidden="" id="var-paste">
-<textarea id="var-paste-text" placeholder="Paste the OPTIONS section of a man page or --help output, for example:
-
-       -a, --all
-              do not ignore entries starting with .
-       -w, --width=COLS
-              set output width to COLS" rows="8" spellcheck="false"></textarea>
-<div class="var-paste-actions">
-<button class="btn sm" id="btn-var-paste-add" type="button">
-                  Add options
-                </button>
-<button class="btn secondary sm" id="btn-var-paste-cancel" type="button">
-                  Cancel
-                </button>
-<span class="var-paste-message" id="var-paste-message"></span>
-</div>
-</div>
-<div class="form-hint" id="var-paste-note"></div>
-<datalist id="var-info-labels">
-<option value="Required?"></option>
-<option value="Position?"></option>
-<option value="Default value"></option>
-<option value="Accept pipeline input?"></option>
-<option value="Accept wildcard characters?"></option>
-</datalist>
-<div class="form-hint">
-              Give each variable a type, a description and any extra information
-              (required, position, default value…). Insert puts it into the
-              command template at the cursor, as &lt;name&gt; or the optional
-              [name]. Variables you leave out here are still picked up from the
-              template.
-            </div>
-</div>
-<div class="form-group">
-<label for="f-example">Example (optional)</label>
-<textarea id="f-example" placeholder="Concrete example with real values"></textarea>
-</div>
-<div class="form-group">
-<label for="f-notes">Notes / Tips</label>
-<textarea id="f-notes" placeholder="Aliases, gotchas, related commands…"></textarea>
-</div>
-<div class="modal-actions">
-<button class="btn secondary" id="btn-cancel" type="button">
-              Cancel
-            </button>
-<button class="btn" id="btn-save" type="submit">Save</button>
-</div>
-</form>
-</div>
-</div>
-<!-- Trash modal: app.js restores or permanently removes records stored in
-          spellbook_trash_v1. -->
+<!-- Dialogs that belong to a module go here (js/core/pages.js). -->
+<div hidden="" id="modals-end"></div>
+<!-- Trash modal: js/core/trash.js renders a section for each module that sends
+          things to Trash (SpellBook.trash.section); each module keeps its own
+          trashed items, e.g. spellbook_trash_v1 for commands. -->
 <div class="modal-overlay" id="trash-modal">
 <div class="modal trash-modal">
 <div class="trash-header">
@@ -868,8 +321,9 @@ e.g. nmap &lt;-sV | -sn | -sT&gt; &lt;target&gt; [-p &lt;ports&gt;] [--script &l
 <div class="trash-list" id="trash-list"></div>
 </div>
 </div>
-<!-- Import preview: app.js compares the selected file with local data and
-          changes storage only after the Apply button is pressed. -->
+<!-- Import / Export window (js/transfer.js). Each tab adds its own parts;
+          Spells' lists go on to its Import Manager, which changes storage only
+          after Apply is pressed. -->
 <div class="modal-overlay" id="transfer-manager">
 <section aria-labelledby="tm-title" aria-modal="true" class="modal transfer-manager has-sticky-actions" role="dialog">
 <h2 id="tm-title">Import / Export Manager</h2>
@@ -893,35 +347,9 @@ e.g. nmap &lt;-sV | -sn | -sT&gt; &lt;target&gt; [-p &lt;ports&gt;] [--script &l
 <div class="modal-actions sticky-actions">
 <span class="im-note" id="tm-note"></span>
 <label class="tm-format" id="tm-format-label">Format
-<select id="tm-format"><option value="json">One file (.json)</option><option value="csv">CSV files (commands, scripts, terms)</option></select></label>
+<select id="tm-format"><option value="json">One file (.json)</option></select></label>
 <button class="btn secondary" id="tm-close" type="button">Close</button>
 <button class="btn" id="tm-go" type="button">Export</button>
-</div>
-</section>
-</div>
-<div class="modal-overlay" id="import-manager">
-<section aria-labelledby="im-title" aria-modal="true" class="modal import-manager has-sticky-actions" role="dialog">
-<h2 id="im-title">Import Manager</h2>
-<p class="im-file" id="im-file"></p>
-<div class="im-tabs" id="im-tabs" role="tablist"></div>
-<div class="im-toolbar">
-<span class="im-hint" id="im-hint"></span>
-<span class="im-tools" id="im-tools">
-<button class="btn secondary sm" id="im-select-all" type="button">
-              Select all
-            </button>
-<button class="btn secondary sm" id="im-select-none" type="button">
-              Select none
-            </button>
-</span>
-</div>
-<div class="im-list" id="im-list"></div>
-<div class="modal-actions sticky-actions">
-<span class="im-note" id="im-note"></span>
-<button class="btn secondary" id="im-cancel" type="button">
-            Cancel
-          </button>
-<button class="btn" id="im-apply" type="button">Apply</button>
 </div>
 </section>
 </div>
@@ -932,182 +360,240 @@ e.g. nmap &lt;-sV | -sn | -sT&gt; &lt;target&gt; [-p &lt;ports&gt;] [--script &l
 <script id="readme-source" type="text/x-readme">
 # Spell Book
 
-**Version 7 — 20261105**
+**Version 7.2 — 20261121**
 
-Spell Book is a local-first reference for commands, scripts, and technical terminology. It runs in a browser using HTML, CSS, and JavaScript, without an account, database server, or installation. Open `index.html` directly to use it. Some file-linking features depend on browser support.
+Spell Book is a local-first reference for commands, scripts and technical terms, with a notebook (the Compendium), small tools and the MITRE ATT&CK matrix. It runs in the browser with plain HTML, CSS and JavaScript: no account and no installation. Open `index.html` to use it. Linking a data file needs Chrome or Edge. An optional database server (`remote-db/`) keeps everything in PostgreSQL instead, for using one Spell Book from several computers and phones.
 
 ## Getting Started
 
-1. Extract the complete Spell Book folder; keep `index.html`, `styles.css`, `js/`, `data/`, and `icons/` together.
+1. Keep the whole Spell Book folder together: `index.html`, `css/`, `js/`, `modules/`, `data/` and `icons/`.
 2. Open `index.html` in your browser.
-3. Select **Spell Book** at the top. Choose a Command, Script, or Term filter and browse or search entries.
-4. Click **+ New Command**, **+ New Script**, or **+ New Term**, or press **A** outside an input to choose what to create.
-5. Use **Link** and **Save** in the sidebar to manage a linked data file or download a backup. Export individual collections separately when needed.
-6. Select **Compendium** to keep notes; see **Compendium** below.
+3. Click **Link a Data File** in the top bar to keep your data in a JSON file you choose. From then on that button is **Save**. Without a data file, everything stays in this browser only.
+4. Pick a tab: **Spells** (commands, scripts and terms), **Compendium** (notes), **Tools**, **ATT&CK** or **Games**. Each tab offers its tutorial the first time you open it. Don't need one right now? Turn it off in **Settings → Layout & Theme → Tabs**.
+
+## The Top Bar
+
+From left to right:
+
+- **← and →:** go back to what you were looking at before (a command, script, term or note, on any tab) and forward again. Settings → Layout & Theme can hide them.
+- **The tabs:** drag the dotted handle at a tab's left to reorder them (or **Ctrl+Shift+←** / **→** on the focused tab).
+- **Save:** saves to the linked data file and shows how things stand: *Saved 3:42*, *Save* with the number of unsaved changes, *Saving…*, or *Allow saving* when the browser needs your permission again. With no data file it says **Link a Data File**. The arrow beside it opens a menu: the **Autosave** switch, linking (link, create, link a different file, unlink), **Backup** (downloads a copy of everything) and data file settings.
+- **Import / Export:** save or load only the parts you choose (below).
+- **Trash:** deleted things, with a count.
+- **Settings**, then **Tutorial (?)**, which tours the tab that's open, then **About (i)**, this guide.
+
+Light or dark mode is in Settings → Layout & Theme.
+
+## Spells: Commands, Scripts, and Terms
+
+- **Commands** have a title, platform or tool, tags, description, command template, variables, examples and notes. Placeholders in the template become fields: fill them in and copy the finished command.
+- **Scripts** have a name, language, tags, body and notes.
+- **Terms** have a term, category, tags, definition and notes.
+- Click **+ New Command**, **+ New Script** or **+ New Term**, or press **A** (outside a text box), then **C**, **S** or **T**.
+- **Filters:** each kind has its own quick filters; click one or several, and **All** clears them. Search and the tag box narrow the list further, and the count shows `(N shown)` while filtering. Settings → Spells has the layout, the quick filters (one at a time or several), the category colors and the Scratch pad.
+- **Tags** suggest existing tags as you type. Platform, language and category fields suggest names too, and a new platform becomes a quick filter when the command is saved.
+- **Counts:** the totals show how many were added (+) and deleted (−) since the last import.
+- Each entry lists the notes that use it under **Linked in n notes**.
 
 ## Compendium
 
-The **Compendium** keeps CherryTree style notes: a tree of nodes on the left and a text editor on the right. Notes are saved in the browser as you type and are included in linked data files and backups.
+Notes in trees, CherryTree style: a tree of nodes on the left and an editor on the right. Notes save as you type and are part of the data file and backups.
 
-- **Tomes:** notes are grouped into tomes, shown as tabs above the tree. **+ Tome** starts a new one; double-click a tab to rename it, or right-click it to rename, seal or delete it. Guides and templates live here as tomes.
-- **Nodes:** **+ Node** and **+ Subnode** add notes, and dragging a node moves it. Right-click a node for more, including **Move Up/Down** and **Move In/Out a Level**. Arrow keys move through the tree, **F2** renames and **Delete** deletes.
-- **Editor:** headings, bold, italic, underline, strikethrough, colors, lists, alignment, links, horizontal lines and tables. Inline code (`</>`) is for a short piece of code inside a sentence. The code block button, or **Code block** in the paragraph style list, adds a block of code with a language picker and the same syntax colors as the Spell Book.
-- **Insert Command, Insert Script, Insert Term:** a command card shows the command's variable fields and generated command; values typed into it are saved with that card in that note only. A script card shows the script, and a term becomes a link in the text. Cards have **Edit**, which opens the Spell Book's edit window without leaving the note, and **View in Spell Book**. Each Spell Book entry lists the notes that use it under **Linked in n notes**.
-- **Sealing:** right-click a node and choose **Seal Branch** to make it and everything inside it read-only, or **Seal Tome** on a tab for a whole tome. Sealed notes can't be typed in, renamed, moved or deleted, and their command fields are locked. **Unseal** makes them editable again. Seals guard against accidental edits; anyone can unseal.
-- **Search:** the search box covers the open tome, **This branch** (the selected node and its subnodes) or **All tomes**. Matches are highlighted in the open note; Enter and Shift+Enter, or the arrows beside the count, jump between them.
+- **Tomes:** notes are grouped into tomes, the tabs above the tree. **+ Tome** starts one. Double-click a tab to rename it, right-click to rename, archive or delete it, and drag its dotted handle to move it.
+- **Nodes:** **+ Node** and **+ Subnode** add notes. Drag a node to move it with its subnodes. To move it to another tome, drop it on that tome's tab, or hold it over the tab until the tome opens and drop it in the tree. Right-click for more, such as **Move Up/Down**, **Move In/Out a Level** and **Duplicate** (**Ctrl+D**). Arrow keys move through the tree, **F2** renames and **Delete** deletes.
+- **Editor:** headings, bold, italic, underline, strikethrough, superscript (Ctrl+.), subscript (Ctrl+,), colors, fonts and sizes, lists, alignment, links, lines, tables and info boxes. Inline code (`</>`) is for a bit of code in a sentence. A **code block** has a language picker and syntax colors. In code, Tab and Shift+Tab indent and outdent the selected lines, as in VS Code.
+- **Images:** add them with the toolbar's image button, by pasting (a screenshot, a file, or a web page's text with its images) or by dropping. They're shrunk to at most 1600 pixels wide. Click one to resize it or remove it.
+- **Attachments:** attach any file (up to 100 MB) with the toolbar's paperclip button, or drop or paste a file that isn't a picture. It shows as a chip with its name and size. Click it for **Open** (PDFs, pictures and text files open in a new tab), **Download** or **Remove**. Attachments are kept out of the data file: this browser keeps a copy, and each one is saved in an `attachments` folder next to the data file (`data/attachments`). After you link a data file, a banner asks once: click **Choose Folder**, then **Select Folder** (the window opens in the data file's folder; browsers only write to folders you pick). **Settings → Data & Backups → Attachments** has the same button. Copy the data file and that folder together. The database server keeps attachments in `data/attachments` on its own. A dashed chip means this browser doesn't have the file yet: choose the folder that holds it. A file deleted or changed in the folder is put back at the next sync, from the browser's copy. A file no note uses any more (its chip removed, or its note deleted from Trash) is deleted from the folder the next time Spell Book starts, so Ctrl+Z still works until then. **Clean Up…** in Settings → Attachments deletes unused files right away, also from the database server, after asking. Anything that isn't a PDF, a picture or text is only downloaded, never shown in Spell Book.
+- **Insert Command, Script, Term** (**Alt+C**, **Alt+S**, **Alt+T**): at the end of the toolbar, in a group labelled **Spells**, because they come from the Spells tab and only show while it's installed. A command card has the command's fields and the finished command, with values kept in that note. A script card shows the script, and a term becomes a link. Cards have **Edit** and **View in Spell Book**.
+- **Variables** (**Insert Variable**, the `{x}` button, or **Alt+V**): a variable shows in the note as a chip with its value. Set the values in **Variables** above the note; changing a value changes every chip at once. **Advanced** (top right of the open panel) adds Component, Default value, Ghost text and Description. Chips work in code blocks too: **Copy** gives the values. Nothing you type, such as `{{ }}` or `$VAR`, is ever mistaken for a variable. Removing a variable leaves its chips dashed; click one to **Restore** the variable (with its value) or to make the chip plain text, its last value or its name (**Ctrl+Z** undoes that). On an archived note without variables, the Variables bar is hidden.
+- **Templates** (**Insert Template**, the table button, or **Alt+P**): a section of records typed into right in the note. It can be a saved template (such as Systems or Log Entry), or a blank **Table**, **Cards** or **Form**. **+ Add** (or **Ctrl+Enter**) adds a record. **Fields** (or a Table heading's **▾**) sets its fields: short text, rich text, date and time, choice, number or checkbox, with the options **Beside**, **Title**, **Carry** and **Now**. Tables can be filtered, sorted by a heading, and imported or exported as CSV. **Save as template** keeps a section's fields for later. Filter tables from older notes become template tables.
+- **Archive:** **Archive Branch** (on a node) or **Archive Tome** (on a tab) puts notes in the archive: they're locked and only their Variables' Values can be typed in (cards, code and text can't be changed). **Unarchive** (right-click, or click the amber archive box just after an archived note's name) makes them editable again. It guards against accidents and isn't a security lock. Archived branches are hidden from the tree and from Branch view (and archived tomes from **All tomes**); the archive button (a box) beside the ★ by the tree search shows them too (it's saved in the data file). An archived tome leaves the tabs and is only in the **Archive** tab. The **Archive** tab, at the right end of the tome bar, shows every archived branch and tome as clean pages. Its list has a box for each tome, with that tome's archived notes inside and their subnotes indented; an archived tome's box has an amber archive box: click it to unarchive the tome and get its tab back. Above the list are the same search tools as the tree: a search box (it also matches tome names, so searching a tome's name lists its archived notes), a **Tag** filter, and **Tome name / All tomes / This tome / This branch**. **Tome name** searches only tome names. On a note's page, its tags sit right under its name, as in a tome, then the notes above it (the tome's name is left to the list's tome box). Click a tag to filter by it. Drag the list's right edge to make it wider or narrower. A note's page looks exactly like the archived note in its tome, except there's no archive box after its name (everything here is archived): its name, its tags, its **Variables (n)** panel (when it has any; type the Values there), an **Open in** *tome* button (it turns on the tree's archive button, so the note shows there) and, on an archived branch's top note, **Unarchive** (unarchives it and opens it in its tome), then its text. The branch button at the right end of its name line adds every note inside it, each drawn the same way; click it again to show the note alone. Settings → Compendium can hide the notes' tags in it (the Tag filter still works).
+- **Note tags:** under a note's name, shared with commands, scripts and terms. Click a tag, or use the **Tag** box under the tree search, to show only the notes that have it.
+- **Note presets:** right-click a node → **Use as Note Preset** (a stamp marks it in the tree). **From Preset** (or **Add Node from Preset…** in the right-click menu) then copies it, with its subnodes and template sections, into a new note. The starter **MCA Hunt** preset has Systems and Log sections.
+- **Search:** the box at the top of the tree, over **All tomes**, **This tome** (the default) or **This branch**. Matches are highlighted; **Enter** and **Shift+Enter** jump between them.
+- **Note width:** **↔ Expand** at the end of the toolbar fills the screen, or set a width in Settings → Compendium and drag the note's edge.
+- **The note page and Whole branch:** the note toolbar is at the top, and under it the note: its name, its tags (click one to filter the tree by it), its Variables, then its text. The branch button at the right end of a note's name shows it with every note inside it on one page, each drawn the same way; click it again to show the note alone. In a branch, each note has its own branch button, to show its branch instead. Click a note to edit it right there, name, tags and variables included, unless it's archived. The bar down the left of each note shows its level in the colors of the tree's dots; click a bar to switch all of them to the accent color or plain grey. Settings → Compendium → **Note bars** has the same choice, and can turn off indenting the notes inside others. A note's name is its heading: largest for the note on its own or the top note of a branch, and a step smaller for each level inside it. Settings → Compendium → **Note titles** makes them all Small, Medium or Large. Every note you can edit shows its **Variables (n)** bar and **+ add tag**, even with none, so selecting another note doesn't move anything; click either to go straight to it. Code blocks and templates show their controls on every note you can edit, too, and a click on one goes straight to it (only archived notes show them read-only). An archived note's Variables are read-only but for their Values. An archived note without variables shows no Variables. Selecting a note outside the branch shows that note's branch instead. Right-click a node → **Open as Whole Branch** opens it this way too. Undo and selecting text work within one note at a time.
+- **Stars:** every note's name has a star just before it: in the tree (☆ shows on hover), above the editor, in Branch view, and in the Archive. Click it to star the note as a favorite, or right-click → **Star**. Starred notes keep a ★. The ★ button beside the search box shows only starred notes, together with any search, tag and scope. Archived notes can be starred too, and the **Archive** list has the same ★ button. Stars are saved in the data file.
+- **Select & Export:** the wide **Select & Export** button at the bottom of the tree, or of the **Archive** list, opens an **export list** beside it. While the list is open, every note has a **＋** at the end of its row: click it to add the note, and it turns to **✓** (click again to take it out). You can also right-click → **Add to Export List** or **Add Branch to Export List**, or use **Add shown** for what the current search matches. The list gathers notes from as many searches, tomes and the Archive as you like. Drag the list's right edge to resize it. Drag notes to put them in order (or **Alt+↑/↓**); click one to open it, or **×** to remove it. The branch button at the top of the list **previews the export**: every note in order, where the note normally shows, as **Rendered** notes or the **Markdown** text. Clicking a note in the list jumps to it there. **Export…** downloads **one Markdown file (.md)**, with each note as a `#` section (`# ★ Name` when starred) with its tome, path and tags and its images kept, or **Markdown files, images and attachments (.zip)** with a file per note. The list isn't saved and ends when you close the page; use stars for notes you want to keep coming back to.
+- **Export as Markdown:** in **Import / Export**, the format **Markdown (.zip): Compendium** downloads the ticked tomes as Markdown files. Each tome is a folder, each note is a `.md` file, images go in `assets/` and attachments in `attachments/`. It's a copy: your notes stay in Spell Book.
 
-The **←** and **→** buttons beside the logo go back to whatever you were looking at before (the previous command, script, term or note, on either page) and forward again. Settings → Layout & Theme can hide them, and the Scratch pad too.
+## Tools
 
-## Commands, Scripts, and Terms
+- **Man page importer:** paste a man page (`man ls | col -b`), `--help` output, PowerShell `Get-Help -Full` text, or a help harvester dump. The synopsis becomes a Command Template: `<file>` for a required value, `[file]` for an optional one, `[-v]` for a switch, `[-f <archive>]` for an option with a value, and `<start|stop>` for a choice. The options become the command's Options list. **Create command…** opens it in the New Command window to check and save. It needs Spells.
+- **Number converter** (decimal, hex, octal, binary, bytes).
+- **Crontab interpreter**: the schedule in plain English, and its next runs.
+- **Regex interpreter**: the pattern explained and tested on your text.
+- **Help harvester**: a script that collects a command's help, and its subcommands', into one file for the importer.
 
-- **Commands** store a title, platform/tool, tags, description/use case, command template, variables, examples, and notes. Template placeholders can produce fill-in fields for generating a command.
-- **Scripts** store a name, required language, tags, script body, and notes. Their language filters are independent of command platforms.
-- **Terms** store a term, required category, tags, definition, and notes. Their category filters are independent of command platforms and script languages.
+## ATT&CK
 
-Use **Import / Export** in the top bar to save or load only the parts you choose (commands, scripts, terms, Compendium tomes, colors and groups of settings), and the **Edit** control in each repository's section. Import/export of a single repository is different from backing up the entire application state. Review the import preview before applying changes; matching IDs can be treated as updates by existing import workflows. Importing records does not automatically rewrite the source files in the `data/` directory.
+The MITRE ATT&CK Enterprise matrix (v20), one column per tactic.
 
-### Filters, Tags, and Search
+- **Search** by id, name, description, platform or your own indicators and notes. **sub-techniques** shows them under each technique; **only with entries** keeps the ones something in your book is tied to.
+- **Tying entries:** tag a command, script, term or note with a technique id (`T1003`, `T1003.001`), or write the id in its text. The blue number counts them.
+- **Click a technique** for its details, MITRE's detection strategies, your **Indicators, paths and commands**, the entries **In this book**, and **Notes**.
+- Only your indicators and notes are saved, so a newer matrix keeps them. To update the matrix, run `python3 -I modules/attack/attack.py`.
 
-The sidebar has separate quick filters for Commands, Scripts, and Terms. Click a filter to enable or disable it; multiple filters may be selected. **All** clears that repository's category selection. The search and tag controls further narrow the current list. The counter displays `(N shown)` when filtering is active for the current repository, including when zero entries match.
+## Games
 
-Tags offer suggestions as you type and can be added as chips. Platform/tool, script-language, and term-category fields also suggest existing names, including when focused while empty. You can type a new name and accept it with Enter. A new command platform is added to the available command quick filters when the command is saved.
+HTML games played inside Spell Book. **Tic-Tac-Toe** comes with it: you against the computer, at **Easy**, **Normal** or **Hard** (which never loses), as X (you go first) or O. Click a square, or use the arrow keys and Enter, or 1–9; N starts a new game. Wins, draws and losses are counted per level and saved in the data file.
 
-## Data, Saving, and Backups
+- Click a game to play it. It keeps going while you visit other tabs; **← Games** closes it, **Restart** starts it again and **Full Screen** fills the screen (Esc leaves).
+- **Add your own:** put the game's folder, with an `index.html` and anything it links to, in `modules/games/`, and add a line for it to `modules/games/games-list.js`: `{ folder: 'my-game', title: 'My Game', description: '…' }`. Browsers can't look inside folders, so a game shows once it's in that list.
+- Games run in a sandbox: they can't read or change your Spell Book data or use the browser's storage. A game can still keep its scores in the data file by asking Spell Book (`postMessage`); `modules/games/games.js` shows how, and Tic-Tac-Toe does it.
 
-Spell Book maintains working data in your browser's **localStorage**. Changes saved in the interface do **not** automatically edit files in the project folder. Browser storage is specific to that browser/profile and can be lost when site data is cleared.
+## Saving, Backups, and Import / Export
 
-There are several related but distinct ways to save data:
+Spell Book keeps its working copy in the browser: settings in localStorage, and Compendium notes in IndexedDB, which has room for images. Browser storage belongs to one browser profile, and clearing site data erases it. Keep a data file or backups.
 
-- **Link / Linked:** Connect to a data file through the browser's supported file-access workflow. When connected, the button displays **Linked**. File-linking and permissions depend on browser support.
-- **Save:** Save to the linked JSON data file where available; otherwise download a `spellbook-data.json` backup.
-- **Settings → Data & Backups:** Access the more complete data-management, backup, restore, and synchronization controls.
-- **Repository Export:** Export Commands, Scripts, or Terms separately for sharing or selective import; these exports are not full backups of every application setting.
+- **Data file:** link a JSON file with **Link a Data File** (Chrome or Edge). **Save** writes everything to it. The file holds every setting of every tab, Autosave and Trash included, so linking it in another browser sets that browser up the same. Only the link itself stays in the browser.
+- **Autosave:** the switch in Save's menu. While it's on, changes are written shortly after you make them and the disk shows a green light. After a browser restart it may say *Allow saving*: click it to give permission again.
+- **Unsaved changes:** the number on Save counts changed entries, not keystrokes. Hover over the disk to see them by kind.
+- **Backup:** in Save's menu, or Settings → Data & Backups (**Download Backup**, **Restore From File**). A backup file is a full copy of your data, named with its date and time. It doesn't include attachments: back up the `attachments` folder too.
+- **Attachments:** files attached to notes aren't in the data file. They're kept in this browser and in the `attachments` folder next to the data file (Settings → Data & Backups → **Attachments**). Copy the data file and that folder together to move or back up everything.
+- **Import / Export:** tick parts (commands, scripts, terms, Compendium tomes, colors, groups of settings) or **Choose items**, as JSON or CSV, or as Markdown for tomes. Imported commands, scripts and terms are reviewed one by one as new or changed before anything is applied. Import / Export isn't a full backup.
+- **Without linking:** on a browser that can't link files, use **Backup** and **Restore From File**.
 
-### JSON data files and startup
+### Bundled data
 
-- **`data/spellbook-data.json`** is the complete application snapshot (commands, scripts, terms, settings, and other saved state). It is the primary portable backup format.
-- **`data/commands.json`**, **`data/scripts.json`**, and **`data/terms.json`** are independent collection files used to seed an empty browser if a full snapshot is unavailable.
-- **HTTP(S):** On a fresh browser, Spell Book first checks a previously linked file, then the full JSON snapshot, then any missing individual collections. Each collection uses JSON first, falling back to the corresponding `.js` file only when JSON is unavailable or invalid. An empty JSON array is valid and does not trigger fallback. Existing browser records are not overwritten.
-- **`file://`:** Browsers generally prohibit automatic local JSON fetches. The loader can instead use `commands.js`, `scripts.js`, or `terms.js` if present. To use JSON directly, choose **Restore From File**, link a supported file, or run Spell Book on localhost. The bundled sample `.js` files provide a direct-file demonstration.
-- **Linked data file:** A previously linked JSON file is checked before bundled data, subject to browser permissions. Local unsaved changes are protected.
-- **Legacy fallback:** `commands.js`, `scripts.js`, and `terms.js` are optional classic-script fallbacks for their JSON counterparts; `commands.txt` is no longer requested. Legacy full-backup JavaScript may still be restored manually.
+- `data/spellbook-data.json` is a full snapshot, loaded into a fresh browser when Spell Book is served over HTTP(S). A previously linked file comes first, and existing browser data is never overwritten.
+- `data/commands.json`, `scripts.json` and `terms.json` seed an empty browser when there's no snapshot. Their `.js` copies do the same when `index.html` is opened from disk (`file://`), where browsers block reading JSON files.
 
+### The database server (optional)
 
-### Keyboard Shortcuts
+`remote-db/` runs Spell Book from a small Node server that keeps everything in PostgreSQL (or MySQL), so several computers and phones share one copy.
 
-- **A** outside editable fields: open **Create New**; then **C**, **S**, or **T** chooses Command, Script, or Term.
-- **/** outside editable fields: focus the current search field.
-- **Esc:** close the active dialog or creation selector without saving an unfinished form.
+- **Saving:** changes save about a second after you make them, so Autosave is always on.
+- **Several browsers:** parts changed in different browsers merge on their own. A part changed in two browsers at once asks which copy to keep.
+- **Password:** with `SPELLBOOK_PASSWORD` set, the server asks for a password and keeps you signed in for 30 days. **Sign Out** is in Settings → Data & Backups. If you're signed out while working, Save says **Not saved** and a banner offers **Sign in**; your changes wait in the browser.
 
-Shortcuts should not override normal typing in input fields.
+Setup, including Docker and a Synology NAS behind HTTPS, is in `remote-db/README.md`.
 
-## Trash and Change Counters
+## Trash
 
-Deleted entries may be moved to **Trash**, where supported, so they can be restored or permanently removed. Green `+N` and red `-N` indicators track changes relative to the applicable import/baseline state. A `(N shown)` counter is a view/filter indicator, not a count of newly added records. Import operations can reset the change baseline.
+Deleted commands, scripts, terms, notes and tomes go to **Trash**, in a section for each tab. Restore an item or delete it for good; each section has **Empty**, and **Empty Trash** clears everything. A restored note goes back where it was, with its Variables. Trash is saved in the data file.
 
-## Project Files (Version 7)
+## Keyboard Shortcuts
+
+- **A**, then **C**, **S** or **T**: new command, script or term (outside a text box).
+- **/**: search (outside a text box).
+- **Esc**: close the open window without saving an unfinished form.
+- **Alt+C**, **Alt+S**, **Alt+T**, **Alt+P**, **Alt+V** (in a note): the Insert buttons.
+- **Ctrl+D**, **F2**, **Delete** (in the Compendium's tree): duplicate, rename or delete the selected node.
+
+## For Developers: Tabs Are Modules
+
+Each tab is a folder in `modules/`, listed in `modules/modules.js`; that list sets the tabs' starting order. Remove a name to remove the tab: any tab can go, Spells included. Turning a tab off in Settings does the same from the next start, without editing the list. To add one, make a folder with a `module.js` that calls `SpellBook.module({ id, title, routes, css, scripts, html, seeds })` (`js/core/pages.js` describes each field), then add its name to `modules/modules.js`. The markup lives in `module.js`, not an `.html` file, so Spell Book still runs from disk.
+
+Rules for a module:
+
+- Save settings in localStorage under a key starting with `spellbook_`, so they go into the data file.
+- Don't use another tab's code directly. Use its **service**, `SpellBook.service('spells')` or `SpellBook.service('compendium')`, which is `null` when that tab isn't installed, and carry on without it. Without Spells, the Compendium shows cards from the copy saved in the note and hides the Insert Command, Script and Term buttons.
+
+What a module can add:
+
+- `SpellBook.settingsSection({ id, tab, label, order, render })`: a section in Settings, on a tab of its own.
+- `SpellBook.transferPart({ … })`: a part of Import / Export.
+- `SpellBook.exportFormat({ id, label, parts, write })`: a format in Import / Export.
+- `SpellBook.settingGroup({ id, title, sub, keys, order })`: settings that Import / Export copies as one group.
+- `SpellBook.tagSource({ id, tags })`: tags the tag editor suggests.
+- `SpellBook.tutorial({ id, page, title, intro, steps })`: its tour and first-start question.
+- `SpellBook.trash.section({ … })`: its section in Trash.
+- `SpellBook.trackChanges({ key, label, units })`: counts its entries on Save.
+- `SpellBook.places(…)` and `SpellBook.route(…)`: Back / Forward and its own addresses.
+
+`modules/tools/` is a small example to start from.
+
+## Project Files
 
 ```text
-spell-book-experimental/
-├── index.html                 Interface, JSON startup, embedded README
-├── styles.css                 Themes, layouts, and responsive styles
-├── DEVELOPER_NOTES.md         Developer notes
+spell-book-experimental-v7.1/
+├── index.html                 Top bar, shared windows, startup, this README
+├── CHANGELOG-v7.2.md          Every change in this version
+├── css/                       Shared styles
 ├── js/
-│   ├── app.js                 Commands, scripts, terms, imports, filters
-│   ├── settings.js            Settings and backup controls
-│   ├── notes.js               Compendium: tomes, notes editor, sealing
-│   ├── datafile.js            Linked JSON storage, backup and restore
-│   └── highlight.js           Syntax highlighting
-├── data/
-│   ├── spellbook-data.json    Full application snapshot
-│   ├── commands.json          Commands-only seed
-│   ├── scripts.json           Scripts-only seed
-│   ├── terms.json             Terms-only seed
-│   ├── commands.js            Optional JSON fallback / file:// sample
-│   ├── scripts.js             Optional JSON fallback / file:// sample
-│   ├── terms.js               Optional JSON fallback / file:// sample
-│   └── *.json                 Theme presets
-└── icons/                     Icons and layout previews
+│   ├── core/                  What every tab shares
+│   │   ├── datafile.js        Data file, Autosave, backup and restore
+│   │   ├── attachments.js     Files attached to notes: browser, folder, server
+│   │   ├── pages.js           Tabs, services and what modules can add
+│   │   ├── router.js          Addresses, Back and Forward
+│   │   ├── unsaved.js         The unsaved-change count on Save
+│   │   ├── trash.js           Trash
+│   │   ├── tutorial.js        Tours, first-start prompts, the Tutorial button
+│   │   ├── tags.js            The tag editor
+│   │   ├── reorder.js         Drag handles for tabs and tomes
+│   │   ├── highlight.js       Syntax colors
+│   │   ├── code-indent.js     Tab and Shift+Tab in code
+│   │   ├── about.js           The About window
+│   │   └── util.js            Small shared helpers
+│   ├── settings.js            Settings and the Save button
+│   └── transfer.js            Import / Export
+├── modules/
+│   ├── modules.js             The tabs, in order
+│   ├── spells/                Commands, scripts, terms
+│   ├── compendium/            Notes, templates, presets, variables, the archive, Markdown export
+│   ├── tools/                 Man page importer and other tools
+│   ├── attack/                The ATT&CK matrix (attack.py rebuilds its data)
+│   └── games/                 The Games tab; each game is a folder (tic-tac-toe/)
+├── remote-db/                 The optional database server (see its README.md)
+├── data/                      Bundled data and theme presets
+└── icons/                     Icons
 ```
-
-The bundled JSON files seed a fresh browser over HTTP(S). On `file://`, the optional JavaScript collection files can seed data instead; use **Restore From File** to import JSON directly. The full `spellbook-data.json` sample intentionally contains no records, so individual collection examples can be tested.
 
 ## About This README
 
-This documentation is currently embedded in `index.html` as `<script id="readme-source" type="text/x-readme">`. The **About** dialog reads that embedded text. `README.md` holds the same text for reading outside the app; keep the two in step. No fetch of a Markdown file is required to display this guide from `file://`.
+This guide is built into `index.html`, in `<script id="readme-source" type="text/x-readme">`, so the **About** window can show it even when Spell Book is opened from disk. Edit it there.
 
 ## Version History
 
-Version 7 -- 20261105
+**Version 7.2 — 20261121**
 
-Summary: added the Compendium (a notes page with tomes, sealing, Spell Book links and highlighted code), Back and Forward buttons, live syntax colors in the command and script editors, three new settings, a new logo, and light mode readability fixes. The Guides and Templates pages were removed; guides and templates now live in the Compendium as tomes.
+- **Tabs are modules:** `modules/`, sharing a core in `js/core/`. Tabs can be reordered, turned off in Settings, removed or added, and Spells is one of them.
+- **New tabs:** **Tools** (man page importer, converters, interpreters), **ATT&CK**, and **Games** (HTML games in their own folders, with Tic-Tac-Toe).
+- **Top bar:** one Save control (Save, Autosave, linking, Backup) with an unsaved-change count. Also Import / Export, Trash, and Tutorial, Settings and About as icons. Light / dark mode moved to Settings.
+- **Every setting is in the data file**, Autosave included.
+- **Import / Export** moved next to Save: pick parts or items, in JSON, CSV or Markdown.
+- **Compendium:** templates (filter tables became template tables), Variables, images (notes moved to IndexedDB), note presets, Duplicate, note tags, fonts and sizes, Alt shortcuts, dragging between tomes, note width, Branch view (a note with every note inside it), stars, Select & Export, the Archive (sealing renamed: archived branches and tomes are locked and kept out of the way, in their own tab) and Export as Markdown.
+- **Trash** for every tab. **Tutorials** for each tab, with a first-start question.
+- **Database server:** password sign-in and a Docker setup.
+- **Details:** every change, with its files, is in `CHANGELOG-v7.2.md`.
 
-- `js/notes.js` (new): The Compendium page. Tome tabs; a node tree with add, rename, delete, drag and drop, a right-click menu and keyboard control; and a rich text editor with formatting, colors, lists, links, tables, inline code and highlighted code blocks with a language picker. Insert Command, Insert Script and Insert Term add cards and links that point to the Spell Book; command cards keep their variable values per note, and cards have **Edit** and **View in Spell Book** buttons. Branches and whole tomes can be sealed (read-only) and unsealed. Search covers the open tome, the selected branch or all tomes, highlights matches in the open note and jumps between them. Everything pasted, dropped or loaded passes through an HTML allowlist sanitizer. Notes autosave to `spellbook_notes_v1`; notes from before tomes are moved into a tome named "Notes" without loss.
-- `js/app.js`: **Linked in n notes** on command, script and term details. Links into the app (`#/command/<id>`, `#/script/<id>`, `#/term/<id>`, `#/compendium/<node>/...`; the old `#/notes` address still works). Back and Forward history across both pages. A setting for selecting one quick filter at a time or several. The New and Edit windows can be opened from the Compendium, for new entries or existing ones. Live syntax colors in the Command Template, Example and Script fields, following the platform or language field. The Guides and Templates pages were removed.
-- `js/settings.js`: New Layout & Theme settings for **Quick filters** (several at once or one at a time), **Back and Forward buttons** (show or hide) and **Scratch pad** (show or hide; its hide button had been unreachable since Version 5 hid the old layout toolbar). Resetting settings restores all three.
-- `index.html`: Compendium navigation and page, the Insert picker, an in-app confirm/input dialog (the browser's own dialogs are unreliable in some embedded browsers), table tools, the search match bar and the sealed-note bar. Back and Forward buttons, the new settings, and the new logo and browser tab icon (`icons/bookSB256BW.png`). New preview icons for the Layout settings (`icons/Side-Layout.png` and `icons/2L1R-Layout-thick-mirrored.png`). Guides and Templates removed. The embedded README matches this file.
-- `styles.css`: Styles for the Compendium (tabs, tree, editor, cards, code blocks, sealed notes, search highlights) and for the highlighted code fields. Light mode fixes: grey buttons now use the theme's text color, and accent-colored text (links, headings) is automatically darkened through the new `--accent-text` color so it stays readable on white. **View in Spell Book** is a button, **+ Tome** looks like a tab, and the tab bar no longer shows a stray scrollbar.
-- `README.md` and `DEVELOPER_NOTES.md`: Documented the Compendium, its storage format, links, sealing, Back and Forward, and the highlighted code fields; added this entry.
-- `.claude/launch.json` (new, development only): starts a local preview server with `python -m http.server 8765`.
+**Version 7.1 — 20261111**
 
-Known limitations in Version 7:
+- Options in the detail pane are sorted alphabetically.
+- Compendium code blocks: leave one with Enter twice, Esc or Ctrl+Enter; pasted code blocks are drawn as code blocks; `git` and similar commands get bash colors.
+- Backup file names carry the date and time.
+- **Database server:** an optional PostgreSQL / MySQL server (`remote-db/`), with merging between browsers.
+- One **Import / Export** window replaces the separate import and export buttons.
+- Stylesheets split into `css/`.
 
-- Notes saved by Version 7 use a new format that older versions can't read; keep a backup before opening the same browser data with an older copy.
-- Nodes can't be moved from one tome to another yet.
-- Seals prevent accidental edits but are not security; anyone can unseal.
-- Undoing a table edit can occasionally leave an extra blank line.
-- The Spell Book's own Delete buttons still use the browser's confirm dialog.
-- Not yet tested when opening `index.html` directly from disk (`file://`); tested over a local web server.
+**Version 7 — 20261105**
 
-Version 6 -- 20261025
+Added the Compendium (notes in tomes, sealing, cards and links to Spell Book entries, highlighted code blocks), Back and Forward buttons, live syntax colors in the command and script editors, settings for quick filters, Back / Forward and the Scratch pad, a new logo, and light mode readability fixes. Guides and Templates became Compendium tomes. Notes saved by Version 7 can't be read by older versions.
 
-- `index.html`: Prefer linked data, then the full `spellbook-data.json` snapshot, then individual JSON collection files; fall back to matching `.js` collection files only when JSON cannot load. Preserve existing browser data and linked-file unsaved-change protection.
-- `data/`: Include small example command, script, and term datasets in JSON and JavaScript fallback formats. Keep the full snapshot empty for startup testing; remove obsolete test snapshots.
-- Updated README and developer notes to match actual startup behavior, file formats, and the local `file://` limitation.
+**Version 6 — 20261025**
 
-Version 5 -- 20261025
+Startup prefers the linked data file, then the full `spellbook-data.json`, then the individual JSON collections, with `.js` copies as a fallback. Small example commands, scripts and terms are bundled.
 
-- `index.html` and `styles.css`: Refined filter sizing across top, left, and right layouts; reorganized Settings into Layout & Theme, Category Colors, Code Blocks, Typography, and Data & Backups; consolidated application theme colors and removed redundant badge color controls. Hid unavailable Columns and main-screen layout controls. Added a quick-create selector, required-field indicators, autocomplete fields, and Link/Save shortcuts in the sidebar.
+**Version 5 — 20261025**
 
-- `js/app.js`: Updated the `A` shortcut to choose between new Commands, Scripts, and Terms; added suggestions and new-value entry for platforms, languages, and term categories; automatically registers new command platforms as filters. Corrected shown-count behavior for active filters, empty categories, and repository switching while preserving multi-select filtering.
+Settings reorganized into Layout & Theme, Category Colors, Code Blocks, Typography, and Data & Backups. Added the quick-create chooser (**A**), required-field marks, and suggestions for platforms, languages and categories. New platforms become filters automatically. Shown-count fixes.
 
-- `js/settings.js` and `styles.css`: Updated Settings startup behavior and linked-file button status; enlarged and vertically stacked Link/Linked and Save controls at the right of the sidebar counters.
+**Version 4 — 20260926**
 
-- Preserved the embedded README, existing storage formats, and import/export workflows. Guides and import ID-collision improvements remain future work.
+Added Trash, the added / deleted counters, an import preview with Replace and Merge-by-ID, and the **/** and **A** shortcuts.
 
-Version 4 -- 20260926
+**Version 3 — 20260922**
 
-- `index.html`: Added Trash access and its modal, added the added/deleted command indicators beside the sidebar total, and replaced static data script loading with a TXT-first loader that validates the assignment data and falls back to the JS backup. Updated import file selection and button help text for TXT and JSON files; added the import-preview dialog, mode selector, impact summary, and shortcut hints. Updated Settings text to identify TXT as the baseline and JS as the backup.
+A live filtered count, standard command ids, and better placeholder detection in the command builder.
 
-- `js/app.js`: Added persistent Trash handling with restore, permanent delete, and empty-trash actions; made new IDs account for trashed commands; added persisted since-import added/deleted counts that reset after import; kept exported assignment syntax while exporting `commands.txt`; and made Escape close the command editor, settings, README, Trash, and import preview. Added pre-import impact preview with Replace and Merge-by-ID modes; matching IDs are updated, while unmatched current commands remain on merge. Added `/` search focus and `A` for Add Command outside editable fields, with modal-open guards.
+**Version 2 — 20260920**
 
-- `index.html`: Updated Search and Add Command tooltips to show the non-browser-conflicting shortcut keys.
-
-- `styles.css`: Added Trash modal/list styling with a narrow-screen layout, import-preview styling, and green/red styling for the change counters.
-
-- `js/settings.js`: Updated Clear Local Commands and Reset All Local Data to remove saved Trash and import-baseline data too; clarified in confirmation prompts that TXT is the baseline, JS is the backup, and neither physical file is modified.
-
-- `README.md`: Updated startup loading to identify TXT as the baseline and JS as the backup/fallback; refreshed import/export, Trash, change-counter, Settings, and keyboard guidance; documented preview and merge behavior and the current shortcuts; updated the project-file listing; and extended this V4 file-by-file change record.
-
-- `data/commands.txt`: Active baseline startup dataset using the existing `window.SPELLBOOK_COMMANDS` assignment format.
-
-- `data/commands.json`: Backup startup dataset and fallback when `data/commands.txt` is unavailable or invalid.
-
-Version 3 -- 20260922
-
-- Added a live filtered-command count to the sidebar.
-- Standardized command IDs and normalized imported command data in `js/app.js`.
-- Improved command-builder placeholder detection so variable inputs match command templates.
-- Added support for the current platform filters, tags, and OS badge styling in the application UI.
-
-Version 2 -- 20260920
-
-- Added more tool/os command filters.
-- Added a favicon.
-- Added Kibana and Arkime platform filters and badges.
+More platform filters (including Kibana and Arkime), and a favicon.
 </script>
 <!-- README:end -->
-<!-- JSON startup: HTTP(S) can fetch JSON; file:// uses localStorage or explicit Restore. -->
+<!-- Startup: the data file, the modules, the bundled examples on a first start
+     (HTTP(S) fetches JSON; file:// loads the .js copies or uses Restore), then the scripts. -->
 <script>
 ;(async () => {
   const loadScript = (src) => new Promise((resolve, reject) => {
@@ -1117,20 +603,40 @@ Version 2 -- 20260920
     script.onerror = () => reject(new Error(`Could not load ${src}`))
     document.body.appendChild(script)
   })
-  await loadScript('js/datafile.js')
+  await loadScript('js/core/datafile.js')
+  await loadScript('js/core/attachments.js')
+  await loadScript('js/core/util.js')
   // Optional database backend: only when served over http(s), and ignored if
   // the remote-db folder is not there.
   if (/^https?:$/.test(location.protocol)) {
     try { await loadScript('remote-db/client.js') } catch {}
   }
   // A linked JSON file, when authorized, takes priority over bundled examples.
+  // Notes live in IndexedDB (large values): load them, and move any still in
+  // localStorage, before anything reads or replaces them.
+  try { await window.DataFile.ready() } catch (error) { console.error(error) }
   let result = {status: 'none'}
   try { result = await window.DataFile.autoload() }
   catch (error) { console.error(error) }
-  // Linked file is authoritative when loaded. Never replace unsaved local changes.
+  // Page modules (js/core/pages.js): each folder listed in modules/modules.js
+  // describes its tab in module.js. Their markup and styles go in first, so
+  // the shared scripts below find every page; then each module's scripts.
+  await loadScript('js/core/pages.js')
+  try { await loadScript('modules/modules.js') } catch (error) { console.error(error) }
+  for (const folder of window.SPELLBOOK_MODULES || ['spells']) {
+    try { await window.SpellBook.load(folder, loadScript) } catch (error) { console.error(error) }
+  }
+  // First start: fill in what's missing from the bundled examples. Each
+  // module lists its own in module.js (`seeds`; Spells: commands, scripts and
+  // terms). The linked file is authoritative when loaded, and saved records
+  // are never replaced.
   const linkedAuthoritative = result.authoritative || ['loaded', 'local-newer', 'needs-permission'].includes(result.status)
-  const hasSavedRecords = ['spellbook_commands_v1','spellbook_scripts_v1','spellbook_terms_v1']
-    .some(key => localStorage.getItem(key) !== null)
+  const seeds = window.SpellBook.allSeeds()
+  // A browser that already has records (or, with no module seeding any,
+  // anything of Spell Book's) isn't new.
+  const hasSavedRecords = seeds.length
+    ? seeds.some((seed) => localStorage.getItem(seed.key) !== null)
+    : Object.keys(localStorage).some((key) => /^(spellbook_|cmdref_)/.test(key))
   if (!linkedAuthoritative && !hasSavedRecords) {
     const getJSON = async path => {
       if (location.protocol === 'file:') return null
@@ -1143,53 +649,41 @@ Version 2 -- 20260920
     const full = await getJSON('data/spellbook-data.json')
     if (full && full.app === 'spellbook-data' && full.storage && typeof full.storage === 'object') {
       for (const [key,value] of Object.entries(full.storage)) {
-        if (/^(spellbook_|cmdref_)/.test(key) && localStorage.getItem(key) === null)
-          localStorage.setItem(key, String(value))
+        if (/^(spellbook_|cmdref_)/.test(key) && window.DataFile.getItem(key) === null)
+          window.DataFile.setItem(key, String(value))
       }
     }
-    // Missing repositories only: JSON first; legacy .js only if JSON cannot load.
-    const sources = {
-      commands: {key:'spellbook_commands_v1', global:'SPELLBOOK_COMMANDS'},
-      scripts: {key:'spellbook_scripts_v1', global:'SPELLBOOK_SCRIPTS'},
-      terms: {key:'spellbook_terms_v1', global:'SPELLBOOK_TERMS'}
-    }
-    for (const [name, source] of Object.entries(sources)) {
-      if (localStorage.getItem(source.key) !== null) continue
-      let entries = await getJSON(`data/${name}.json`)
-      if (!Array.isArray(entries)) {
+    // Missing ones only: JSON first; the .js file only if JSON can't load.
+    for (const seed of seeds) {
+      if (localStorage.getItem(seed.key) !== null) continue
+      let entries = seed.json ? await getJSON(seed.json) : null
+      if (!Array.isArray(entries) && seed.script && seed.global) {
         // Local file:// browsers can load classic JS even when JSON fetch is blocked.
         try {
-          delete window[source.global]
-          await loadScript(`data/${name}.js`)
-          entries = window[source.global]
-        } catch (error) { console.info(`No usable ${name} seed`, error.message) }
+          delete window[seed.global]
+          await loadScript(seed.script)
+          entries = window[seed.global]
+        } catch (error) { console.info(`No usable seed for ${seed.key}`, error.message) }
       }
-      if (Array.isArray(entries)) localStorage.setItem(source.key, JSON.stringify(entries))
+      if (Array.isArray(entries)) localStorage.setItem(seed.key, JSON.stringify(entries))
     }
   }
-  await loadScript('js/highlight.js')
-  await loadScript('js/app.js')
+  window.SpellBook.mount()
+  await loadScript('js/core/highlight.js')
+  await loadScript('js/core/code-indent.js')
+  await loadScript('js/core/about.js')
+  await loadScript('js/core/router.js')
+  await loadScript('js/core/reorder.js')
+  await loadScript('js/core/tutorial.js')
+  await loadScript('js/core/tags.js')
+  await loadScript('js/core/trash.js')
   await loadScript('js/settings.js')
-  await loadScript('js/entry-tables.js')
-  await loadScript('js/notes-codelang.js')
-  await loadScript('js/notes.js')
-  await loadScript('js/notes-callouts.js')
-  await loadScript('js/notes-codesave.js')
-  await loadScript('js/sealed-tomes.js')
+  await loadScript('js/core/unsaved.js')
+  await window.SpellBook.loadScripts(loadScript)
   await loadScript('js/transfer.js')
+  window.SpellBook.ready()
   window.DataFile.handleStartup(result)
 })()
 </script>
-<div class="modal-overlay" id="quick-create-modal" role="dialog" aria-modal="true" aria-labelledby="quick-create-title">
-<div class="modal" style="max-width:380px">
-<h2 id="quick-create-title">Create New</h2>
-<p class="form-hint">Choose an item, or press C, S, or T.</p>
-<div class="quick-create-choices">
-<button class="btn secondary" type="button" data-create-kind="commands">Command <kbd>C</kbd></button>
-<button class="btn secondary" type="button" data-create-kind="scripts">Script <kbd>S</kbd></button>
-<button class="btn secondary" type="button" data-create-kind="terms">Term <kbd>T</kbd></button>
-</div>
-<button class="btn secondary" id="quick-create-cancel" type="button">Cancel</button>
-</div></div>
 </body>
 </html>

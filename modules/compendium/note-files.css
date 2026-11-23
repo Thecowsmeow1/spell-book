@@ -1,0 +1,44 @@
+/* Attachments in notes (note-files.js): a chip with a paperclip, the file's
+   name and its size. Dashed when this browser doesn't have the file. */
+.note-file {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  max-width: 100%;
+  padding: 0 0.45em;
+  margin: 0 0.05em;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.9em;
+  line-height: 1.5;
+  vertical-align: baseline;
+  cursor: pointer;
+  user-select: none;
+  overflow-wrap: anywhere;
+}
+.note-file::before {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 0.95em;
+  height: 0.95em;
+  background: currentColor;
+  opacity: 0.7;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 7v9.5a3.5 3.5 0 0 1-7 0V5.5a2.5 2.5 0 0 1 5 0V16a1 1 0 0 1-2 0V8' transform='rotate(40 12 12)'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 7v9.5a3.5 3.5 0 0 1-7 0V5.5a2.5 2.5 0 0 1 5 0V16a1 1 0 0 1-2 0V8' transform='rotate(40 12 12)'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.note-file::after {
+  content: attr(data-size-text);
+  flex: none;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+.note-file:hover {
+  border-color: var(--accent);
+}
+.note-file.is-missing {
+  border-style: dashed;
+  color: var(--muted);
+}

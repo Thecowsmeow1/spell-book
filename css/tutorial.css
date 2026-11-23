@@ -1,0 +1,85 @@
+/* Tutorials and first-start prompts (js/core/tutorial.js). */
+.tour-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+/* No element lit: the whole page is dimmed. */
+.tour-layer.tour-centered {
+  background: rgba(0, 0, 0, 0.55);
+}
+/* The lit element: a hole in the dimming. */
+.tour-spot {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 0 9999px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  transition:
+    top 0.2s ease,
+    left 0.2s ease,
+    width 0.2s ease,
+    height 0.2s ease;
+}
+.tour-card {
+  position: fixed;
+  width: min(22rem, calc(100vw - 16px));
+  padding: 0.9rem 1rem 0.8rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.tour-card h3 {
+  margin: 0.15rem 0 0.4rem;
+  font-size: 1.05rem;
+}
+.tour-count {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tour-text p {
+  margin: 0 0 0.5rem;
+}
+.tour-text kbd {
+  padding: 0 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface2);
+  font-size: 0.8em;
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+.tour-gap {
+  flex: 1;
+}
+.tour-prompt {
+  width: min(26rem, calc(100vw - 16px));
+  left: 50%;
+  top: 20vh;
+  transform: translateX(-50%);
+}
+.tour-prompt .tour-actions .btn {
+  flex: 1;
+}
+.tour-returning {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+}

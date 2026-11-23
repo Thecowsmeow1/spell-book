@@ -1,0 +1,326 @@
+<!doctype html>
+<!--
+  Tic-Tac-Toe against the computer, the game that comes with Spell Book's
+  Games tab. One file, no outside scripts. Easy plays at random, Normal wins
+  or blocks when it can and otherwise mostly plays well, Hard never loses.
+  The scores and choices are kept by Spell Book (see modules/games/games.js);
+  opened on its own, it plays the same and just doesn't remember them.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tic-Tac-Toe</title>
+<style>
+  :root {
+    --bg: #0f1218; --surface: #161b24; --surface2: #1e2531; --border: #2a3342;
+    --text: #e6e9ef; --muted: #8b95a7; --accent: #4f8cff;
+    --x: var(--accent); --o: #e8a33d; --win: #3fb950;
+    color-scheme: dark;
+  }
+  :root[data-mode="light"] { color-scheme: light; --o: #c27a12; --win: #1a7f37; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; padding: 16px; overflow: auto;
+  }
+  /* margin: auto centers it without cutting off the top when the frame is short;
+     the width also follows the height, so the board fits without scrolling. */
+  .game {
+    margin: auto; width: min(100%, 420px, max(240px, calc(100vh - 275px)));
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    font: inherit; font-size: 13px; padding: 6px 12px; border: 0; cursor: pointer;
+    background: var(--surface); color: var(--muted);
+  }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .label { font-size: 12px; color: var(--muted); margin-right: 6px; }
+  .status { text-align: center; font-size: 18px; font-weight: 600; min-height: 1.5em; }
+  .board {
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 8px;
+    aspect-ratio: 1; width: 100%;
+  }
+  .cell {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    padding: 18%; color: var(--text);
+  }
+  .cell:hover:not([aria-disabled="true"]) { background: var(--surface2); }
+  .cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .cell[aria-disabled="true"] { cursor: default; }
+  .cell svg { width: 100%; height: 100%; overflow: visible; }
+  .cell.win { border-color: var(--win); box-shadow: inset 0 0 0 2px var(--win); }
+  .mark { fill: none; stroke-width: 12; stroke-linecap: round; }
+  .mark.x { stroke: var(--x); }
+  .mark.o { stroke: var(--o); }
+  .mark path, .mark circle { stroke-dasharray: 300; stroke-dashoffset: 300; animation: draw .25s ease-out forwards; }
+  .mark path + path { animation-delay: .12s; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .mark path, .mark circle { animation: none; stroke-dashoffset: 0; } }
+  .scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+  .score { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px; }
+  .score b { display: block; font-size: 20px; }
+  .score span { font-size: 12px; color: var(--muted); }
+  .actions { display: flex; gap: 8px; justify-content: center; }
+  .btn {
+    font: inherit; font-size: 13px; padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .hint { text-align: center; font-size: 12px; color: var(--muted); margin: 0; }
+</style>
+</head>
+<body>
+<main class="game">
+  <div class="row">
+    <div><span class="label">Level</span><span class="seg" id="levels" role="group" aria-label="Level">
+      <button type="button" data-level="easy">Easy</button><button type="button" data-level="normal">Normal</button><button type="button" data-level="hard">Hard</button>
+    </span></div>
+    <div><span class="label">You play</span><span class="seg" id="sides" role="group" aria-label="Your mark">
+      <button type="button" data-side="X" title="X moves first">X</button><button type="button" data-side="O" title="The computer moves first">O</button>
+    </span></div>
+  </div>
+  <div class="status" id="status" aria-live="polite"></div>
+  <div class="board" id="board" role="grid" aria-label="Board"></div>
+  <div class="scores">
+    <div class="score"><b id="wins">0</b><span>Wins</span></div>
+    <div class="score"><b id="draws">0</b><span>Draws</span></div>
+    <div class="score"><b id="losses">0</b><span>Losses</span></div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="again" type="button">New Game</button>
+    <button class="btn" id="reset" type="button">Reset Scores</button>
+  </div>
+  <p class="hint">Click a square, or use the arrow keys and Enter (or keys 1–9). N starts a new game.</p>
+</main>
+<script>
+;(() => {
+  const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]]
+  const state = {
+    level: 'normal', side: 'X',
+    scores: { wins: 0, draws: 0, losses: 0 },
+    // Per level, so Easy wins don't hide Hard draws.
+    byLevel: {},
+  }
+  let board = Array(9).fill('')
+  let over = false
+  let thinking = null
+  let focusIndex = 4
+  const $ = (id) => document.getElementById(id)
+  const cpuSide = () => (state.side === 'X' ? 'O' : 'X')
+
+  // ─── Spell Book (modules/games/games.js) ──────────────────────────
+  const inSpellBook = window.parent !== window
+  function save() {
+    if (inSpellBook) parent.postMessage({ spellbook: 'save', data: { level: state.level, side: state.side, byLevel: state.byLevel } }, '*')
+  }
+  let loadedOnce = false
+  addEventListener('message', (e) => {
+    const m = e.data
+    if (!m || m.spellbook !== 'hello') return
+    if (m.theme) applyTheme(m.theme)
+    // Saved choices are taken once, at the start; a later hello (a theme
+    // change) only changes the colors.
+    if (loadedOnce) return
+    loadedOnce = true
+    const d = m.data
+    if (d && typeof d === 'object') {
+      if (['easy','normal','hard'].includes(d.level)) state.level = d.level
+      if (d.side === 'X' || d.side === 'O') state.side = d.side
+      if (d.byLevel && typeof d.byLevel === 'object') state.byLevel = d.byLevel
+      newGame()
+    }
+  })
+  function applyTheme(t) {
+    const root = document.documentElement
+    ;['bg','surface','surface2','border','text','muted','accent'].forEach((k) => { if (t[k]) root.style.setProperty('--' + k, t[k]) })
+    if (t.mode) root.dataset.mode = t.mode
+    if (t.font) document.body.style.fontFamily = t.font
+  }
+
+  // ─── The computer ─────────────────────────────────────────────────
+  function winner(b) {
+    for (const line of LINES) {
+      const [a, c, d] = line
+      if (b[a] && b[a] === b[c] && b[a] === b[d]) return { mark: b[a], line }
+    }
+    return b.every(Boolean) ? { mark: 'draw', line: [] } : null
+  }
+  const empty = (b) => b.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0)
+  const pick = (list) => list[Math.floor(Math.random() * list.length)]
+
+  // Minimax: +10 for a win (sooner is better), -10 for a loss.
+  function minimax(b, turn, me, depth) {
+    const w = winner(b)
+    if (w) return w.mark === 'draw' ? 0 : w.mark === me ? 10 - depth : depth - 10
+    const other = turn === 'X' ? 'O' : 'X'
+    let best = turn === me ? -Infinity : Infinity
+    for (const i of empty(b)) {
+      b[i] = turn
+      const score = minimax(b, other, me, depth + 1)
+      b[i] = ''
+      best = turn === me ? Math.max(best, score) : Math.min(best, score)
+    }
+    return best
+  }
+  function bestMoves(b, me) {
+    const other = me === 'X' ? 'O' : 'X'
+    let best = -Infinity, moves = []
+    for (const i of empty(b)) {
+      b[i] = me
+      const score = minimax(b, other, me, 1)
+      b[i] = ''
+      if (score > best) { best = score; moves = [i] } else if (score === best) moves.push(i)
+    }
+    return moves
+  }
+  function finishing(b, mark) {
+    return empty(b).filter((i) => { b[i] = mark; const w = winner(b); b[i] = ''; return w && w.mark === mark })
+  }
+  function cpuMove() {
+    const me = cpuSide(), you = state.side
+    if (state.level === 'easy') return pick(empty(board))
+    if (state.level === 'hard') return pick(bestMoves(board, me))
+    // Normal: wins or blocks, otherwise plays the best move most of the time.
+    const win = finishing(board, me); if (win.length) return pick(win)
+    const block = finishing(board, you); if (block.length) return pick(block)
+    return Math.random() < 0.65 ? pick(bestMoves(board, me)) : pick(empty(board))
+  }
+
+  // ─── Drawing ──────────────────────────────────────────────────────
+  const markSvg = (mark) => mark === 'X'
+    ? '<svg viewBox="0 0 100 100" aria-hidden="true"><g class="mark x"><path d="M18 18 82 82"/><path d="M82 18 18 82"/></g></svg>'
+    : '<svg viewBox="0 0 100 100" aria-hidden="true"><g class="mark o"><circle cx="50" cy="50" r="33"/></g></svg>'
+  const cells = []
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('button')
+    cell.type = 'button'
+    cell.className = 'cell'
+    cell.dataset.index = i
+    cell.setAttribute('role', 'gridcell')
+    cell.addEventListener('click', () => play(i))
+    cell.addEventListener('focus', () => (focusIndex = i))
+    $('board').append(cell)
+    cells.push(cell)
+  }
+  function draw(result) {
+    cells.forEach((cell, i) => {
+      const mark = board[i]
+      if (cell.dataset.mark !== mark) {
+        cell.dataset.mark = mark
+        cell.innerHTML = mark ? markSvg(mark) : ''
+      }
+      // aria-disabled, not disabled, so the arrow keys can still move over it.
+      cell.setAttribute('aria-disabled', String(Boolean(mark) || over || Boolean(thinking)))
+      cell.classList.toggle('win', Boolean(result && result.line.includes(i)))
+      const row = Math.floor(i / 3) + 1, col = (i % 3) + 1
+      cell.setAttribute('aria-label', `Row ${row}, column ${col}: ${mark || 'empty'}`)
+    })
+    document.querySelectorAll('#levels button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.level === state.level)))
+    document.querySelectorAll('#sides button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.side === state.side)))
+    const s = state.byLevel[state.level] || { wins: 0, draws: 0, losses: 0 }
+    $('wins').textContent = s.wins; $('draws').textContent = s.draws; $('losses').textContent = s.losses
+  }
+  function setStatus(text) { $('status').textContent = text }
+
+  // ─── Playing ──────────────────────────────────────────────────────
+  function finish(result) {
+    over = true
+    const s = state.byLevel[state.level] || (state.byLevel[state.level] = { wins: 0, draws: 0, losses: 0 })
+    if (result.mark === 'draw') { s.draws++; setStatus('A draw.') }
+    else if (result.mark === state.side) { s.wins++; setStatus('You win!') }
+    else { s.losses++; setStatus('The computer wins.') }
+    draw(result)
+    save()
+    $('again').focus()
+  }
+  function afterMove() {
+    const result = winner(board)
+    if (result) return finish(result)
+    draw()
+  }
+  function cpuTurn() {
+    setStatus('Computer’s turn…')
+    thinking = setTimeout(() => {
+      thinking = null
+      board[cpuMove()] = cpuSide()
+      afterMove()
+      if (!over) { setStatus('Your turn.'); focusCell(focusIndex) }
+    }, 380)
+    draw()
+  }
+  function play(i) {
+    if (over || thinking || board[i]) return
+    board[i] = state.side
+    afterMove()
+    if (!over) cpuTurn()
+  }
+  function newGame() {
+    clearTimeout(thinking); thinking = null
+    board = Array(9).fill('')
+    over = false
+    // X moves first: the computer when you play O.
+    if (state.side === 'O') cpuTurn()
+    else { setStatus('Your turn.'); draw() }
+  }
+  function focusCell(i) {
+    focusIndex = i
+    if (!board[i] || over) cells[i].focus()
+    else cells[board.findIndex((v) => !v)].focus()
+  }
+
+  $('levels').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-level]'); if (!b || b.dataset.level === state.level) return
+    state.level = b.dataset.level; save(); newGame()
+  })
+  $('sides').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-side]'); if (!b || b.dataset.side === state.side) return
+    state.side = b.dataset.side; save(); newGame()
+  })
+  $('again').addEventListener('click', newGame)
+  $('reset').addEventListener('click', () => {
+    if (!confirmReset()) return
+    state.byLevel[state.level] = { wins: 0, draws: 0, losses: 0 }
+    save(); draw()
+  })
+  // confirm() isn't allowed in Spell Book's sandbox, so a second click confirms.
+  let resetArmed = null
+  function confirmReset() {
+    const b = $('reset')
+    if (resetArmed) { clearTimeout(resetArmed); resetArmed = null; b.textContent = 'Reset Scores'; return true }
+    b.textContent = 'Click again to reset ' + state.level[0].toUpperCase() + state.level.slice(1)
+    resetArmed = setTimeout(() => { resetArmed = null; b.textContent = 'Reset Scores' }, 3000)
+    return false
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return
+    if (/^[1-9]$/.test(e.key)) { e.preventDefault(); play(Number(e.key) - 1); return }
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); newGame(); return }
+    const moves = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }
+    if (e.key in moves && e.target.classList && e.target.classList.contains('cell')) {
+      e.preventDefault()
+      const i = focusIndex, step = moves[e.key]
+      let next = i + step
+      if (step === -1 && i % 3 === 0) next = i + 2
+      if (step === 1 && i % 3 === 2) next = i - 2
+      if (next < 0) next += 9
+      if (next > 8) next -= 9
+      focusIndex = next
+      cells[next].focus()
+    }
+  })
+
+  newGame()
+  // Focus the board so the keyboard works straight away.
+  setTimeout(() => focusCell(4), 0)
+})()
+</script>
+</body>
+</html>

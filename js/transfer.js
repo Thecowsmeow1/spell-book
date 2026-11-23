@@ -7,9 +7,32 @@
  * commands, scripts and terms). Import reads that file, or an older commands,
  * scripts, terms or theme file, and applies the ticked parts.
  *
- * Commands, scripts and terms are not applied here: they go to the existing
- * Import Manager (app.js), which shows what is new or changed for each item.
- * Needs js/app.js, js/settings.js and js/notes.js, which load first.
+ * The window itself handles the appearance, the code theme and groups of
+ * settings (js/settings.js). Everything else is a part that a tab adds with
+ * SpellBook.transferPart (js/core/pages.js), so a tab that isn't installed
+ * just isn't listed:
+ *   id        the part's key in the export file ("commands", "tomes", …)
+ *   title, unit, sub, order
+ *   section   'Content' (the default) or 'Colors'
+ *   list()    [{ id, label, sub }]: what can be ticked for export; without
+ *             it the part is one tick box
+ *   export(ids)     the data to write: ids is a Set of ticked ids, or true
+ *   accept(data)    import: the part's data from a file, checked (may throw);
+ *                   null to skip it
+ *   describe(data)  { sub, items?: [{ id, label, sub }] } for the import list
+ *   apply(data, picked, { fileName })  brings it in (picked: a Set of
+ *             describe ids, or true); returns a few words for the summary, or
+ *             { note, wait }: wait is a promise for work that goes on after
+ *             this window closes (Spells' Import Manager), and settings,
+ *             which reload the page, wait for it
+ *   csv       { name, write(data) }: the part can be exported as a CSV file
+ *
+ * Other export formats come from SpellBook.exportFormat({ id, label, parts,
+ * write(parts) }): `parts` names the parts it takes (others are greyed out
+ * when it's chosen), and write gets { partId: data } and returns
+ * { name, blob } to download. The Compendium's "Markdown (.zip)" is one.
+ *   readFile(name, text)  another kind of file the part reads (CSV, .txt,
+ *             a plain list): returns { partId: data } or null
  */
 ;(() => {
   const FORMAT = 'spellbook-export'
@@ -17,92 +40,65 @@
   const esc = (value) => escapeHtml(String(value === undefined || value === null ? '' : value))
 
   // Settings kept as raw browser-storage values, in groups the person can pick.
+  // The core has the tab order and the fonts; each tab adds its own with SpellBook.settingGroup
+  // (Spells: layout, columns and filters, custom lists, scratch pad text).
   // Sealed-note variables are left out on purpose: they can hold secrets.
-  const SETTING_GROUPS = [
-    {
-      id: 'layout',
-      title: 'Layout and panes',
-      sub: 'control bar position, pane sizes, folded sections, scratch pad size',
-      keys: [
-        'spellbook_layout_v1',
-        'spellbook_panes_v1',
-        'spellbook_split_v1',
-        'spellbook_split_w_v1',
-        'spellbook_dock_split_v1',
-        'spellbook_table_dock_v1',
-        'spellbook_controls_width_v1',
-        'spellbook_scratch_height_v1',
-        'spellbook_scratchpad_v1',
-        'spellbook_collapsed_sections_v1',
-        'spellbook_modal_size_v1',
-        'spellbook_notes_pane_v1',
-        'spellbook_options_open_v1',
-      ],
-    },
-    { id: 'fonts', title: 'Fonts', sub: 'the font choices in Settings', keys: ['spellbook_fonts_v1'] },
-    {
-      id: 'columns',
-      title: 'Columns and filters',
-      sub: 'hidden columns, column widths, hidden or renamed filters, section names',
-      keys: [
-        'spellbook_hidden_columns_v1',
-        'spellbook_column_widths_v1',
-        'spellbook_hidden_filters_v1',
-        'spellbook_filter_renames_v1',
-        'spellbook_section_names_v1',
-        'spellbook_multi_filter_v1',
-      ],
-    },
-    {
-      id: 'custom',
-      title: 'Custom lists',
-      sub: 'platforms, script languages and term categories you added',
-      keys: ['spellbook_custom_os_v1', 'spellbook_custom_langs_v1', 'spellbook_custom_categories_v1'],
-    },
-    { id: 'scratch', title: 'Scratch pad text', sub: 'what is typed in the scratch pad', keys: ['spellbook_scratchpad_text_v1'] },
+  const CORE_GROUPS = [
+    { id: 'tabs', title: 'Tabs', sub: 'the order of the tabs in the navigation bar, and which are turned off', keys: ['spellbook_tab_order_v1', 'spellbook_tabs_off_v1'], order: 5 },
+    { id: 'fonts', title: 'Fonts', sub: 'the font choices in Settings', keys: ['spellbook_fonts_v1'], order: 50 },
   ]
+  const settingGroups = () => {
+    const extra = window.SpellBook ? window.SpellBook.contributions('settingGroups') : []
+    return [...CORE_GROUPS, ...extra.filter((g) => Array.isArray(g.keys))].sort((x, y) => (x.order ?? 100) - (y.order ?? 100))
+  }
 
-  const LIST_KINDS = ['commands', 'scripts', 'terms']
+  const moduleParts = () => (window.SpellBook ? window.SpellBook.contributions('transfer') : [])
+  const partsIn = (section) => moduleParts().filter((part) => (part.section || 'Content') === section)
   const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
   // ─── Export side ───────────────────────────────────────────────────
+  // The formats in the Format list: one .json file, CSV files when a part
+  // can write them, and any a tab adds (SpellBook.exportFormat) whose parts
+  // are here.
+  const extraFormats = () =>
+    (window.SpellBook ? window.SpellBook.contributions('exportFormats') : []).filter(
+      (f) => typeof f.write === 'function' && (f.parts || []).some((id) => moduleParts().some((p) => p.id === id)),
+    )
+  const chosenFormat = () => extraFormats().find((f) => `x:${f.id}` === $('tm-format').value) || null
+  // Whether a group can go into the chosen format.
+  function fits(group) {
+    const value = $('tm-format').value
+    if (value === 'csv') return Boolean(group.csv)
+    const format = chosenFormat()
+    return format ? format.parts.includes(group.id) : true
+  }
+  function fillFormats(groups) {
+    const select = $('tm-format')
+    const was = select.value
+    const options = [['json', 'One file (.json)']]
+    if (groups.some((group) => group.csv)) options.push(['csv', 'CSV files (commands, scripts, terms)'])
+    extraFormats().forEach((f) => options.push([`x:${f.id}`, f.label || f.id]))
+    select.innerHTML = options.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join('')
+    select.value = options.some(([value]) => value === was) ? was : 'json'
+  }
+
   // Each group: id, title, section, items (individually pickable) or none.
   function exportGroups() {
-    const tomes = window.NotesIO ? window.NotesIO.list() : []
+    const asGroup = (part) => ({
+      id: part.id,
+      section: part.section || 'Content',
+      title: part.title || part.id,
+      unit: part.unit,
+      sub: part.sub,
+      items: part.list ? part.list() : undefined,
+      csv: Boolean(part.csv),
+    })
     const groups = [
-      {
-        id: 'commands',
-        section: 'Content',
-        title: 'Commands',
-        items: commands.map((c) => ({ id: c.id, label: c.title, sub: c.platform })),
-      },
-      {
-        id: 'scripts',
-        section: 'Content',
-        title: 'Scripts',
-        items: scripts.map((s) => ({ id: s.id, label: s.name, sub: s.language })),
-      },
-      {
-        id: 'terms',
-        section: 'Content',
-        title: 'Terms',
-        items: terms.map((t) => ({ id: t.id, label: t.term, sub: t.category })),
-      },
-      {
-        id: 'tomes',
-        section: 'Content',
-        title: 'Compendium',
-        unit: 'tome',
-        items: tomes.map((t) => ({
-          id: t.id,
-          label: t.name,
-          sub: `${plural(t.notes, 'note')}${t.sealed ? ', sealed' : ''}`,
-        })),
-      },
+      ...partsIn('Content').map(asGroup),
       { id: 'appearance', section: 'Colors', title: 'Appearance', sub: 'light or dark mode and the application colors' },
-      { id: 'categoryColors', section: 'Colors', title: 'Category colors', sub: 'platform, language and category colors' },
+      ...partsIn('Colors').map(asGroup),
       { id: 'codeTheme', section: 'Colors', title: 'Code block theme', sub: 'the chosen code theme and its syntax colors' },
-      ...SETTING_GROUPS.map((g) => ({ id: `settings:${g.id}`, section: 'Settings', title: g.title, sub: g.sub })),
+      ...settingGroups().map((g) => ({ id: `settings:${g.id}`, section: 'Settings', title: g.title, sub: g.sub })),
     ]
     return groups
   }
@@ -123,13 +119,13 @@
 
   function renderExport() {
     const groups = exportGroups()
-    const csv = $('tm-format').value === 'csv'
+    fillFormats(groups)
     let section = ''
     const html = groups
       .map((group) => {
         const head = group.section !== section ? `<h3 class="tm-section">${esc(group.section)}</h3>` : ''
         section = group.section
-        const csvOnly = csv && !LIST_KINDS.includes(group.id)
+        const csvOnly = !fits(group) // not in the chosen format: greyed out
         const picked = groupCount(group)
         const total = group.items ? group.items.length : 1
         const all = group.items ? picked === total && total > 0 : Boolean(picked)
@@ -180,22 +176,13 @@
   function buildExport() {
     const parts = {}
     const take = (id) => exportPick[id]
-    const chosen = (list, key = 'id') => {
-      const ids = take(list === commands ? 'commands' : list === scripts ? 'scripts' : 'terms')
-      return ids && ids.size ? list.filter((item) => ids.has(item[key])) : null
-    }
-    const c = chosen(commands)
-    if (c) parts.commands = c
-    const s = chosen(scripts)
-    if (s) parts.scripts = s
-    const t = chosen(terms)
-    if (t) parts.terms = t
-    const tomeIds = take('tomes')
-    if (tomeIds && tomeIds.size && window.NotesIO) parts.tomes = window.NotesIO.get(tomeIds)
+    moduleParts().forEach((part) => {
+      const ids = take(part.id)
+      if (part.list ? ids && ids.size : ids) parts[part.id] = part.export(ids)
+    })
     if (take('appearance')) parts.appearance = { mode: loadMode(), colors: effectiveTheme() }
-    if (take('categoryColors')) parts.categoryColors = getCategoryColors()
     if (take('codeTheme')) parts.codeTheme = { codeTheme: loadCodeTheme(), colors: effectiveSyntax() }
-    SETTING_GROUPS.forEach((group) => {
+    settingGroups().forEach((group) => {
       if (!take(`settings:${group.id}`)) return
       const values = {}
       group.keys.forEach((key) => {
@@ -210,17 +197,28 @@
     return parts
   }
 
+  // Ticked parts that the chosen format takes.
   function tickedCount() {
-    return exportGroups().reduce((n, g) => n + (groupCount(g) ? 1 : 0), 0)
+    return exportGroups().reduce((n, g) => n + (groupCount(g) && fits(g) ? 1 : 0), 0)
   }
 
-  function doExport() {
+  async function doExport() {
     const parts = buildExport()
+    const format = chosenFormat()
+    if (format) {
+      const picked = {}
+      format.parts.forEach((id) => {
+        if (parts[id]) picked[id] = parts[id]
+      })
+      const out = await format.write(picked)
+      if (out && out.blob) downloadFile(out.name, out.blob, out.blob.type || 'application/octet-stream')
+      return
+    }
     if ($('tm-format').value === 'csv') {
       const stamp = (base) => window.DataFile.backupName(base, 'csv')
-      if (parts.commands) downloadFile(stamp('commands'), commandsToCsv(parts.commands), 'text/csv;charset=utf-8')
-      if (parts.scripts) downloadFile(stamp('scripts'), scriptsToCsv(parts.scripts), 'text/csv;charset=utf-8')
-      if (parts.terms) downloadFile(stamp('terms'), termsToCsv(parts.terms), 'text/csv;charset=utf-8')
+      moduleParts().forEach((part) => {
+        if (part.csv && parts[part.id]) downloadFile(stamp(part.csv.name || part.id), part.csv.write(parts[part.id]), 'text/csv;charset=utf-8')
+      })
       return
     }
     const file = { app: FORMAT, version: 1, exportedAt: new Date().toISOString(), parts }
@@ -235,54 +233,53 @@
   let incoming = null // { fileName, parts }
   let importPick = {} // { partId: true | Set of tome ids }
 
-  const isCommand = (c) => c && typeof c === 'object' && c.id && c.title && (c.platform || c.os) && typeof c.command === 'string'
-  const isScript = (s) => s && typeof s.name === 'string' && typeof s.body === 'string'
-  const isTerm = (t) => t && typeof t.term === 'string' && typeof t.definition === 'string'
-
-  function listPart(list, isOk, label, clean) {
-    if (!Array.isArray(list) || !list.every(isOk)) throw new Error(`The ${label} in this file are missing required fields.`)
-    return list.map(clean)
-  }
-
-  // Turns a chosen file into { commands?, scripts?, terms?, tomes?, appearance?, ... }.
+  // Turns a chosen file into { partId: data, appearance?, codeTheme?, settings? }.
   function parseImport(name, text) {
     const lower = name.toLowerCase()
-    if (lower.endsWith('.csv')) {
-      const header = (text.split(/\r?\n/, 1)[0] || '').toLowerCase().split(',').map((s) => s.replace(/"/g, '').trim())
-      if (header.includes('command')) return { commands: commandsFromCsv(text).map(cleanImportedCommand) }
-      if (header.includes('body')) return { scripts: scriptsFromCsv(text).map(cleanImportedScript) }
-      if (header.includes('definition')) return { terms: termsFromCsv(text).map(cleanImportedTerm) }
-      throw new Error('This CSV file does not look like commands, scripts or terms.')
+    // Other kinds of file (CSV, .txt, a plain list) are read by the parts.
+    const fromParts = () => {
+      for (const part of moduleParts()) {
+        if (!part.readFile) continue
+        const found = part.readFile(name, text)
+        if (found && Object.keys(found).length) return found
+      }
+      return null
     }
     if (!lower.endsWith('.json')) {
-      const match = text.match(/window\.SPELLBOOK_COMMANDS\s*=\s*([\s\S]*?)\s*;?\s*$/)
-      if (!match) throw new Error('This .txt file does not define window.SPELLBOOK_COMMANDS.')
-      return { commands: listPart(JSON.parse(match[1]), isCommand, 'commands', cleanImportedCommand) }
+      const found = fromParts()
+      if (found) return found
+      throw new Error('Nothing in this file is something Spell Book can import.')
     }
     const data = JSON.parse(text)
     if (Array.isArray(data)) {
-      const first = data[0] || {}
-      if ('command' in first) return { commands: listPart(data, isCommand, 'commands', cleanImportedCommand) }
-      if ('body' in first) return { scripts: listPart(data, isScript, 'scripts', cleanImportedScript) }
-      if ('definition' in first) return { terms: listPart(data, isTerm, 'terms', cleanImportedTerm) }
-      throw new Error('This list is not commands, scripts or terms.')
+      const found = fromParts()
+      if (found) return found
+      throw new Error('This list is not something Spell Book can import.')
     }
     if (!data || typeof data !== 'object') throw new Error('This file is not a Spell Book file.')
     const parts = {}
+    // A part's data, if that part is installed.
+    const offer = (id, value) => {
+      const part = moduleParts().find((each) => each.id === id)
+      if (!part || value === undefined || value === null) return
+      const accepted = part.accept(value)
+      if (accepted) parts[id] = accepted
+    }
     if (data.app === FORMAT) {
       const p = data.parts || {}
-      if (p.commands) parts.commands = listPart(p.commands, isCommand, 'commands', cleanImportedCommand)
-      if (p.scripts) parts.scripts = listPart(p.scripts, isScript, 'scripts', cleanImportedScript)
-      if (p.terms) parts.terms = listPart(p.terms, isTerm, 'terms', cleanImportedTerm)
-      if (Array.isArray(p.tomes) && p.tomes.length) parts.tomes = p.tomes
+      moduleParts().forEach((part) => offer(part.id, p[part.id]))
       if (p.appearance && p.appearance.colors) parts.appearance = p.appearance
-      if (p.categoryColors && typeof p.categoryColors === 'object') parts.categoryColors = p.categoryColors
       if (p.codeTheme && p.codeTheme.colors) parts.codeTheme = p.codeTheme
       if (p.settings && typeof p.settings === 'object') {
+        // Read by key, not by the group it was saved under, so a key that has
+        // moved to another tab's group (or a file from an older version) still
+        // lands in the right place. Keys no installed group knows are skipped.
+        const values = {}
+        Object.values(p.settings).forEach((group) => {
+          if (group && typeof group === 'object') Object.assign(values, group)
+        })
         const known = {}
-        SETTING_GROUPS.forEach((g) => {
-          const values = p.settings[g.id]
-          if (!values || typeof values !== 'object') return
+        settingGroups().forEach((g) => {
           const clean = {}
           g.keys.forEach((key) => {
             if (typeof values[key] === 'string') clean[key] = values[key]
@@ -293,12 +290,12 @@
       }
     } else if (data.app === 'spellbook-theme') {
       if (data.colors) parts.appearance = { mode: data.mode, colors: data.colors }
-      if (data.categoryColors) parts.categoryColors = data.categoryColors
+      offer('categoryColors', data.categoryColors)
       if (data.syntaxColors) parts.codeTheme = { codeTheme: data.codeTheme, colors: data.syntaxColors }
     } else if (data.app === 'spellbook-appearance-theme' || (data.colors && !data.app)) {
       parts.appearance = { mode: data.mode, colors: data.colors }
     } else if (data.app === 'spellbook-category-colors' || data.categoryColors) {
-      parts.categoryColors = data.categoryColors
+      offer('categoryColors', data.categoryColors)
     } else if (data.app === 'spellbook-syntax-colors') {
       parts.codeTheme = { codeTheme: data.codeTheme, colors: data.colors }
     }
@@ -309,25 +306,18 @@
   function importRows() {
     const p = incoming.parts
     const rows = []
-    const list = (id, title, items, unit) => {
-      if (items) rows.push({ id, title, sub: `${plural(items.length, unit)} in the file. You review each one before it is applied.` })
-    }
-    list('commands', 'Commands', p.commands, 'command')
-    list('scripts', 'Scripts', p.scripts, 'script')
-    list('terms', 'Terms', p.terms, 'term')
-    if (p.tomes) {
-      rows.push({
-        id: 'tomes',
-        title: 'Compendium',
-        sub: `${plural(p.tomes.length, 'tome')} in the file, added as new tabs.`,
-        items: p.tomes.map((t, i) => ({ id: String(i), label: t.name || 'Untitled', sub: t.sealed ? 'sealed' : '' })),
+    const partRows = (section) =>
+      partsIn(section).forEach((part) => {
+        if (p[part.id] === undefined) return
+        const shown = part.describe(p[part.id])
+        rows.push({ id: part.id, title: part.title || part.id, sub: shown.sub, items: shown.items })
       })
-    }
+    partRows('Content')
     if (p.appearance) rows.push({ id: 'appearance', title: 'Appearance', sub: 'light or dark mode and the application colors. Replaces yours.' })
-    if (p.categoryColors) rows.push({ id: 'categoryColors', title: 'Category colors', sub: 'Replaces yours.' })
+    partRows('Colors')
     if (p.codeTheme) rows.push({ id: 'codeTheme', title: 'Code block theme', sub: 'the code theme and its syntax colors. Replaces yours.' })
     if (p.settings) {
-      SETTING_GROUPS.forEach((g) => {
+      settingGroups().forEach((g) => {
         if (p.settings[g.id]) rows.push({ id: `settings:${g.id}`, title: g.title, sub: `${g.sub}. The page reloads to apply it.` })
       })
     }
@@ -381,49 +371,45 @@
     const on = (id) => (pick[id] instanceof Set ? pick[id].size > 0 : Boolean(pick[id]))
     const notes = []
 
+    const waits = []
+    const applyPart = (part) => {
+      if (!on(part.id) || parts[part.id] === undefined) return
+      const result = part.apply(parts[part.id], pick[part.id], { fileName })
+      const note = result && typeof result === 'object' ? result.note : result
+      if (note) notes.push(note)
+      if (result && result.wait) waits.push(result.wait)
+    }
+
     // Colors first: a mode change resets the syntax colors, so the code theme follows it.
     if (on('appearance')) {
       applyAppearanceTheme(parts.appearance)
       notes.push('appearance')
     }
-    if (on('categoryColors')) {
-      replaceCategoryColors(parts.categoryColors)
-      if (typeof renderCategoryColorSettings === 'function') renderCategoryColorSettings()
-      notes.push('category colors')
-    }
+    partsIn('Colors').forEach(applyPart)
     if (on('codeTheme')) {
       const theme = parts.codeTheme
       applySyntaxColors(CODE_THEMES.includes(theme.codeTheme) ? theme.codeTheme : undefined, theme.colors)
       notes.push('code theme')
     }
-    if (on('tomes') && window.NotesIO) {
-      const chosen = parts.tomes.filter((_, i) => pick.tomes.has(String(i)))
-      const added = window.NotesIO.add(chosen)
-      notes.push(plural(added, 'tome'))
-    }
-    const settingGroups = SETTING_GROUPS.filter((g) => on(`settings:${g.id}`) && parts.settings && parts.settings[g.id])
+    closeTransfer()
+    partsIn('Content').forEach(applyPart)
 
-    // Lists go to the Import Manager one after another; settings wait for them
-    // because applying settings reloads the page.
-    LIST_KINDS.forEach((kind) => {
-      if (on(kind)) importQueue.push({ kind, fileName, incoming: parts[kind] })
-    })
-    if (settingGroups.length) {
-      importQueue.push({
-        run: () => {
-          settingGroups.forEach((g) => {
-            Object.entries(parts.settings[g.id]).forEach(([key, value]) => {
-              try {
-                localStorage.setItem(key, value)
-              } catch {}
-            })
+    // Settings reload the page, so they wait for the parts still at work
+    // (Spells' Import Manager goes through its lists one after another).
+    const chosenGroups = settingGroups().filter((g) => on(`settings:${g.id}`) && parts.settings && parts.settings[g.id])
+    if (chosenGroups.length) {
+      Promise.all(waits).then(() => {
+        chosenGroups.forEach((g) => {
+          Object.entries(parts.settings[g.id]).forEach(([key, value]) => {
+            try {
+              localStorage.setItem(key, value)
+            } catch {}
           })
-          location.reload()
-        },
+        })
+        if (window.DataFile) window.DataFile.reload()
+        else location.reload()
       })
     }
-    closeTransfer()
-    nextInImportQueue()
     return notes
   }
 

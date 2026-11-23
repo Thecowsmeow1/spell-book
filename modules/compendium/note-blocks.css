@@ -1,0 +1,689 @@
+/* Template sections and the Insert Template window (note-blocks.js). A section is
+  also a .note-command, so it shares the card frame in notes-blocks.css. */
+.note-block-section {
+  border-left-color: #14b8a6;
+}
+.nb-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.nb-name {
+  font-weight: 700;
+}
+.nb-count {
+  min-width: 1.4rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+.nb-gone {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+.nb-empty {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+.nb-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.6rem;
+}
+.nb-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  min-width: 0;
+}
+.nb-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+.nb-card-title {
+  overflow-wrap: anywhere;
+}
+.nb-card-sub {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+/* Fields in rows (Cards and Form layouts): a row holds
+  the fields ticked "Beside", in equal columns. */
+.nb-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.nb-row,
+.nb-form-row {
+  display: grid;
+  grid-template-columns: repeat(var(--nb-cols, 1), minmax(0, 1fr));
+  gap: 0.4rem 0.9rem;
+}
+.nb-form-row {
+  gap: 0 0.75rem;
+}
+.nb-field {
+  min-width: 0;
+}
+.nb-field-empty .nb-label {
+  opacity: 0.55;
+}
+/* Form layout: records one under another, separated by space only. */
+.nb-form-list {
+  display: flex;
+  flex-direction: column;
+}
+.nb-form-record {
+  position: relative;
+  padding: 0.5rem 0.25rem;
+}
+.nb-form-record + .nb-form-record {
+  margin-top: 0.75rem;
+}
+.nb-form-record:hover {
+  background: color-mix(in srgb, var(--accent), transparent 94%);
+  border-radius: 6px;
+}
+.nb-form-actions {
+  float: right;
+  margin-left: 0.5rem;
+  visibility: hidden;
+}
+.nb-form-record:hover .nb-form-actions,
+.nb-form-record:focus-within .nb-form-actions {
+  visibility: visible;
+}
+/* Line wrapping, chosen per field in its menu (Fields). */
+.nb-text {
+  white-space: pre-wrap;
+}
+.nb-wrap-words {
+  overflow-wrap: anywhere;
+}
+.nb-wrap-anywhere {
+  word-break: break-all;
+}
+.nb-wrap-none {
+  white-space: pre;
+}
+.nb-nowrap {
+  white-space: nowrap;
+}
+.nb-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.nb-value {
+  min-width: 0;
+}
+.nb-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  white-space: normal;
+}
+.nb-table-wrap {
+  overflow-x: auto;
+}
+/* Long tables scroll inside the section, with the headings kept in view. */
+.nb-table-wrap:has(> .nb-table tbody > tr:nth-child(16)) {
+  max-height: 36rem;
+  overflow: auto;
+}
+.nb-table-wrap:has(> .nb-table tbody > tr:nth-child(16)) .nb-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+/* Headings sort when clicked */
+.nb-table th.nb-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+.nb-table th.nb-sortable:hover,
+.nb-table th.nb-sorted {
+  color: var(--accent);
+}
+/* Records shown as text: click one to type in it */
+.nb-edit-table tr.nb-view-row {
+  cursor: text;
+}
+.nb-edit-table tr.nb-view-row:hover > td {
+  background: color-mix(in srgb, var(--accent), transparent 93%);
+}
+.nb-edit-table tr.nb-view-row > td.nb-actions-col {
+  cursor: default;
+}
+.nb-edit-table tr.nb-live > td {
+  background: color-mix(in srgb, var(--accent), transparent 95%);
+}
+/* The filter box in a section's header */
+.nb-filter {
+  /* Grows to 12rem but gives way first, so the buttons stay on one line. */
+  flex: 1 1 5rem;
+  width: 5rem;
+  max-width: 12rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.nb-filter:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.nb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.nb-table th,
+.nb-table td {
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.45rem;
+  text-align: left;
+  vertical-align: top;
+}
+/* The table fits the note: cells wrap (between words by default), and a
+  column is kept as wide as its longest word, up to 16 characters (set in
+  note-blocks.js), so short words aren't split. A value set to "Don't
+  wrap" can still push the table wider; then it scrolls. */
+.nb-table th {
+  background: var(--bg);
+  overflow-wrap: anywhere;
+}
+.nb-sizer {
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  white-space: nowrap;
+}
+.nb-table .nb-actions-col {
+  width: 1%;
+  white-space: nowrap;
+}
+/* Fields typed into in the note: quiet until pointed at or in use. */
+.nb-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0.1rem 0 0;
+  padding: 0.2rem 0.35rem;
+  background: color-mix(in srgb, var(--text), transparent 96%);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.nb-input:hover {
+  border-color: var(--border);
+}
+.nb-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg);
+}
+textarea.nb-input {
+  resize: none;
+  overflow: hidden;
+  min-height: 0;
+}
+textarea.nb-wrap-none {
+  overflow-x: auto;
+  overflow-wrap: normal;
+}
+input[type='checkbox'].nb-input {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.nb-check-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  cursor: pointer;
+}
+.nb-time {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.nb-time .nb-input {
+  flex: 1;
+  margin: 0;
+}
+.nb-edit-table td {
+  padding: 0.15rem;
+}
+/* Note tables give cells a 3rem minimum; the actions column needs less. */
+.nb-table .nb-actions-col {
+  min-width: 0;
+}
+.nb-edit-table th {
+  padding: 0.3rem 0.35rem;
+}
+/* Sized like the text in a field, padding and border included. */
+.nb-edit-table td .nb-sizer {
+  padding: 0 calc(0.35rem + 1px);
+  font-family: var(--sans);
+  font-size: 0.875rem;
+}
+.nb-edit-table td.nb-col-datetime .nb-input {
+  flex: 1 1 10.5rem;
+  width: 10.5rem;
+  padding-right: 0.15rem;
+}
+/* In a table, Now goes under the time when the column is narrow. */
+.nb-edit-table .nb-time {
+  flex-wrap: wrap;
+}
+.nb-edit-table td.nb-col-number .nb-input {
+  min-width: 4.5rem;
+}
+.nb-edit-table td.nb-col-choice .nb-input {
+  width: auto;
+  max-width: none;
+}
+.nb-edit-table td.nb-col-checkbox {
+  text-align: center;
+  vertical-align: middle;
+}
+.nb-edit-table .nb-actions-col {
+  vertical-align: middle;
+}
+.nb-card-sub[hidden] {
+  display: none;
+}
+.nb-remove-section {
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+.nb-remove-section:hover {
+  background: var(--surface2);
+  color: #ef4444;
+}
+.nb-field > label.nb-label {
+  display: block;
+}
+.nb-actions {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+.nb-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  padding: 0.1rem 0.4rem;
+}
+.nb-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.nb-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.nb-btn.nb-del:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* Dialogs. The confirm dialog (#notes-ask) must sit above these windows. */
+#notes-ask {
+  z-index: 120;
+}
+.nb-pick-dialog .modal-actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.nb-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+/* A template to insert, with × to delete it beside it. */
+.nb-pick-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+.nb-pick-item {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+.nb-pick-item:hover,
+.nb-pick-item:focus-visible {
+  border-color: var(--accent);
+}
+.nb-pick-layout {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.nb-pick-fields {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.nb-pick-delete {
+  flex: none;
+  width: 2rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.nb-pick-delete:hover,
+.nb-pick-delete:focus-visible {
+  border-color: var(--danger, #ef4444);
+  color: var(--danger, #ef4444);
+}
+@media (max-width: 760px) {
+  .nb-row,
+  .nb-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Rich text fields: a small editor inside the record (note-blocks.js). */
+.nb-rich {
+  min-height: calc(1.4em + 0.5rem);
+  cursor: text;
+  white-space: normal;
+}
+.nb-rich.nb-wrap-none,
+.nb-rich-view.nb-wrap-none {
+  white-space: pre;
+  overflow-x: auto;
+}
+.nb-rich > :first-child,
+.nb-rich-view > :first-child {
+  margin-top: 0;
+}
+.nb-rich p,
+.nb-rich div,
+.nb-rich-view p {
+  margin: 0;
+}
+.nb-rich ul,
+.nb-rich ol,
+.nb-rich-view ul,
+.nb-rich-view ol {
+  margin: 0.15rem 0;
+  padding-left: 1.3rem;
+}
+.nb-rich pre,
+.nb-rich-view pre {
+  margin: 0.2rem 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+/* Command and script cards inside a Rich text field. */
+.nb-rich .note-command,
+.nb-rich-view .note-command {
+  margin: 0.35rem 0;
+  min-width: 0;
+  white-space: normal;
+}
+.nb-table .nb-rich pre.cmd,
+.nb-table .nb-rich-view pre.cmd {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* In a table column a card may be narrow: its fields and buttons shrink and
+  wrap instead of widening the table. */
+.nb-table .nb-rich .note-command .vars-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.nb-table .nb-rich .note-command input,
+.nb-table .nb-rich .note-command select {
+  width: 100%;
+  min-width: 0;
+}
+.nb-table .nb-rich .note-command-head {
+  flex-wrap: wrap;
+}
+.nb-table .nb-rich .note-command .btn {
+  white-space: normal;
+}
+/* …but not narrower than this: below it a card can't be used. A table with a
+  card may then scroll sideways in a narrow window. */
+.nb-table .nb-rich .note-command {
+  min-width: 12rem;
+}
+
+/* ─── Designing fields in the note ─── */
+.nb-design-toggle[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.nb-design {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+  padding: 0.6rem 0.7rem;
+  background: var(--surface2);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.nb-design-row,
+.nb-design-fields,
+.nb-design-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+}
+.nb-design-fields {
+  gap: 0.35rem;
+}
+.nb-design-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+.nb-design-input,
+.nb-design-select,
+.nb-field-menu input[type='text'],
+.nb-field-menu select {
+  padding: 0.2rem 0.45rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+.nb-design-input {
+  width: 10rem;
+}
+.nb-design-input:focus,
+.nb-design-select:focus,
+.nb-field-menu input[type='text']:focus,
+.nb-field-menu select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.nb-design-caption {
+  margin-right: 0.25rem;
+  color: var(--muted);
+}
+.nb-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.15rem 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.nb-chip:hover,
+.nb-chip.nb-design-open {
+  border-color: var(--accent);
+}
+.nb-chip-type {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.nb-design-note {
+  flex: 1 1 16rem;
+  color: var(--muted);
+}
+/* Table headings: ▾ for the column's menu, + for a new column */
+.nb-edit-table th.nb-sortable {
+  position: relative;
+  padding-right: 1.4rem;
+}
+.nb-col-menu {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  transform: translateY(-50%);
+  padding: 0 0.3rem;
+  background: var(--surface2);
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  cursor: pointer;
+  opacity: 0;
+}
+.nb-edit-table th:hover .nb-col-menu,
+.nb-col-menu:focus-visible,
+.nb-col-menu.nb-design-open,
+.note-block-section:has(> .nb-design) .nb-col-menu {
+  opacity: 1;
+}
+.nb-col-menu:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.nb-col-add {
+  padding: 0 0.45rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.nb-col-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* The field menu (outside the note) */
+.nb-field-menu {
+  position: fixed;
+  z-index: 95;
+  display: grid;
+  gap: 0.5rem;
+  width: 19rem;
+  max-width: calc(100vw - 16px);
+  padding: 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.nb-field-menu[hidden] {
+  display: none;
+}
+.nb-fm-title {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.nb-fm-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  align-items: center;
+  gap: 0.4rem;
+}
+.nb-fm-row > span {
+  color: var(--muted);
+}
+.nb-fm-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.8rem;
+}
+.nb-fm-flags label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+.nb-fm-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+.nb-pick-blank {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}

@@ -9,10 +9,17 @@
 //
 // Optional: PORT (default 8787) and HOST (default 127.0.0.1, this computer
 // only). Open http://localhost:8787 once it is running.
+//
+// Sign-in (auth.js): SPELLBOOK_PASSWORD turns it on. Set it before the server
+// can be reached from anywhere but this computer. Behind an HTTPS proxy also
+// set COOKIE_SECURE=1 (the cookie is only sent over HTTPS) and TRUST_PROXY=1
+// (wrong-password limits count the browser's address, not the proxy's).
+const crypto = require('crypto')
 const fs = require('fs')
 const http = require('http')
 const path = require('path')
 const { createDatabase } = require('./db')
+const { createAuth, loginPage, safeNext } = require('./auth')
 
 // remote-db/server/ sits two levels below the Spell Book folder
 const APP_ROOT = path.join(__dirname, '..', '..')
@@ -25,6 +32,12 @@ const INTERNAL_KEYS = new Set([SAVED_AT_KEY, REVS_KEY])
 const isDataKey = (key) =>
   typeof key === 'string' && /^(spellbook_|cmdref_)/.test(key)
 const MAX_BODY = 64 * 1024 * 1024
+// Attachments (js/core/attachments.js): one file per attachment, named by its
+// SHA-256, in data/attachments (beside the data file, so the same folder a
+// browser uses). FILES_DIR moves it (on Docker, a volume); FILE_MAX_MB caps
+// one file (default 100). data/attachments is never served as web files.
+const FILE_ID = /^\/api\/files\/([0-9a-f]{64})$/
+const FILE_MAX = (Number(process.env.FILE_MAX_MB) || 100) * 1024 * 1024
 
 // Only the app itself is served, never the server folder or the repository.
 const STATIC_FILES = new Set([
@@ -33,7 +46,9 @@ const STATIC_FILES = new Set([
   'favicon.png',
   'remote-db/client.js',
 ])
-const STATIC_DIRS = new Set(['js', 'css', 'data', 'icons'])
+// modules/ holds the tabs (js/core/pages.js): each one's module.js, scripts and
+// styles (only those kinds of file; see serveStatic below).
+const STATIC_DIRS = new Set(['js', 'css', 'data', 'icons', 'modules'])
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -97,7 +112,78 @@ function joinStorage({ items, settings }) {
 }
 
 // ── the HTTP side ────────────────────────────────────────────────────────
-function createServer(db) {
+function createServer(db, options = {}) {
+  const auth = createAuth(options)
+  const filesDir = options.filesDir || process.env.FILES_DIR || path.join(APP_ROOT, 'data', 'attachments')
+  const filePath = (id) => path.join(filesDir, id)
+  // The raw bytes of a request, up to FILE_MAX.
+  const readBytes = (req) =>
+    new Promise((resolve, reject) => {
+      const chunks = []
+      let size = 0
+      req.on('data', (chunk) => {
+        size += chunk.length
+        if (size > FILE_MAX) {
+          reject(Object.assign(new Error('The file is too large.'), { status: 413 }))
+          req.destroy()
+        } else chunks.push(chunk)
+      })
+      req.on('end', () => resolve(Buffer.concat(chunks)))
+      req.on('error', reject)
+    })
+  async function files(req, res, id) {
+    if (!id) {
+      if (req.method !== 'GET') return sendJson(res, 405, { error: 'Not allowed.' })
+      let names = []
+      try {
+        names = await fs.promises.readdir(filesDir)
+      } catch {}
+      // With sizes, so a browser can tell a file changed on disk and send it again.
+      const ids = names.filter((name) => /^[0-9a-f]{64}$/.test(name))
+      const sizes = {}
+      for (const id of ids) {
+        try {
+          sizes[id] = (await fs.promises.stat(filePath(id))).size
+        } catch {}
+      }
+      return sendJson(res, 200, { ids, sizes })
+    }
+    if (req.method === 'GET') {
+      let bytes
+      try {
+        bytes = await fs.promises.readFile(filePath(id))
+      } catch {
+        return sendJson(res, 404, { error: 'No such file.' })
+      }
+      // Always a download, never shown as a page from this server.
+      res.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': 'attachment',
+        'Content-Length': bytes.length,
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': "default-src 'none'; sandbox",
+      })
+      return res.end(bytes)
+    }
+    if (req.method === 'PUT') {
+      const bytes = await readBytes(req)
+      if (crypto.createHash('sha256').update(bytes).digest('hex') !== id) {
+        return sendJson(res, 400, { error: 'The file does not match its id.' })
+      }
+      await fs.promises.mkdir(filesDir, { recursive: true })
+      // Written beside it first, so a cut-off upload never leaves half a file.
+      const temp = `${filePath(id)}.${process.pid}.${Date.now()}.part`
+      await fs.promises.writeFile(temp, bytes)
+      await fs.promises.rename(temp, filePath(id))
+      return sendJson(res, 200, { ok: true, id, size: bytes.length })
+    }
+    if (req.method === 'DELETE') {
+      await fs.promises.rm(filePath(id), { force: true })
+      return sendJson(res, 200, { ok: true })
+    }
+    return sendJson(res, 405, { error: 'Not allowed.' })
+  }
+
   const readBody = (req) =>
     new Promise((resolve, reject) => {
       const chunks = []
@@ -234,12 +320,16 @@ function createServer(db) {
 
   async function api(req, res, pathname) {
     if (!sameOrigin(req)) return sendJson(res, 403, { error: 'Wrong origin.' })
+    if (pathname === '/api/files') return files(req, res, null)
+    const file = pathname.match(FILE_ID)
+    if (file) return files(req, res, file[1])
     if (pathname === '/api/status' && req.method === 'GET') {
       const data = await stored()
       return sendJson(res, 200, {
         app: 'spellbook-server',
         ok: true,
         db: db.type,
+        auth: Boolean(auth),
         empty: data.empty,
         savedAt: data.savedAt,
         revs: data.revs,
@@ -289,11 +379,32 @@ function createServer(db) {
       return res.end()
     }
     const parts = relative.split('/')
+    // In modules/ only the page's own kinds of file (.js, .css, .json,
+    // images): a module may also hold tools such as modules/attack/attack.py.
     const allowed =
       STATIC_FILES.has(relative) ||
-      (parts.length > 1 && STATIC_DIRS.has(parts[0]) && !parts.includes('..'))
+      (parts.length > 1 &&
+        STATIC_DIRS.has(parts[0]) &&
+        !parts.includes('..') &&
+        // Attachments only through /api/files (signed in, as downloads).
+        // (Windows ignores case and trailing dots and spaces in names.)
+        !(parts[0] === 'data' && String(parts[1] || '').replace(/[. ]+$/, '').toLowerCase() === 'attachments') &&
+        (parts[0] !== 'modules' || path.extname(relative).toLowerCase() in TYPES))
     const file = path.join(APP_ROOT, ...parts)
     if (!allowed || !file.startsWith(APP_ROOT + path.sep)) {
+      res.writeHead(404)
+      return res.end('Not found')
+    }
+    // Nor any other way into the attachments folder (links, other spellings).
+    let real = ''
+    try {
+      real = fs.realpathSync.native(file).toLowerCase()
+    } catch {}
+    let filesReal = path.resolve(filesDir).toLowerCase()
+    try {
+      filesReal = fs.realpathSync.native(filesDir).toLowerCase()
+    } catch {}
+    if (real && (real === filesReal || real.startsWith(filesReal + path.sep))) {
       res.writeHead(404)
       return res.end('Not found')
     }
@@ -311,9 +422,80 @@ function createServer(db) {
     })
   }
 
+  const sendPage = (res, status, html) => {
+    res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
+    res.end(html)
+  }
+  const redirect = (res, to) => {
+    res.writeHead(303, { Location: to, 'Cache-Control': 'no-store' })
+    res.end()
+  }
+
+  // ── sign-in (only with SPELLBOOK_PASSWORD; see auth.js)
+  // Returns true when it answered the request.
+  async function guard(req, res, pathname, search) {
+    if (!auth) return false
+    if (pathname === '/login') {
+      if (req.method === 'GET') {
+        const next = safeNext(new URLSearchParams(search).get('next'))
+        if (auth.signedIn(req)) return redirect(res, next), true
+        return sendPage(res, 200, loginPage({ next })), true
+      }
+      if (req.method === 'POST') {
+        if (!sameOrigin(req)) return sendJson(res, 403, { error: 'Wrong origin.' }), true
+        const form = new URLSearchParams(await readBody(req))
+        const next = safeNext(form.get('next'))
+        const result = await auth.attempt(req, form.get('password'))
+        if (result === 'ok') {
+          auth.setCookie(req, res)
+          return redirect(res, next), true
+        }
+        const message =
+          result === 'locked'
+            ? 'Too many wrong passwords. Try again in 15 minutes.'
+            : 'That password is not right.'
+        return sendPage(res, result === 'locked' ? 429 : 401, loginPage({ next, message })), true
+      }
+      res.writeHead(405)
+      return res.end(), true
+    }
+    if (pathname === '/logout' && req.method === 'POST') {
+      if (!sameOrigin(req)) return sendJson(res, 403, { error: 'Wrong origin.' }), true
+      auth.clearCookie(req, res)
+      return redirect(res, '/login'), true
+    }
+    // The sign-in page's icon is the only file served without signing in.
+    if (pathname === '/icons/bookSB256BW.png') return false
+    if (auth.signedIn(req)) {
+      // Opening the app starts a fresh 30 days, so a session in use doesn't end.
+      if (pathname === '/' || pathname === '/index.html') auth.setCookie(req, res)
+      return false
+    }
+    if (pathname.startsWith('/api/')) {
+      return sendJson(res, 401, { error: 'Sign in again to use the database.', signIn: true }), true
+    }
+    if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
+      return redirect(res, `/login${pathname === '/' ? '' : `?next=${encodeURIComponent(pathname)}`}`), true
+    }
+    res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8' })
+    return res.end('Sign in first.'), true
+  }
+
   return http.createServer(async (req, res) => {
-    const { pathname } = new URL(req.url, 'http://localhost')
+    const { pathname, search } = new URL(req.url, 'http://localhost')
+    // Not to be shown inside another site's page, nor sniffed as another type.
+    // A tab's own HTML pages (the Games tab's games) may be framed by Spell
+    // Book itself, and only by it.
+    if (/^\/modules\/.+\.html$/i.test(pathname)) {
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+      res.setHeader('Content-Security-Policy', "frame-ancestors 'self'")
+    } else {
+      res.setHeader('X-Frame-Options', 'DENY')
+    }
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Referrer-Policy', 'same-origin')
     try {
+      if (await guard(req, res, pathname, search)) return
       if (pathname.startsWith('/api/')) await api(req, res, pathname)
       else serveStatic(req, res, pathname)
     } catch (err) {
@@ -334,12 +516,28 @@ async function main() {
   await db.init()
   const port = Number(process.env.PORT) || 8787
   const host = process.env.HOST || '127.0.0.1'
-  const server = createServer(db)
+  const password = process.env.SPELLBOOK_PASSWORD || ''
+  const server = createServer(db, {
+    password,
+    secureCookies: process.env.COOKIE_SECURE === '1',
+    trustProxy: process.env.TRUST_PROXY === '1',
+  })
   server.listen(port, host, () => {
     console.log(
       `Spell Book is running on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`,
     )
     console.log(`Database: ${db.type}`)
+    if (password) {
+      console.log('Sign-in: on (SPELLBOOK_PASSWORD).')
+      if (password.length < 12) {
+        console.warn('Warning: SPELLBOOK_PASSWORD is short. Use at least 12 characters, more if it can be reached from the internet.')
+      }
+    } else {
+      console.log('Sign-in: off. Set SPELLBOOK_PASSWORD to require a password.')
+      if (!['127.0.0.1', 'localhost', '::1'].includes(host)) {
+        console.warn(`Warning: listening on ${host} with no password. Anyone who can reach this address can read and change everything.`)
+      }
+    }
   })
   const stop = () =>
     server.close(() => db.close().finally(() => process.exit(0)))

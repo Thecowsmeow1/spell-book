@@ -1,4 +1,4 @@
-/* Modal: app.js/settings.js toggle .open on the overlays; the HTML ids identify
+/* Modal: the scripts toggle .open on the overlays; the HTML ids identify
   which form or dialog each rule styles. */
 .modal-overlay {
   position: fixed;
@@ -195,6 +195,31 @@
 }
 .trash-item-actions {
   flex-shrink: 0;
+}
+.trash-section + .trash-section {
+  margin-top: 1.25rem;
+}
+.trash-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.35rem;
+}
+.trash-section-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.trash-section-count {
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+.trash-item-detail {
+  color: var(--muted);
+  font-size: 0.8rem;
+  flex-basis: 100%;
 }
 .trash-list .empty-state {
   margin: 2rem 0;
