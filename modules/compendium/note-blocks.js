@@ -787,12 +787,7 @@
       })
       if (!ok) return
     }
-    const range = document.createRange()
-    range.selectNode(section)
-    const selection = getSelection()
-    selection.removeAllRanges()
-    selection.addRange(range)
-    api.editor.focus()
+    api.selectWhole(section)
     document.execCommand('delete')
     api.afterEdit()
   }

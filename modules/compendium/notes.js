@@ -3103,6 +3103,21 @@
   }
 
   // Puts the caret back exactly where it was before a dialog took focus.
+  // Selects a whole block (a card, template section, code block, table,
+  // image or chip) so execCommand('delete') removes it and Ctrl+Z brings it
+  // back. The selection runs from its end back to its start: Chrome refuses a
+  // forward one when the block is the first thing in the note.
+  function selectWhole(node) {
+    const parent = node.parentNode
+    if (!parent) return
+    const host = parent.nodeType === 1 && parent.closest('[contenteditable="true"]')
+    if (host) host.focus({ preventScroll: true })
+    const index = [...parent.childNodes].indexOf(node)
+    const selection = getSelection()
+    selection.removeAllRanges()
+    selection.setBaseAndExtent(parent, index + 1, parent, index)
+  }
+
   function setRange(range) {
     const inNote = range && editor.contains(range.startContainer)
     ;(inNote ? hostOf(range.startContainer) : editor).focus()
@@ -3743,12 +3758,7 @@
     const codeRemove = e.target.closest('.note-code-remove')
     if (codeRemove) {
       if (isSealed(selectedId)) return
-      const range = document.createRange()
-      range.selectNode(codeRemove.closest('pre.note-code'))
-      const selection = getSelection()
-      selection.removeAllRanges()
-      selection.addRange(range)
-      editor.focus()
+      selectWhole(codeRemove.closest('pre.note-code'))
       document.execCommand('delete')
       afterEdit()
       return
@@ -3774,12 +3784,7 @@
     if (remove) {
       e.preventDefault()
       const card = remove.closest('.note-command')
-      const range = document.createRange()
-      range.selectNode(card)
-      const selection = getSelection()
-      selection.removeAllRanges()
-      selection.addRange(range)
-      hostOf(card).focus()
+      selectWhole(card)
       document.execCommand('delete')
       afterEdit()
       return
@@ -4060,9 +4065,7 @@
     const img = activeImage
     selectImage(null)
     if (!img || !editor.contains(img)) return
-    const range = document.createRange()
-    range.selectNode(img)
-    setRange(range)
+    selectWhole(img)
     document.execCommand('delete')
     afterEdit()
   })
@@ -4246,11 +4249,7 @@
   }
 
   function deleteTable(cell) {
-    const range = document.createRange()
-    range.selectNode(cell.closest('table'))
-    const selection = getSelection()
-    selection.removeAllRanges()
-    selection.addRange(range)
+    selectWhole(cell.closest('table'))
     document.execCommand('delete')
     afterEdit()
   }
@@ -4529,6 +4528,7 @@
   // Shared with notes-callouts.js.
   window.NotesEditor = {
     editor,
+    selectWhole,
     // Whether archived branches show (the lock button by the tree search).
     showArchived: () => showArchived,
     // Branch view draws the notes it isn't editing as the editor would.

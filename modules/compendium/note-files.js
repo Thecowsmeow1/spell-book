@@ -84,12 +84,7 @@
   }
   function removeChip(chip) {
     // Through the editor, so Ctrl+Z brings it back.
-    const range = document.createRange()
-    range.selectNode(chip)
-    const selection = getSelection()
-    selection.removeAllRanges()
-    selection.addRange(range)
-    editor.focus()
+    api.selectWhole(chip)
     document.execCommand('delete')
     api.afterEdit()
   }
