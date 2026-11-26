@@ -146,6 +146,7 @@
         'spellbook_collapsed_sections_v1',
         'spellbook_modal_size_v1',
         'spellbook_options_open_v1',
+        'spellbook_wrap_cells_v1',
       ],
     },
     {

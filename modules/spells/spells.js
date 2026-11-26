@@ -3825,6 +3825,26 @@ function setColumnHidden(kind, key, hide) {
   renderList()
 }
 
+// Wrap long text (Settings > Spells): the description, definition and preview
+// column in the table pane shows all of its text, over several lines, instead
+// of one cut-off line.
+const WRAP_CELLS_KEY = 'spellbook_wrap_cells_v1'
+const wrapCellsOn = () => {
+  try {
+    return localStorage.getItem(WRAP_CELLS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+function setWrapCells(on) {
+  try {
+    if (on) localStorage.setItem(WRAP_CELLS_KEY, '1')
+    else localStorage.removeItem(WRAP_CELLS_KEY)
+  } catch {}
+  document.documentElement.toggleAttribute('data-wrap-cells', on)
+}
+setWrapCells(wrapCellsOn())
+
 function showColumnsMenu(anchor) {
   document.querySelectorAll('.columns-menu').forEach((m) => m.remove())
   const kind = currentView

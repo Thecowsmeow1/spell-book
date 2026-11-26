@@ -26,6 +26,14 @@ const SPELLS_SETTINGS_HTML = `
                 beside details</label>
 </fieldset>
 <fieldset class="layout-options">
+<legend>Long text in the table</legend>
+<label><input name="wrap-cells" type="radio" value="cut"/>
+                Cut off at one line</label>
+<label><input name="wrap-cells" type="radio" value="wrap"/>
+                Wrap</label>
+<span class="form-hint">Descriptions, definitions and script previews in the table pane. Wrap shows all of the text over as many lines as it needs.</span>
+</fieldset>
+<fieldset class="layout-options">
 <legend>Scratch pad</legend>
 <label><input name="scratch-visible" type="radio" value="show"/>
                 Show</label>
@@ -115,6 +123,22 @@ filterSelectionRadios.forEach((radio) => {
   )
 })
 syncFilterSelectionRadios()
+
+// ─── Long text in the table ───────────────────────────────────────────
+// setWrapCells() and wrapCellsOn() live in spells.js, which also applies the saved choice.
+const wrapCellsRadios = document.querySelectorAll("input[name='wrap-cells']")
+function syncWrapCells() {
+  wrapCellsRadios.forEach((radio) => {
+    radio.checked = radio.value === (wrapCellsOn() ? 'wrap' : 'cut')
+  })
+}
+wrapCellsRadios.forEach((radio) => {
+  radio.addEventListener('change', () => {
+    setWrapCells(radio.value === 'wrap')
+    syncWrapCells()
+  })
+})
+syncWrapCells()
 
 // ─── Control bar position ─────────────────────────────────────────────
 const LAYOUT_KEY = 'spellbook_layout_v1'
@@ -695,6 +719,8 @@ document.addEventListener('spellbook:settings-reset', () => {
   localStorage.removeItem('spellbook_modal_size_v1')
   setMultiFilterEnabled(true)
   syncFilterSelectionRadios()
+  setWrapCells(false)
+  syncWrapCells()
   localStorage.removeItem(SCRATCH_VISIBLE_KEY)
   localStorage.removeItem(SCRATCH_HEIGHT_KEY)
   applyScratchpad()

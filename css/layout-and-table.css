@@ -184,6 +184,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+[data-wrap-cells] .cmd-table td.col-desc {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
 .cmd-table td.col-vars {
   color: var(--muted);
   white-space: nowrap;
