@@ -360,7 +360,7 @@ Get-CimInstance Win32_Process -Filter "Name = '$name'" | Select-Object -First 1<
 <script id="readme-source" type="text/x-readme">
 # Spell Book
 
-**Version 7.2 — 20261121**
+**Version 7.3 — 20261126**
 
 Spell Book is a local-first reference for commands, scripts and technical terms, with a notebook (the Compendium), small tools and the MITRE ATT&CK matrix. It runs in the browser with plain HTML, CSS and JavaScript: no account and no installation. Open `index.html` to use it. Linking a data file needs Chrome or Edge. An optional database server (`remote-db/`) keeps everything in PostgreSQL instead, for using one Spell Book from several computers and phones.
 
@@ -507,9 +507,9 @@ What a module can add:
 ## Project Files
 
 ```text
-spell-book-experimental-v7.1/
+spell-book-experimental-v7.3/
 ├── index.html                 Top bar, shared windows, startup, this README
-├── CHANGELOG-v7.2.md          Every change in this version
+├── CHANGELOG-v7.3.md          Every change in this version
 ├── css/                       Shared styles
 ├── js/
 │   ├── core/                  What every tab shares
@@ -545,6 +545,12 @@ spell-book-experimental-v7.1/
 This guide is built into `index.html`, in `<script id="readme-source" type="text/x-readme">`, so the **About** window can show it even when Spell Book is opened from disk. Edit it there.
 
 ## Version History
+
+**Version 7.3 — 20261126**
+
+- **Long text in the table** (Settings → Spells): cut off at one line, or wrap to show all of it. Applies to the table view, not the card list.
+- **New browser-tab icon:** `favicon.png`.
+- **Details:** in `CHANGELOG-v7.3.md`.
 
 **Version 7.2 — 20261121**
 

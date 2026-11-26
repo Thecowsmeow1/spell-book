@@ -53,7 +53,6 @@
 - Buttons darken on hover in the theme's accent color. Amber warnings (archived notes, the unsaved count, Save's warnings) use the theme's `--warning` color, a darker amber in light mode.
 - Each tab has its own Settings tab where it has settings: **Spells** (page layout, quick filters, the Options default, category colors, Clear Local Commands) and **Compendium** (note width, note bars, note titles, the Archive's tags).
 - Files: `js/settings.js`, `css/base.css`, `css/settings-and-controls.css`.
-- **Long text in the table** (Settings → Spells): **Cut off at one line** (the default) or **Wrap**, which shows the whole description (commands), definition (terms) or script preview over as many lines as needed. Saved as `spellbook_wrap_cells_v1`, copied with the "Layout and panes" group and reset by **Clear Settings**. Files: `modules/spells/spells.js`, `spells-settings.js`, `spells-transfer.js`, `css/layout-and-table.css`.
 
 ### 8. Import / Export
 - One **Import / Export** window, in the top bar next to Save. Tick parts (commands, scripts, terms, Compendium tomes, colors, groups of settings) or **Choose items**, as JSON or CSV, or **Markdown (.zip)** for tomes (see 30).
