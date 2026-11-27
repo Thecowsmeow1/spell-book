@@ -1,5 +1,5 @@
 /*
- * The PowerShell page (modules/powershell): the Find box, the command box, a
+ * The PowerShell tool (modules/tools/powershell): the Find box, the command box, a
  * list and the help beside it. The list holds what was found while in the Find
  * box, and what can come next (ps-complete.js) while in the command box.
  * Picking a found command puts it in the command box, piped on when a command
@@ -23,8 +23,8 @@
   const KEY = 'spellbook_ps_help_v1'
   const PAGE_LIMIT = 1_000_000 // characters for one command's help
   const VERSIONS = [
-    { id: '5.1', name: 'Windows PowerShell 5.1', src: 'modules/powershell/ps-data-5.js', global: 'SPELLBOOK_PS5' },
-    { id: '7', name: 'PowerShell 7', src: 'modules/powershell/ps-data-7.js', global: 'SPELLBOOK_PS7' },
+    { id: '5.1', name: 'Windows PowerShell 5.1', src: 'modules/tools/powershell/ps-data-5.js', global: 'SPELLBOOK_PS5' },
+    { id: '7', name: 'PowerShell 7', src: 'modules/tools/powershell/ps-data-7.js', global: 'SPELLBOOK_PS7' },
   ]
   const $ = (id) => document.getElementById(id)
   const el = (tag, cls, text) => {
@@ -591,8 +591,8 @@
     setTimeout(() => (button.textContent = 'Copy'), 1500)
   })
 
-  document.addEventListener('spellbook:page', (e) => {
-    if (e.detail.page !== 'powershell') return
-    load().then(() => $('ps-import').hidden && input.focus())
+  // The lists load the first time the tool is shown.
+  document.addEventListener('spellbook:tool', (e) => {
+    if (e.detail.id === 'powershell') load()
   })
 })()

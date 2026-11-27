@@ -1,5 +1,5 @@
 /*
- * Reads pasted or uploaded help text for the Bash page (modules/bash): man
+ * Reads pasted or uploaded help text for the Bash page (modules/tools/bash): man
  * pages (man ls > ls.txt), --help output and Bash's own help (help cd). No
  * page code here. window.SpellBookBashParse:
  *   split(text)          the pages in a text that holds one or several

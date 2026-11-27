@@ -1,6 +1,6 @@
 /*
- * The Bash page (modules/bash): importing manuals, the Find box, the command
- * box, a list and the help beside it. It works like the PowerShell page.
+ * The Bash tool (modules/tools/bash): importing manuals, the Find box, the command
+ * box, a list and the help beside it. It works like the PowerShell tool.
  *
  * In the command box Tab puts the marked choice in the command and each further
  * Tab (Shift+Tab to go back) swaps in the next; a space or Enter keeps it. ↓
@@ -413,13 +413,11 @@
       },
     })
 
-  document.addEventListener('spellbook:page', (e) => {
-    if (e.detail.page !== 'bash') return
-    if (!engine) {
-      pages = readStored()
-      rebuild()
-      if (!Object.keys(pages).length) showImport(true)
-    }
-    if ($('bash-import').hidden) input.focus()
+  // The manuals are read the first time the tool is shown.
+  document.addEventListener('spellbook:tool', (e) => {
+    if (e.detail.id !== 'bash' || engine) return
+    pages = readStored()
+    rebuild()
+    if (!Object.keys(pages).length) showImport(true)
   })
 })()

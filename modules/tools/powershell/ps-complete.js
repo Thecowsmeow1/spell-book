@@ -1,5 +1,5 @@
 /*
- * Works out what can come next in a PowerShell command line (modules/powershell).
+ * Works out what can come next in a PowerShell command line (modules/tools/powershell).
  * No page code here: window.SpellBookPS.create(data) returns complete(line,
  * cursor), from the data ps-export.ps1 writes.
  *

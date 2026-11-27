@@ -8,8 +8,6 @@ window.SPELLBOOK_MODULES = [
   'spells',
   'compendium',
   'tools',
-  'powershell',
-  'bash',
   'attack',
   'games',
 ]

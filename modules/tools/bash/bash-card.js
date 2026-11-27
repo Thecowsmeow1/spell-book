@@ -1,17 +1,17 @@
 /*
- * The Bash page: import manual pages by pasting them or uploading text files,
- * then search them and build a command with completions and the help beside it.
- * The imported text is saved under spellbook_bash_v1 (in the data file). Nothing
- * is run. See js/core/pages.js for how modules work.
+ * The Bash tool's card on the Tools page: the elements bash.js works with.
+ * Put first in the list of tools. Loaded before bash.js and tools-layout.js.
  */
-SpellBook.module({
-  id: 'bash',
-  title: 'Bash',
-  tooltip: 'Bash commands: your imported manuals, with options and autocompletion',
-  routes: ['bash'],
-  css: ['bash.css'],
-  scripts: ['bash-parse.js', 'bash-complete.js', 'bash.js'],
-  html: `
+;(() => {
+  const T = window.SpellBookTools
+  const grid = document.getElementById('tools-grid')
+  if (!T || !grid) return
+  const card = T.tool(
+    'Bash',
+    'Import Linux manuals, then find a command and build it with completions. Nothing is run.',
+  )
+  card.classList.add('tool-full', 'tool-bash')
+  card.insertAdjacentHTML('beforeend', `
     <div class="bash-bar">
       <span class="bash-prompt" aria-hidden="true">Find</span>
       <input type="search" id="bash-search" aria-controls="bash-options" aria-label="Find a command" placeholder="Find an imported command by name or what it does" autocomplete="off" spellcheck="false" />
@@ -43,5 +43,6 @@ help cd > cd.txt</pre>
     <div class="bash-body" id="bash-body">
       <div class="bash-options" id="bash-options" role="listbox" aria-label="What can come next"></div>
       <article class="bash-help" id="bash-help"></article>
-    </div>`,
-})
+    </div>`)
+  grid.prepend(card)
+})()

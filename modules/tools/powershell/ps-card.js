@@ -1,19 +1,17 @@
 /*
- * The PowerShell page: type a command and get completions for what can come
- * next (cmdlets, parameters, values), with the cmdlet's help beside them. The
- * commands come from help text you paste or upload (saved under
- * spellbook_ps_help_v1, in the data file), and from ps-data-5.js and ps-data-7.js, built from this
- * computer's PowerShell by ps-export.ps1; ps.js loads them the first time the
- * tab is shown. Nothing is run. See js/core/pages.js for how modules work.
+ * The PowerShell tool's card on the Tools page: the elements ps.js works with.
+ * Put first in the list of tools. Loaded before ps.js and tools-layout.js.
  */
-SpellBook.module({
-  id: 'powershell',
-  title: 'PowerShell',
-  tooltip: 'PowerShell cmdlets: help, parameters and autocompletion',
-  routes: ['powershell'],
-  css: ['ps.css'],
-  scripts: ['ps-parse.js', 'ps-complete.js', 'ps.js'],
-  html: `
+;(() => {
+  const T = window.SpellBookTools
+  const grid = document.getElementById('tools-grid')
+  if (!T || !grid) return
+  const card = T.tool(
+    'PowerShell',
+    'Find a cmdlet, then build it with completions and its help beside you. Nothing is run.',
+  )
+  card.classList.add('tool-full', 'tool-ps')
+  card.insertAdjacentHTML('beforeend', `
     <div class="ps-bar">
       <span class="ps-prompt" aria-hidden="true">Find</span>
       <input type="search" id="ps-search" aria-controls="ps-options" aria-label="Find a command" placeholder="Find a command by name, alias or what it does, such as network adapter" autocomplete="off" spellcheck="false" />
@@ -47,5 +45,6 @@ SpellBook.module({
       <div class="ps-options" id="ps-options" role="listbox" aria-label="What can come next"></div>
       <article class="ps-help" id="ps-help"></article>
     </div>
-    <p class="ps-muted" id="ps-source"></p>`,
-})
+    <p class="ps-muted" id="ps-source"></p>`)
+  grid.prepend(card)
+})()

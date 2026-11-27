@@ -1,11 +1,4 @@
-/* The Bash page (modules/bash). */
-.bash-page:not([hidden]) {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 0.75rem 1rem 0.75rem;
-}
+/* The Bash tool (modules/tools/bash). */
 .bash-bar {
   display: flex;
   align-items: center;

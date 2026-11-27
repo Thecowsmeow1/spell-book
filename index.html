@@ -369,7 +369,7 @@ Spell Book is a local-first reference for commands, scripts and technical terms,
 1. Keep the whole Spell Book folder together: `index.html`, `css/`, `js/`, `modules/`, `data/` and `icons/`.
 2. Open `index.html` in your browser.
 3. Click **Link a Data File** in the top bar to keep your data in a JSON file you choose. From then on that button is **Save**. Without a data file, everything stays in this browser only.
-4. Pick a tab: **Spells** (commands, scripts and terms), **Compendium** (notes), **Tools**, **PowerShell**, **Bash**, **ATT&CK** or **Games**. Each tab offers its tutorial the first time you open it. Don't need one right now? Turn it off in **Settings → Layout & Theme → Tabs**.
+4. Pick a tab: **Spells** (commands, scripts and terms), **Compendium** (notes), **Tools**, **ATT&CK** or **Games**. Each tab offers its tutorial the first time you open it. Don't need one right now? Turn it off in **Settings → Layout & Theme → Tabs**.
 
 ## The Top Bar
 
@@ -419,13 +419,16 @@ Notes in trees, CherryTree style: a tree of nodes on the left and an editor on t
 
 ## Tools
 
+Pick a tool in the list on the left (**↑** and **↓** move through it). **Choose tools** under the list turns tools on or off; that choice is saved in the data file, Import / Export copies it with the **Tools tab** group, and **Clear Settings** shows everything again.
+
+- **PowerShell** and **Bash:** command help with completion (below).
 - **Man page importer:** paste a man page (`man ls | col -b`), `--help` output, PowerShell `Get-Help -Full` text, or a help harvester dump. The synopsis becomes a Command Template: `<file>` for a required value, `[file]` for an optional one, `[-v]` for a switch, `[-f <archive>]` for an option with a value, and `<start|stop>` for a choice. The options become the command's Options list. **Create command…** opens it in the New Command window to check and save. It needs Spells.
 - **Number converter** (decimal, hex, octal, binary, bytes).
 - **Crontab interpreter**: the schedule in plain English, and its next runs.
 - **Regex interpreter**: the pattern explained and tested on your text.
 - **Help harvester**: a script that collects a command's help, and its subcommands', into one file for the importer.
 
-## PowerShell
+### PowerShell
 
 Type a command and see what can come next, with its help beside it.
 
@@ -436,11 +439,11 @@ Type a command and see what can come next, with its help beside it.
 - It can't suggest paths or other values only a running PowerShell knows, and it runs nothing.
 - **Import help:** paste text or upload text files. In PowerShell: `Get-Help Get-ChildItem -Full > gci.txt`, or several at once with `'Get-ChildItem','Copy-Item' | ForEach-Object { Get-Help $_ -Full } > several.txt`. `Get-Command <name> -Syntax` adds allowed values and `Get-Alias` adds aliases. Importing a command again replaces it.
 - The imports are saved in the data file; Import / Export copies them with the **PowerShell help** group.
-- **Optional:** `modules/powershell/ps-export.ps1` builds every installed command at once (run it with `powershell` for 5.1 and `pwsh` for 7). With those lists, a version filter appears and anything only one version has is marked.
+- **Optional:** `modules/tools/powershell/ps-export.ps1` builds every installed command at once (run it with `powershell` for 5.1 and `pwsh` for 7). With those lists, a version filter appears and anything only one version has is marked.
 
-## Bash
+### Bash
 
-Like the PowerShell tab, for Linux commands, from manuals you import.
+Like the PowerShell tool, for Linux commands, from manuals you import.
 
 - **Import manuals:** paste text or upload text files. On a Linux computer: `man ls > ls.txt` (several at once: `man ls grep tar > pages.txt`), `curl --help all > curl.txt`, or `help cd > cd.txt` for Bash's built-ins. Importing a command again replaces it.
 - **Find** an imported command by name or by what it and its options do.
@@ -555,9 +558,7 @@ spell-book-experimental-v7.3/
 │   ├── modules.js             The tabs, in order
 │   ├── spells/                Commands, scripts, terms
 │   ├── compendium/            Notes, templates, presets, variables, the archive, Markdown export
-│   ├── tools/                 Man page importer and other tools
-│   ├── powershell/            PowerShell help and completion (ps-export.ps1 builds the data)
-│   ├── bash/                  Imported Linux manuals, with completion
+│   ├── tools/                 PowerShell, Bash (own folders), man page importer and other tools
 │   ├── attack/                The ATT&CK matrix (attack.py rebuilds its data)
 │   └── games/                 The Games tab; each game is a folder (tic-tac-toe/)
 ├── remote-db/                 The optional database server (see its README.md)
@@ -573,8 +574,9 @@ This guide is built into `index.html`, in `<script id="readme-source" type="text
 
 **Version 7.3 — 20261126**
 
-- **New tab:** **Bash**, the same for Linux commands, from man pages and help text you paste or upload.
-- **New tab:** **PowerShell**, with autocompletion and help for the commands installed on your computer.
+- **Tools tab redesigned:** a list of tools, one shown at a time, each of which can be turned off.
+- **New tool:** **Bash** (on Tools), the same for Linux commands, from man pages and help text you paste or upload.
+- **New tool:** **PowerShell** (on Tools), with autocompletion and help for the commands installed on your computer.
 - **Long text in the table** (Settings → Spells): cut off at one line, or wrap to show all of it. Applies to the table view, not the card list.
 - **New browser-tab icon:** `favicon.png`.
 - **Details:** in `CHANGELOG-v7.3.md`.

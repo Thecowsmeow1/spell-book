@@ -11,10 +11,10 @@ Descriptions come from the installed help; Update-Help (as administrator) fetche
 missing or newer help.
 
 .EXAMPLE
-powershell -NoProfile -File modules\powershell\ps-export.ps1
+powershell -NoProfile -File modules\tools\powershell\ps-export.ps1
 
 .EXAMPLE
-pwsh -NoProfile -File modules\powershell\ps-export.ps1
+pwsh -NoProfile -File modules\tools\powershell\ps-export.ps1
 #>
 [CmdletBinding()]
 param(
@@ -150,7 +150,7 @@ $data = [ordered]@{
 }
 $json = $data | ConvertTo-Json -Depth 8 -Compress
 Set-Content -LiteralPath $OutFile -Encoding utf8 -Value @(
-    "// PowerShell commands of this computer, built by modules/powershell/ps-export.ps1. Not for commits.",
+    "// PowerShell commands of this computer, built by modules/tools/powershell/ps-export.ps1. Not for commits.",
     "window.SPELLBOOK_PS$major = $json;"
 )
 Write-Host "$(@($commands).Count) commands written ($failed skipped), $([int]((Get-Item -LiteralPath $OutFile).Length / 1KB)) KB"

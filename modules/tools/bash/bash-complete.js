@@ -1,5 +1,5 @@
 /*
- * Works out what can come next in a Bash command line (modules/bash), from the
+ * Works out what can come next in a Bash command line (modules/tools/bash), from the
  * imported manuals. No page code here:
  *   window.SpellBookBash.create(commands)  → { find, search, complete }
  * with commands as SpellBookBashParse.parse() returns them.
