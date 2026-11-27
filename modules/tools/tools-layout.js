@@ -27,6 +27,12 @@
     'crontab-interpreter': 'Schedules in plain English',
     'regex-interpreter': 'Explain and test patterns',
     'help-harvester': 'Collect a command’s help',
+    'ftp-codes': 'FTP server replies',
+    'http-codes': 'Web status codes',
+    'smtp-codes': 'Mail server replies',
+    'windows-syslog-codes': 'Severities and facilities',
+    'windows-event-ids': 'System and application events',
+    'windows-security-log-codes': 'Security events and logon codes',
   }
 
   const read = () => {

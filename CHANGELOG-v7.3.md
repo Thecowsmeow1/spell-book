@@ -50,3 +50,7 @@ Changes since v7.2 (`CHANGELOG-v7.2.md`).
 - Regex: a line explaining the part of the pattern at the cursor, or the flags.
 - Both have examples to try and a quick reference whose entries can be clicked into the box.
 - Files: `modules/tools/tools-help.js`, `module.js`, `tools.css`, `index.html`.
+
+### 7. Code tables
+- Six new tools: **FTP codes**, **HTTP codes**, **SMTP codes**, **Windows syslog codes**, **Windows event IDs** and **Windows Security log codes**, as tables with a search box and a Group filter.
+- Files: `modules/tools/tools-codes.js`, `module.js`, `tools-layout.js`, `tools.css`, `index.html`.

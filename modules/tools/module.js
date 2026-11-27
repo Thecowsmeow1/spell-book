@@ -7,6 +7,7 @@
  *   man-import.js  the Man page importer
  *   tools.js     a number converter, crontab and regex interpreters and the
  *                help harvester (ported from spell-book-hk)
+ *   tools-codes.js  tables of protocol and Windows codes
  * See js/core/pages.js for how modules work.
  */
 SpellBook.module({
@@ -18,6 +19,7 @@ SpellBook.module({
   scripts: [
     'tools.js',
     'tools-help.js',
+    'tools-codes.js',
     'man-import.js',
     // Each card goes to the top of the list, so Bash's is made first.
     'bash/bash-card.js',
