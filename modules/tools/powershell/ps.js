@@ -10,8 +10,13 @@
  * space or Enter keeps it and lists what comes next. ↓ and ↑ move through the
  * list. Esc stops Tab from completing so it moves to the next control.
  *
+ * Delete command, under a command's name in the help, takes it out of the list.
+ * Manage commands deletes or restores many at once: ticked one by one, by
+ * Shift+click ranges, or a whole module. Deleting only hides: the data is kept.
+ *
  * Commands come from help text you paste or upload, saved under
- * spellbook_ps_help_v1 as { pages: { name: text }, aliases: { alias: name } }
+ * spellbook_ps_help_v1 as { pages: { name: text }, aliases: { alias: name },
+ * deleted: [names] }
  * (a large value: IndexedDB, js/core/datafile.js), and from the optional data
  * built by ps-export.ps1; an imported command replaces a built one. The data (ps-data-5.js
  * and ps-data-7.js, several MB each) is added as <script>s the first time the
@@ -42,8 +47,11 @@
   let loading = null
   let state = null // what the list shows: a complete() or search() result
   let finding = false // the list shows what the Find box found
-  let stored = { pages: {}, aliases: {} } // imported help
+  let stored = { pages: {}, aliases: {}, deleted: [] } // imported help, deleted commands
   let commandCount = 0
+  let everything = [] // every command, the deleted ones too
+  const ticked = new Set() // names ticked in Manage commands
+  let lastTicked = -1 // where a Shift+click range starts
   let marked = 0
   let tabCompletes = true
   let cycling = false // Tab is swapping choices into the command
@@ -81,14 +89,15 @@
     try {
       const saved = JSON.parse(window.DataFile.getItem(KEY) || '{}')
       const strings = (map) => Object.fromEntries(Object.entries(map && typeof map === 'object' ? map : {}).filter(([, v]) => typeof v === 'string'))
-      return { pages: strings(saved.pages), aliases: strings(saved.aliases) }
+      const deleted = Array.isArray(saved.deleted) ? saved.deleted.filter((n) => typeof n === 'string') : []
+      return { pages: strings(saved.pages), aliases: strings(saved.aliases), deleted }
     } catch {
-      return { pages: {}, aliases: {} }
+      return { pages: {}, aliases: {}, deleted: [] }
     }
   }
 
   async function store(next) {
-    const any = Object.keys(next.pages).length || Object.keys(next.aliases).length
+    const any = Object.keys(next.pages).length || Object.keys(next.aliases).length || next.deleted.length
     const saved = any ? await window.DataFile.setItem(KEY, JSON.stringify(next)) : (await window.DataFile.removeItem(KEY), true)
     if (saved === false) throw new Error('Browser storage is full or unavailable; nothing was changed.')
     stored = next
@@ -108,6 +117,8 @@
       const command = byName.get(name.toLowerCase())
       if (command && !command.a.includes(alias)) byName.set(name.toLowerCase(), { ...command, a: [...command.a, alias] })
     })
+    everything = [...byName.values()].sort((a, b) => a.n.localeCompare(b.n))
+    stored.deleted.forEach((name) => byName.delete(name.toLowerCase()))
     return {
       common: base ? base.common : window.SpellBookPSParse.COMMON,
       commands: [...byName.values()].sort((a, b) => a.n.localeCompare(b.n)),
@@ -116,7 +127,7 @@
 
   // sources: [{ text, from }]
   async function add(sources) {
-    const next = { pages: { ...stored.pages }, aliases: { ...stored.aliases } }
+    const next = { pages: { ...stored.pages }, aliases: { ...stored.aliases }, deleted: [...stored.deleted] }
     const added = []
     const problems = []
     let aliases = 0
@@ -129,6 +140,8 @@
         if (whole.length > PAGE_LIMIT) return problems.push(`${name} is too long to keep.`)
         if (known) delete next.pages[known]
         next.pages[name] = whole
+        // Importing a deleted command brings it back.
+        next.deleted = next.deleted.filter((n) => n.toLowerCase() !== name.toLowerCase())
         added.push(`${name} (${Object.keys(window.SpellBookPSParse.parse(whole).params).length} parameters)`)
       })
       Object.assign(next.aliases, read.aliases)
@@ -147,8 +160,119 @@
     return (added.length > 0 || aliases > 0) && !problems.length
   }
 
+  // ─── Deleting and restoring ─────────────────────────────────────────
+  const lower = (name) => name.toLowerCase()
+  const counted = (n) => `${n} command${n === 1 ? '' : 's'}`
+
+  function setDeleted(names, deleting) {
+    const changing = new Set(names.map(lower))
+    const kept = stored.deleted.filter((n) => !changing.has(lower(n)))
+    return store({ ...stored, deleted: deleting ? [...kept, ...names] : kept })
+  }
+
+  function deleteCommand(name) {
+    setDeleted([name], true).then(
+      () => ($('ps-hint').textContent = `Deleted ${name}. Restore it under Manage commands.`),
+      (error) => ($('ps-hint').textContent = error.message),
+    )
+  }
+
+  // ─── Manage commands ────────────────────────────────────────────────
+  const moduleOf = (command) => command.m || '(no module: imported)'
+  const showingDeleted = () => $('ps-manage-show').value === 'deleted'
+
+  // The commands of the Show list (listed or deleted).
+  function manageable() {
+    const gone = new Set(stored.deleted.map(lower))
+    return everything.filter((c) => gone.has(lower(c.n)) === showingDeleted())
+  }
+
+  // Those the module list and the filter box leave showing.
+  function matching() {
+    const module = $('ps-manage-module').value
+    const words = lower($('ps-manage-filter').value).split(/\s+/).filter(Boolean)
+    return manageable().filter((c) => (!module || moduleOf(c) === module) && words.every((w) => lower(c.n).includes(w)))
+  }
+
+  function renderManage() {
+    if ($('ps-manage').hidden) return
+    const all = manageable()
+    const counts = new Map()
+    all.forEach((c) => counts.set(moduleOf(c), (counts.get(moduleOf(c)) || 0) + 1))
+    const select = $('ps-manage-module')
+    const chosen = select.value
+    select.replaceChildren(
+      new Option(`All modules (${all.length})`, ''),
+      ...[...counts].sort((a, b) => a[0].localeCompare(b[0])).map(([name, n]) => new Option(`${name} (${n})`, name)),
+    )
+    select.value = counts.has(chosen) ? chosen : ''
+    // Only what is still on this list stays ticked.
+    const names = new Set(all.map((c) => c.n))
+    ticked.forEach((name) => !names.has(name) && ticked.delete(name))
+    renderChoices()
+  }
+
+  function renderChoices() {
+    const shown = matching()
+    lastTicked = -1
+    $('ps-manage-list').replaceChildren(
+      ...shown.map((command, i) => {
+        const label = el('label')
+        const box = el('input')
+        box.type = 'checkbox'
+        box.checked = ticked.has(command.n)
+        box.addEventListener('click', (e) => {
+          // Shift+click ticks everything from the last one clicked to here.
+          const from = e.shiftKey && lastTicked >= 0 ? Math.min(lastTicked, i) : i
+          const to = e.shiftKey && lastTicked >= 0 ? Math.max(lastTicked, i) : i
+          const boxes = $('ps-manage-list').querySelectorAll('input')
+          for (let at = from; at <= to; at += 1) {
+            boxes[at].checked = box.checked
+            if (box.checked) ticked.add(shown[at].n)
+            else ticked.delete(shown[at].n)
+          }
+          lastTicked = i
+          countTicked()
+        })
+        label.append(box, el('code', '', command.n), el('span', 'ps-muted', moduleOf(command)))
+        return label
+      }),
+    )
+    if (!shown.length) {
+      $('ps-manage-list').append(el('p', 'ps-muted', showingDeleted() && !stored.deleted.length ? 'Nothing is deleted.' : 'No command matches.'))
+    }
+    countTicked()
+  }
+
+  function countTicked() {
+    const shown = matching()
+    const hidden = ticked.size - shown.filter((c) => ticked.has(c.n)).length
+    const apply = $('ps-manage-apply')
+    apply.textContent = `${showingDeleted() ? 'Restore' : 'Delete'} ${ticked.size ? counted(ticked.size) : 'selected'}`
+    apply.disabled = !ticked.size
+    $('ps-manage-all').textContent = `Select all ${shown.length} shown`
+    $('ps-manage-all').disabled = !shown.length
+    $('ps-manage-none').disabled = !ticked.size
+    $('ps-manage-note').textContent = ticked.size ? `${ticked.size} selected${hidden ? `, ${hidden} of them not shown` : ''}.` : ''
+  }
+
+  function applyTicked() {
+    const names = [...ticked]
+    const restoring = showingDeleted()
+    // Many at once is easy to do by mistake.
+    if (names.length > 20 && !confirm(`${restoring ? 'Restore' : 'Delete'} ${counted(names.length)}?`)) return
+    ticked.clear()
+    setDeleted(names, !restoring).then(
+      () => ($('ps-manage-note').textContent = `${restoring ? 'Restored' : 'Deleted'} ${counted(names.length)}.`),
+      (error) => ($('ps-manage-note').textContent = error.message),
+    )
+  }
+
   function renderImported() {
-    const names = Object.keys(stored.pages).sort((a, b) => a.localeCompare(b))
+    const gone = new Set(stored.deleted.map((n) => n.toLowerCase()))
+    const names = Object.keys(stored.pages)
+      .filter((n) => !gone.has(n.toLowerCase()))
+      .sort((a, b) => a.localeCompare(b))
     const aliases = Object.keys(stored.aliases).length
     $('ps-count').textContent = `Imported (${names.length})${aliases ? `, ${aliases} aliases` : ''}`
     $('ps-imported').replaceChildren(
@@ -162,7 +286,7 @@
           if (!confirm(`Remove the imported help for ${name}?`)) return
           const pages = { ...stored.pages }
           delete pages[name]
-          store({ pages, aliases: stored.aliases }).catch((error) => ($('ps-result').textContent = error.message))
+          store({ ...stored, pages }).catch((error) => ($('ps-result').textContent = error.message))
         })
         item.append(el('code', '', name), remove)
         return item
@@ -170,12 +294,21 @@
     )
   }
 
-  function showImport(open) {
-    $('ps-import').hidden = !open
-    $('ps-body').hidden = open
-    $('ps-import-toggle').setAttribute('aria-expanded', String(open))
-    $('ps-import-toggle').textContent = open ? 'Close import' : 'Import help'
+  // 'import', 'manage', or null for the command list and help.
+  function showPanel(which) {
+    $('ps-body').hidden = Boolean(which)
+    ;[
+      ['import', 'Import help', 'Close import'],
+      ['manage', 'Manage commands', 'Close manage'],
+    ].forEach(([name, closed, open]) => {
+      const on = which === name
+      $(`ps-${name}`).hidden = !on
+      $(`ps-${name}-toggle`).setAttribute('aria-expanded', String(on))
+      $(`ps-${name}-toggle`).textContent = on ? open : closed
+    })
+    if (which === 'manage') renderManage()
   }
+  const showImport = (open) => showPanel(open ? 'import' : null)
 
   // ─── Version filter ─────────────────────────────────────────────────
   // The version list is only there for built data.
@@ -214,6 +347,7 @@
       '.',
     ].join('')
     renderImported()
+    renderManage()
     shownHelp = null
     help.replaceChildren()
     if (finding && finder.value.trim()) find()
@@ -429,7 +563,11 @@
       const title = el('h2', '', command.n)
       if (command.m) title.append(el('span', 'ps-chip', command.m))
       if (command.only) title.append(onlyChip(command.only))
-      const parts = [title]
+      const remove = el('button', 'btn secondary sm ps-delete', 'Delete command')
+      remove.type = 'button'
+      remove.title = `Take ${command.n} out of this list (it can be restored)`
+      remove.addEventListener('click', () => deleteCommand(command.n))
+      const parts = [title, remove]
       if (command.a.length) parts.push(el('p', 'ps-muted', `Aliases: ${engine.aliasNames(command).join(', ')}`))
       parts.push(el('p', 'ps-synopsis', command.s || 'No description for this command.'))
       if (command.d) parts.push(prose(command.d))
@@ -528,6 +666,23 @@
     } catch {}
     useVersion()
   })
+  $('ps-manage-toggle').addEventListener('click', () => load().then(() => showPanel($('ps-manage').hidden ? 'manage' : null)))
+  $('ps-manage-show').addEventListener('change', () => {
+    ticked.clear()
+    $('ps-manage-note').textContent = ''
+    renderManage()
+  })
+  $('ps-manage-module').addEventListener('change', renderChoices)
+  $('ps-manage-filter').addEventListener('input', renderChoices)
+  $('ps-manage-all').addEventListener('click', () => {
+    matching().forEach((c) => ticked.add(c.n))
+    renderChoices()
+  })
+  $('ps-manage-none').addEventListener('click', () => {
+    ticked.clear()
+    renderChoices()
+  })
+  $('ps-manage-apply').addEventListener('click', applyTicked)
   $('ps-import-toggle').addEventListener('click', () => load().then(() => showImport($('ps-import').hidden)))
   $('ps-add').addEventListener('click', async () => {
     const text = $('ps-text').value

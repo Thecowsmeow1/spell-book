@@ -22,6 +22,7 @@ Changes since v7.2 (`CHANGELOG-v7.2.md`).
 - On the Tools tab: a **Find** box searches commands by name, alias or what they do; in the **PS>** box a list shows what can come next (cmdlets, parameters that still fit, listed values), with the command's help beside it.
 - Follows pipelines, brackets, `$x = …`, aliases, shortened parameter names, positional values and parameter sets. A version list shows both (marking what only one has) or one; the choice is saved as `spellbook_ps_version_v1`. It runs nothing and can't suggest paths or other live values.
 - `ps-export.ps1` builds `ps-data-5.js` (Windows PowerShell 5.1) and `ps-data-7.js` (PowerShell 7) from the computer's installed modules and help, one file for each version it is run in. Those files are not committed (`modules/tools/powershell/.gitignore`), so each computer builds its own.
+- Any command can be deleted from the list (**Delete command** in its help), or many at once in **Manage commands** (ticks, Shift+click ranges, whole modules), where they can also be restored.
 - Help can be imported without a script: paste or upload the text of `Get-Help <name> -Full` (one or several), plus `Get-Command -Syntax` and `Get-Alias` output. Saved under `spellbook_ps_help_v1`; an imported command replaces a built one.
 - No tutorial yet.
 - Files: `js/core/datafile.js`, `modules/tools/powershell/`, `index.html`.

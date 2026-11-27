@@ -450,6 +450,7 @@ Type a command and see what can come next, with its help beside it.
 - The help shows the syntax, every parameter (type, aliases, values, position, default) and the examples; the parameter being typed opens by itself.
 - It can't suggest paths or other values only a running PowerShell knows, and it runs nothing.
 - **Import help:** paste text or upload text files. In PowerShell: `Get-Help Get-ChildItem -Full > gci.txt`, or several at once with `'Get-ChildItem','Copy-Item' | ForEach-Object { Get-Help $_ -Full } > several.txt`. `Get-Command <name> -Syntax` adds allowed values and `Get-Alias` adds aliases. Importing a command again replaces it.
+- **Delete command**, under a command’s name in the help, takes it out of the list. **Manage commands** deletes or restores many at once: tick them one by one, **Shift+click** a range, or pick a module and **Select all shown**. Deleted commands are listed there to restore; importing one again also brings it back.
 - The imports are saved in the data file; Import / Export copies them with the **PowerShell help** group.
 - **Optional:** `modules/tools/powershell/ps-export.ps1` builds every installed command at once (run it with `powershell` for 5.1 and `pwsh` for 7). With those lists, a version filter appears and anything only one version has is marked.
 

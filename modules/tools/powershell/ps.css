@@ -119,6 +119,66 @@
   border: 1px solid var(--border);
   border-radius: 999px;
 }
+.ps-delete {
+  margin-bottom: 0.4rem;
+}
+.ps-manage[hidden] {
+  display: none;
+}
+.ps-manage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+  padding: 0.9rem 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.87rem;
+}
+.ps-manage-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ps-manage select,
+.ps-manage input[type='search'] {
+  padding: 0.4rem 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.ps-manage input[type='search'] {
+  width: 18rem;
+}
+.ps-manage-list {
+  flex: 1;
+  min-height: 8rem;
+  overflow: auto;
+  padding: 0.3rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.ps-manage-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.ps-manage-list label:hover {
+  background: var(--surface2);
+}
+.ps-manage-list code {
+  font-family: var(--mono);
+}
 .ps-hint {
   min-height: 1.2rem;
   margin: 0.4rem 0;
