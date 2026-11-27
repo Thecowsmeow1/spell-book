@@ -256,26 +256,20 @@ window.SpellBookPS = {
 
     const aliasNames = (c) => c.a.map((a) => (c.aliasOnly?.[a] ? `${a} (${c.aliasOnly[a]} only)` : a))
 
-    function commandItems(typed, words) {
+    // Commands whose name or alias holds what has been typed.
+    function commandItems(typed) {
       const want = lower(typed)
-      const search = [...words.map((w) => lower(w.text)), want].filter(Boolean)
       const found = []
       for (const c of data.commands) {
         const name = lower(c.n)
         let rank = -1
-        if (!search.length) rank = 3
-        else if (!words.length) {
-          if (name === want || c.a.some((a) => lower(a) === want)) rank = 0
-          else if (name.startsWith(want)) rank = 1
-          else if (name.includes(want)) rank = 2
-        }
-        if (rank < 0) {
-          const about = `${name} ${lower(c.s)}`
-          if (search.every((w) => about.includes(w))) rank = 4
-        }
+        if (!want) rank = 3
+        else if (name === want || c.a.some((a) => lower(a) === want)) rank = 0
+        else if (name.startsWith(want)) rank = 1
+        else if (name.includes(want)) rank = 2
         if (rank >= 0) found.push({ kind: 'command', label: c.n, insert: c.n, note: c.s || c.m, aliases: aliasNames(c), only: c.only, command: c, rank })
         // Aliases that start with what's typed are choices of their own.
-        if (!words.length && want) {
+        if (want) {
           c.a
             .filter((a) => lower(a).startsWith(want))
             .forEach((a) =>
@@ -294,8 +288,31 @@ window.SpellBookPS = {
       return found.sort((a, b) => a.rank - b.rank)
     }
 
+    // The Find box: by name or alias, then by words in what a command does.
+    function search(query) {
+      const words = lower(query).split(/\s+/).filter(Boolean)
+      const want = words.join('-')
+      const found = []
+      if (words.length) {
+        for (const c of data.commands) {
+          const name = lower(c.n)
+          const holds = (text) => words.every((w) => text.includes(w))
+          let rank = -1
+          if (name === want || c.a.some((a) => lower(a) === want)) rank = 0
+          else if (name.startsWith(want)) rank = 1
+          else if (holds(name)) rank = 2
+          else if (holds(`${name} ${lower(c.s)}`)) rank = 3
+          else if (holds(`${name} ${lower(c.s)} ${lower(c.d)}`)) rank = 4
+          if (rank >= 0) found.push({ kind: 'command', label: c.n, insert: c.n, note: c.s || c.m, aliases: aliasNames(c), only: c.only, command: c, rank })
+        }
+      }
+      found.sort((a, b) => a.rank - b.rank)
+      return { command: null, param: null, total: found.length, items: found.slice(0, LIMIT) }
+    }
+
     return {
       aliasNames,
+      search,
       find,
       // line: the whole input; cursor: where the caret is.
       // Returns { command, param, items, total, hint, start, end }: insert an
@@ -303,20 +320,17 @@ window.SpellBookPS = {
       complete(line, cursor = line.length) {
         const { words, partial } = segment(line.slice(0, cursor))
         const rest = line.slice(cursor).match(/^[^\s|;(){}]*/)[0]
-        const result = { command: null, param: null, items: [], hint: '', start: partial.start, end: cursor + rest.length }
+        const result = { command: null, param: null, items: [], hint: '', start: partial.start, end: cursor + rest.length, atCommand: !words.length }
         const done = (items) => ({ ...result, total: items.length, items: items.slice(0, LIMIT) })
         const command = words.length ? find(words[0].text) : null
 
         if (!command) {
-          // Plain words search what the commands do.
-          const items = commandItems(partial.text, words)
           if (words.length) {
-            result.start = words[0].start
-            result.hint = 'Searching command descriptions. Pick a command to replace these words.'
-          } else {
-            result.hint = 'Pick a command. Plain words search what commands do.'
+            result.hint = `${words[0].text} isn’t a command in this list. The Find box searches what commands do.`
+            return done([])
           }
-          return done(items)
+          result.hint = 'Pick a command, or search for one in the Find box.'
+          return done(commandItems(partial.text))
         }
 
         result.command = command

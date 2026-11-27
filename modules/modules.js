@@ -9,6 +9,7 @@ window.SPELLBOOK_MODULES = [
   'compendium',
   'tools',
   'powershell',
+  'bash',
   'attack',
   'games',
 ]

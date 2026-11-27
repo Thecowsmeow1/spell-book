@@ -1,0 +1,235 @@
+/* The Bash page (modules/bash). */
+.bash-page:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem 1rem 0.75rem;
+}
+.bash-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.bash-bar + .bash-bar {
+  margin-top: 0.5rem;
+}
+.bash-prompt {
+  flex: 0 0 2.5rem;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.bash-bar input,
+.bash-import textarea,
+.bash-import input[type='text'] {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+}
+.bash-bar input {
+  flex: 1;
+  min-width: 0;
+  height: 2.4rem;
+  padding: 0.55rem 0.7rem;
+}
+.bash-hint {
+  min-height: 1.2rem;
+  margin: 0.4rem 0;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.bash-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0.75rem;
+}
+.bash-body[hidden],
+.bash-import[hidden] {
+  display: none;
+}
+.bash-options,
+.bash-help,
+.bash-import {
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.bash-options {
+  flex: 0 0 22rem;
+  padding: 0.35rem;
+}
+.bash-option {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.bash-option[aria-selected='true'] {
+  background: var(--surface2);
+  border-color: var(--accent);
+}
+.bash-option code,
+.bash-detail code,
+.bash-import li code {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.bash-also {
+  margin-left: 0.6rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+.bash-option-note,
+.bash-muted,
+.bash-first {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.bash-option-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bash-none {
+  padding: 0.4rem 0.5rem;
+}
+.bash-help {
+  flex: 1;
+  min-width: 0;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.87rem;
+}
+.bash-help h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.25rem;
+}
+.bash-help h3,
+.bash-import h3 {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+.bash-help p,
+.bash-import p {
+  margin: 0.4rem 0;
+}
+.bash-synopsis {
+  font-weight: 600;
+}
+.bash-help pre,
+.bash-import pre {
+  margin: 0.35rem 0;
+  padding: 0.5rem 0.7rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  /* The code background is dark in both modes. */
+  color: #e7ecf3;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bash-help dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.9rem;
+  margin: 0;
+}
+.bash-help dt {
+  font-family: var(--mono);
+}
+.bash-help dd {
+  margin: 0;
+  color: var(--muted);
+}
+.bash-detail {
+  margin-bottom: 0.25rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.bash-detail.current {
+  border-color: var(--accent);
+  background: var(--surface2);
+}
+.bash-detail summary {
+  cursor: pointer;
+}
+.bash-detail summary > * {
+  margin-right: 0.5rem;
+}
+/* Closed, an option takes one line. */
+.bash-detail:not([open]) summary {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.bash-detail[open] .bash-first {
+  display: none;
+}
+.bash-import {
+  flex: 1;
+  min-height: 0;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.87rem;
+}
+.bash-import textarea {
+  width: 100%;
+  min-height: 12rem;
+  margin: 0.4rem 0;
+  padding: 0.5rem 0.7rem;
+  resize: vertical;
+}
+.bash-import-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.bash-import input[type='text'] {
+  margin-left: 0.4rem;
+  padding: 0.35rem 0.5rem;
+}
+.bash-file {
+  position: relative;
+  cursor: pointer;
+}
+.bash-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.bash-file:focus-within {
+  outline: 2px solid var(--accent);
+}
+.bash-import ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bash-import li {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+@media (max-width: 800px) {
+  .bash-body {
+    flex-direction: column;
+  }
+  .bash-options {
+    flex: 0 0 12rem;
+  }
+}

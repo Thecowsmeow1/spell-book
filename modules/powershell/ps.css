@@ -11,11 +11,16 @@
   align-items: center;
   gap: 0.5rem;
 }
+.ps-bar + .ps-bar {
+  margin-top: 0.5rem;
+}
 .ps-prompt {
+  flex: 0 0 2.5rem;
   color: var(--muted);
   font-family: var(--mono);
 }
 .ps-bar input {
+  height: 2.4rem;
   flex: 1;
   min-width: 0;
   padding: 0.55rem 0.7rem;
@@ -60,6 +65,9 @@
 .ps-options {
   flex: 0 0 22rem;
   padding: 0.35rem;
+}
+.ps-none {
+  padding: 0.4rem 0.5rem;
 }
 .ps-option {
   padding: 0.35rem 0.5rem;
