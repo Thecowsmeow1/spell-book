@@ -503,7 +503,7 @@ navHistoryRadios.forEach((radio) => {
 applyNavHistory()
 
 // ─── Page width ───────────────────────────────────────────────────────
-// The widest the whole app gets, centered in the window (css/base.css,
+// The widest the whole app gets, against its left side (css/base.css,
 // [data-page-width]). Stored in pixels; nothing is stored for the full window.
 const PAGE_WIDTH_KEY = 'spellbook_page_width_v1'
 const PAGE_WIDTHS = ['1920', '1600', '1366']

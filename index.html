@@ -159,7 +159,7 @@
 <option value="1600">Medium (1600 px)</option>
 <option value="1366">Narrow (1366 px)</option>
 </select></label>
-<span class="form-hint">On wide and ultrawide screens, keeps Spell Book in the middle at this width instead of stretching it. It changes nothing in a smaller window.</span>
+<span class="form-hint">On wide and ultrawide screens, keeps Spell Book at this width, on the left, instead of stretching it. It changes nothing in a smaller window.</span>
 </fieldset>
 <fieldset class="layout-options tab-switches-field" id="tab-switches-section">
 <legend>Tabs</legend>
@@ -393,7 +393,7 @@ From left to right:
 - **Trash:** deleted things, with a count.
 - **Settings**, then **Tutorial (?)**, which tours the tab that's open, then **About (i)**, this guide.
 
-Light or dark mode is in Settings → Layout & Theme, as is **Page width**: on a wide or ultrawide screen it keeps Spell Book in the middle at 1920, 1600 or 1366 pixels instead of stretching it.
+Light or dark mode is in Settings → Layout & Theme, as is **Page width**: on a wide or ultrawide screen it keeps Spell Book on the left at 1920, 1600 or 1366 pixels wide instead of stretching it.
 
 ## Spells: Commands, Scripts, and Terms
 
@@ -412,7 +412,7 @@ Notes in trees, CherryTree style: a tree of nodes on the left and an editor on t
 
 - **Tomes:** notes are grouped into tomes, the tabs above the tree. **+ Tome** starts one. Double-click a tab to rename it, right-click to rename, archive or delete it, and drag its dotted handle to move it.
 - **Nodes:** **+ Node** and **+ Subnode** add notes. Drag a node to move it with its subnodes. To move it to another tome, drop it on that tome's tab, or hold it over the tab until the tome opens and drop it in the tree. Right-click for more, such as **Move Up/Down**, **Move In/Out a Level** and **Duplicate** (**Ctrl+D**). Arrow keys move through the tree, **F2** renames and **Delete** deletes.
-- **Editor:** headings, bold, italic, underline, strikethrough, superscript (Ctrl+.), subscript (Ctrl+,), colors, fonts and sizes, lists, alignment, links, lines, tables and info boxes. Inline code (`</>`) is for a bit of code in a sentence. A **code block** has a language picker and syntax colors. In code, Tab and Shift+Tab indent and outdent the selected lines, as in VS Code.
+- **Editor:** headings, bold, italic, underline, strikethrough, superscript (Ctrl+.), subscript (Ctrl+,), colors, fonts and sizes, lists, alignment, links, lines, tables and info boxes. Tables stay inside the note: drag the border between two columns to move width from one to the other, or the table’s right border to resize the table; both are kept as percentages, so the table narrows and widens with the note. Inline code (`</>`) is for a bit of code in a sentence. A **code block** has a language picker and syntax colors. In code, Tab and Shift+Tab indent and outdent the selected lines, as in VS Code.
 - **Images:** add them with the toolbar's image button, by pasting (a screenshot, a file, or a web page's text with its images) or by dropping. They're shrunk to at most 1600 pixels wide. Click one to resize it or remove it.
 - **Attachments:** attach any file (up to 100 MB) with the toolbar's paperclip button, or drop or paste a file that isn't a picture. It shows as a chip with its name and size. Click it for **Open** (PDFs, pictures and text files open in a new tab), **Download** or **Remove**. Attachments are kept out of the data file: this browser keeps a copy, and each one is saved in an `attachments` folder next to the data file (`data/attachments`). After you link a data file, a banner asks once: click **Choose Folder**, then **Select Folder** (the window opens in the data file's folder; browsers only write to folders you pick). **Settings → Data & Backups → Attachments** has the same button. Copy the data file and that folder together. The database server keeps attachments in `data/attachments` on its own. A dashed chip means this browser doesn't have the file yet: choose the folder that holds it. A file deleted or changed in the folder is put back at the next sync, from the browser's copy. A file no note uses any more (its chip removed, or its note deleted from Trash) is deleted from the folder the next time Spell Book starts, so Ctrl+Z still works until then. **Clean Up…** in Settings → Attachments deletes unused files right away, also from the database server, after asking. Anything that isn't a PDF, a picture or text is only downloaded, never shown in Spell Book.
 - **Insert Command, Script, Term** (**Alt+C**, **Alt+S**, **Alt+T**): at the end of the toolbar, in a group labelled **Spells**, because they come from the Spells tab and only show while it's installed. A command card has the command's fields and the finished command, with values kept in that note. A script card shows the script, and a term becomes a link. Cards have **Edit** and **View in Spell Book**.

@@ -1,7 +1,7 @@
 /*
  * Note width (Compendium): Expand on, the note's text fills the editor pane
- * (fits the screen). Expand off, the text is a centered column of a width you
- * set by dragging its right edge (double-click the edge for the default).
+ * (fits the screen). Expand off, the text is a column against the left, of a
+ * width you set by dragging its right edge (double-click for the default).
  * One setting for every note, saved in this browser. Controls: the Expand
  * button at the end of the note toolbar, and Settings → Compendium.
  */
@@ -32,7 +32,7 @@
             <label><input name="note-width" type="radio" value="fixed"/> Set width</label>
             <label class="note-width-px"><input id="note-width-px" max="3000" min="360" step="10" type="number"/> px</label>
             <span class="form-hint">The same as the ↔ Expand button at the end of the note
-              toolbar. With a set width, the note's text is a centered column: drag its
+              toolbar. With a set width, the note's text is a column on the left: drag its
               right edge to resize it, or double-click the edge for the default.</span>
           </fieldset>
         </div>`
@@ -122,11 +122,11 @@
     document.body.classList.add('note-width-resizing')
     const move = (ev) => {
       const box = editor.getBoundingClientRect()
-      const center = box.left + editor.clientLeft + editor.clientWidth / 2
+      const textLeft = box.left + editor.clientLeft + parseFloat(getComputedStyle(editor).paddingLeft)
       // The padding is reckoned on the whole width, scrollbar included.
       const scrollbar = box.width - editor.clientWidth - 2 * editor.clientLeft
-      // Centered: the column grows on both sides as the edge moves.
-      state.width = clampWidth(2 * (ev.clientX - 6 - center) + scrollbar)
+      // The column starts at the left: only its right edge moves.
+      state.width = clampWidth(ev.clientX - 6 - textLeft + scrollbar)
       apply()
     }
     const up = () => {

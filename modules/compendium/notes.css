@@ -377,11 +377,11 @@
   min-width: 0;
   background: var(--bg);
 }
-/* Expand off (note-width.js): the text is a centered column of the width
-   you set; on a narrower screen it still fits. */
+/* Expand off (note-width.js): the text is a column of the width you set,
+   against the left; on a narrower screen it still fits. */
 .notes-editor-pane.note-fixed-width .notes-editor {
-  padding-left: max(1.5rem, calc((100% - var(--note-width, 820px)) / 2));
-  padding-right: max(1.5rem, calc((100% - var(--note-width, 820px)) / 2));
+  padding-left: 1.5rem;
+  padding-right: max(1.5rem, calc(100% - var(--note-width, 820px) - 1.5rem));
 }
 .note-width-handle {
   position: absolute;
@@ -570,11 +570,11 @@ body.note-width-resizing * {
 .sealed-branch .notes-branch-head .notes-branch-btn {
   margin-left: 0.3rem;
 }
-/* Note width with Expand off: the whole note page is the centered column, so
-   names, tags and text line up. */
+/* Note width with Expand off: the whole note page is the column, so names,
+   tags and text line up. */
 .notes-editor-pane.note-fixed-width .notes-branch {
-  padding-left: max(0px, calc((100% - var(--note-width, 820px)) / 2 - 1.5rem));
-  padding-right: max(0px, calc((100% - var(--note-width, 820px)) / 2 - 1.5rem));
+  padding-left: 0;
+  padding-right: max(0px, calc(100% - var(--note-width, 820px) - 3rem));
 }
 .notes-editor-pane.note-fixed-width .notes-branch .notes-editor {
   padding-left: 1.5rem;
@@ -776,6 +776,18 @@ body.note-width-resizing * {
    widths whatever is typed in them. */
 .notes-editor table:has(> colgroup) {
   table-layout: fixed;
+}
+.notes-editor table {
+  max-width: 100%;
+}
+/* A table still sized in pixels (a page that can't be edited, so notes.js
+   hasn't converted it) is fitted to the note too. */
+.notes-editor table[style*='px'] {
+  width: 100% !important;
+  table-layout: auto !important;
+}
+.notes-editor table[style*='px'] > colgroup > col {
+  width: auto !important;
 }
 /* Expand on (notes.js "Table options"): fills the note, columns fit their text. */
 .notes-editor table[data-expand] {

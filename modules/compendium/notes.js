@@ -92,6 +92,9 @@
   // width (their sum) and row heights, in pixels.
   const SIZE_STYLES = { TABLE: 'width', COL: 'width', TR: 'height' }
   const PIXELS = /^\d{1,4}(\.\d+)?px$/
+  // Table and column widths: shares of the note and of the table. (Pixels are
+  // still read from older notes, and converted.)
+  const PERCENT = /^\d{1,3}(\.\d+)?%$/
   const MIN_COL = 32 // narrowest column
   const MIN_ROW = 20 // shortest row
   const EDGE = 4 // how near a border the pointer grabs it
@@ -215,7 +218,9 @@
         }
         if (SIZE_STYLES[tag] && child.style) {
           const size = child.style.getPropertyValue(SIZE_STYLES[tag])
-          if (PIXELS.test(size)) copy.style.setProperty(SIZE_STYLES[tag], size)
+          if (PIXELS.test(size) || (SIZE_STYLES[tag] === 'width' && PERCENT.test(size))) {
+            copy.style.setProperty(SIZE_STYLES[tag], size)
+          }
         }
         // A table that fills the note and sizes its columns to their text
         // (the Expand toggle in "Table options").
@@ -4138,16 +4143,14 @@
     const rows = rowsInput.valueAsNumber
     const cols = colsInput.valueAsNumber
     const hasHead = form.querySelector('#notes-table-head').checked
-    // Equal columns filling the note's width; from then on, sized by hand.
-    const style = getComputedStyle(editor)
-    const room = editor.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2
-    const colWidth = Math.max(MIN_COL, Math.floor(room / cols))
-    const colgroup = `<colgroup>${`<col style="width: ${colWidth}px">`.repeat(cols)}</colgroup>`
+    // Equal columns filling the note's width.
+    const share = percent(100 / cols)
+    const colgroup = `<colgroup>${`<col style="width: ${share}">`.repeat(cols)}</colgroup>`
     const row = (tag) => `<tr>${`<${tag}><br></${tag}>`.repeat(cols)}</tr>`
     const head = hasHead ? `<thead>${row('th')}</thead>` : ''
     const bodyRows = hasHead ? rows - 1 : rows
     const body = bodyRows ? `<tbody>${row('td').repeat(bodyRows)}</tbody>` : ''
-    replaceCaretBlock(`<table data-new-table="1" style="width: ${colWidth * cols}px">${colgroup}${head}${body}</table><p><br></p>`)
+    replaceCaretBlock(`<table data-new-table="1" style="width: 100%">${colgroup}${head}${body}</table><p><br></p>`)
     const table = editor.querySelector('table[data-new-table]')
     if (table) {
       table.removeAttribute('data-new-table')
@@ -4221,7 +4224,7 @@
       const col = document.createElement('col')
       col.style.width = (cols[from] || cols[cols.length - 1]).style.width
       cols[0].parentElement.insertBefore(col, cols[at] || null)
-      sumWidths(copy)
+      shareOut(copy)
     }
     return copy.rows[rowIndex].cells[at]
   }
@@ -4242,7 +4245,7 @@
     const cols = colsOf(copy)
     if (cols[colIndex]) {
       cols[colIndex].remove()
-      sumWidths(copy)
+      shareOut(copy)
     }
     const row = copy.rows[rowIndex]
     return row.cells[Math.min(colIndex, row.cells.length - 1)]
@@ -4256,23 +4259,11 @@
 
   // Expand on: the table fills the note's width and its columns size to
   // their text (how tables worked before "Table sizes"). Off: the columns
-  // keep the widths they show now, and are sized by hand from then on.
-  function toggleExpand(copy, widths) {
+  // keep the shares they show now, and are sized by hand from then on.
+  function toggleExpand(copy, widths, room) {
     if (copy.dataset.expand) {
       delete copy.dataset.expand
-      let group = copy.querySelector(':scope > colgroup')
-      if (!group) {
-        group = document.createElement('colgroup')
-        copy.prepend(group)
-      }
-      group.replaceChildren(
-        ...widths.map((w) => {
-          const col = document.createElement('col')
-          col.style.width = `${w}px`
-          return col
-        }),
-      )
-      sumWidths(copy)
+      setWidths(copy, widths, room)
     } else {
       copy.dataset.expand = '1'
       const group = copy.querySelector(':scope > colgroup')
@@ -4290,8 +4281,9 @@
       // Measured here: the edited copy isn't drawn.
       const widest = [...table.rows].reduce((a, b) => (b.cells.length > a.cells.length ? b : a), table.rows[0])
       const widths = [...widest.cells].map((c) => Math.max(MIN_COL, Math.round(c.getBoundingClientRect().width)))
+      const room = roomFor(table)
       rewriteTable(cell, (copy, row, col) => {
-        toggleExpand(copy, widths)
+        toggleExpand(copy, widths, room)
         return copy.rows[row].cells[col]
       })
       placeTableTools()
@@ -4316,45 +4308,79 @@
   }
 
   // ─── Table sizes ────────────────────────────────────────────────────
-  // Tables keep the sizes they are given: each column has a set width (a
-  // <col> in a <colgroup>) and the table is as wide as its columns, so typing
-  // never reflows the columns. Drag a column's right border to change its
-  // width, or a row's bottom border to change its height (a row still grows
-  // if its text needs more room). Older tables are fixed at the sizes they
-  // show the first time the note is opened.
+  // As in TriliumNext, a table never runs past the note: its width is a share
+  // of the note and each column (a <col> in a <colgroup>) a share of the
+  // table, so everything narrows and widens with the note. Drag the border
+  // between two columns to move width from one to the other, or the table's
+  // right border to make the table narrower or wider (up to the note's width);
+  // drag a row's bottom border to change its height (a row still grows if its
+  // text needs more room). A table never sized by hand fills the note and sizes
+  // its own columns. Tables sized in pixels, by an earlier version, are
+  // converted when the note is opened.
   const colsOf = (table) => [...table.querySelectorAll(':scope > colgroup > col')]
   const ownTable = (table) => table && editor.contains(table) && !table.closest('[contenteditable="false"]')
+  const percent = (value) => `${Math.round(value * 100) / 100}%`
 
-  function sumWidths(table) {
-    const total = colsOf(table).reduce((sum, col) => sum + (parseFloat(col.style.width) || 0), 0)
-    if (total) table.style.width = `${Math.round(total)}px`
+  // The width a table can take where it is.
+  function roomFor(table) {
+    const parent = table.parentElement
+    if (!parent) return 0
+    const style = getComputedStyle(parent)
+    return parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
   }
 
+  // Gives a table columns in the proportions of `widths` (pixels), and their
+  // total as its share of `room`.
+  function setWidths(table, widths, room) {
+    const total = widths.reduce((sum, w) => sum + w, 0)
+    if (!total || !room) return
+    let group = table.querySelector(':scope > colgroup')
+    if (!group) {
+      group = document.createElement('colgroup')
+      table.prepend(group)
+    }
+    group.replaceChildren(
+      ...widths.map((w) => {
+        const col = document.createElement('col')
+        col.style.width = percent((100 * w) / total)
+        return col
+      }),
+    )
+    table.style.width = percent(Math.min(100, (100 * total) / room))
+  }
+
+  // After a column is added or removed: the shares add up to the table again.
+  function shareOut(table) {
+    const cols = colsOf(table)
+    const total = cols.reduce((sum, col) => sum + (parseFloat(col.style.width) || 0), 0)
+    if (total) cols.forEach((col) => (col.style.width = percent((100 * (parseFloat(col.style.width) || 0)) / total)))
+  }
+
+  // The widths the columns show now, from the row with the most cells.
+  function shownWidths(table) {
+    const row = [...table.rows].reduce((a, b) => (b.cells.length > a.cells.length ? b : a), table.rows[0])
+    return row ? [...row.cells].map((cell) => cell.getBoundingClientRect().width) : []
+  }
+
+  // Converts tables sized in pixels.
   function fixTableSizes() {
     editor.querySelectorAll('table').forEach((table) => {
       if (!ownTable(table) || table.dataset.expand) return
       const cols = colsOf(table)
-      if (cols.length === widthOf(table) && cols.every((col) => PIXELS.test(col.style.width)) && table.style.width) return
-      // Measured from the row with the most cells; nothing to measure while
-      // the note is hidden, so that waits for the next edit.
-      const row = [...table.rows].reduce((a, b) => (b.cells.length > a.cells.length ? b : a), table.rows[0])
-      const widths = row ? [...row.cells].map((cell) => Math.round(cell.getBoundingClientRect().width)) : []
-      if (!widths.length || widths.some((w) => !w)) return
-      let group = table.querySelector(':scope > colgroup')
-      if (!group) {
-        group = document.createElement('colgroup')
-        table.prepend(group)
-      }
-      group.replaceChildren(
-        ...widths.map((w) => {
-          const col = document.createElement('col')
-          col.style.width = `${Math.max(MIN_COL, w)}px`
-          return col
-        }),
-      )
-      sumWidths(table)
+      if (!PIXELS.test(table.style.width) && !cols.some((col) => PIXELS.test(col.style.width))) return
+      // Nothing to measure while the note is hidden: that waits for the next edit.
+      const room = roomFor(table)
+      if (room <= 0) return
+      const kept = cols.length === widthOf(table) && cols.every((col) => PIXELS.test(col.style.width))
+      const widths = kept ? cols.map((col) => parseFloat(col.style.width)) : shownWidths(table)
+      if (widths.length && widths.every((w) => w > 0)) setWidths(table, widths, room)
     })
   }
+
+  // A note opened while this page wasn't showing is converted when it shows.
+  document.addEventListener('spellbook:page', (e) => {
+    if (e.detail.page === 'notes') requestAnimationFrame(fixTableSizes)
+  })
 
   // The border under the pointer: { table, col } for a column's right
   // border, { table, row } for a row's bottom border.
@@ -4374,11 +4400,7 @@
     if (Math.abs(x - box.right) <= EDGE) index = cell.cellIndex
     else if (Math.abs(x - box.left) <= EDGE && cell.cellIndex > 0) index = cell.cellIndex - 1
     // An expanding table sizes its own columns: only rows are dragged.
-    if (index >= 0 && !table.dataset.expand) {
-      fixTableSizes()
-      const col = colsOf(table)[index]
-      if (col) return { table, col }
-    }
+    if (index >= 0 && !table.dataset.expand) return { table, col: index }
     if (Math.abs(y - box.bottom) <= EDGE) return { table, row: cell.parentElement }
     if (Math.abs(y - box.top) <= EDGE && cell.parentElement.rowIndex > 0) {
       return { table, row: table.rows[cell.parentElement.rowIndex - 1] }
@@ -4389,7 +4411,7 @@
   editor.addEventListener('pointermove', (e) => {
     if (e.buttons) return
     const edge = tableEdgeAt(e.clientX, e.clientY)
-    editor.classList.toggle('table-col-edge', Boolean(edge && edge.col))
+    editor.classList.toggle('table-col-edge', Boolean(edge && edge.col !== undefined))
     editor.classList.toggle('table-row-edge', Boolean(edge && edge.row))
   })
   editor.addEventListener('pointerleave', () => {
@@ -4404,16 +4426,35 @@
       // Not a click into the text: no caret move, no selection.
       e.preventDefault()
       e.stopPropagation()
-      const { table, col, row } = edge
-      const start = col ? parseFloat(col.style.width) : row.getBoundingClientRect().height
-      const from = col ? e.clientX : e.clientY
+      const { table, row } = edge
+      const index = edge.col
+      const column = index !== undefined
+      const room = column ? roomFor(table) : 0
+      // The widths in pixels as the drag begins.
+      const widths = column ? shownWidths(table) : []
+      const start = column ? widths[index] : row.getBoundingClientRect().height
+      if (column && (!room || start === undefined)) return
+      const from = column ? e.clientX : e.clientY
       editor.setPointerCapture(e.pointerId)
-      document.body.classList.add(col ? 'table-col-resizing' : 'table-row-resizing')
+      document.body.classList.add(column ? 'table-col-resizing' : 'table-row-resizing')
+      let moved = false
       const move = (ev) => {
-        const change = (col ? ev.clientX : ev.clientY) - from
-        if (col) {
-          col.style.width = `${Math.round(Math.max(MIN_COL, start + change))}px`
-          sumWidths(table)
+        const change = (column ? ev.clientX : ev.clientY) - from
+        if (!change && !moved) return
+        moved = true
+        if (column) {
+          const next = [...widths]
+          if (index < widths.length - 1) {
+            // Between two columns: one gains what the other gives up.
+            const pair = widths[index] + widths[index + 1]
+            next[index] = Math.min(Math.max(MIN_COL, start + change), Math.max(MIN_COL, pair - MIN_COL))
+            next[index + 1] = pair - next[index]
+          } else {
+            // The table's right edge: it stops at the note's width.
+            const others = widths.reduce((sum, w) => sum + w, 0) - start
+            next[index] = Math.max(MIN_COL, Math.min(start + change, room - others))
+          }
+          setWidths(table, next, room)
         } else {
           row.style.height = `${Math.round(Math.max(MIN_ROW, start + change))}px`
         }
@@ -4424,6 +4465,7 @@
         editor.removeEventListener('pointerup', up)
         editor.removeEventListener('pointercancel', up)
         document.body.classList.remove('table-col-resizing', 'table-row-resizing')
+        if (!moved) return
         // A row can't be shorter than its text: keep the height it shows.
         if (row) row.style.height = `${Math.round(row.getBoundingClientRect().height)}px`
         markDirty()

@@ -157,7 +157,7 @@ SpellBook.module({
 </div>
 <div aria-controls="notes-editor" aria-label="Table" class="notes-table-tools" hidden="" id="notes-table-tools" role="toolbar">
 <span class="notes-table-tools-label">Table:</span>
-<button aria-pressed="false" class="btn secondary sm notes-table-toggle" data-table-action="expand" title="On: the table fills the note's width and its columns fit their text. Off: drag column borders to set their widths." type="button">Expand</button>
+<button aria-pressed="false" class="btn secondary sm notes-table-toggle" data-table-action="expand" title="On: the table fills the note's width and its columns fit their text. Off: drag column borders to set their shares of the table." type="button">Expand</button>
 <span class="notes-tool-sep"></span>
 <button class="btn secondary sm" data-table-action="row-above" type="button">+ Row above</button>
 <button class="btn secondary sm" data-table-action="row-below" type="button">+ Row below</button>

@@ -60,6 +60,15 @@ Changes since v7.2 (`CHANGELOG-v7.2.md`).
 ## The app: page width
 
 ### 8. Limit the page width
-- Settings → Layout & Theme → **Page width**: fill the window (the default), or stay at most 1920, 1600 or 1366 pixels wide, centered. For wide and ultrawide screens.
+- Settings → Layout & Theme → **Page width**: fill the window (the default), or stay at most 1920, 1600 or 1366 pixels wide, on the left of the window. For wide and ultrawide screens.
 - Saved as `spellbook_page_width_v1`, copied with the "Page width" group in Import / Export and reset by **Clear Settings**.
 - Files: `js/settings.js`, `css/base.css`, `index.html`, `modules/spells/spells.js` (redraws the table).
+- The Compendium's note column (Expand off) now starts at the left of its pane instead of being centered; dragging its right edge sets the width. Files: `modules/compendium/notes.css`, `note-width.js`.
+
+## Compendium
+
+### 9. Tables stay inside the note
+- Modeled on TriliumNext: a table's width is a share of the note (100% at most) and each column a share of the table, so tables narrow and widen with the note.
+- Dragging the border between two columns moves width from one to the other; dragging the table's right border resizes the table. Row heights work as before.
+- Tables saved in pixels are converted when their note is opened.
+- Files: `modules/compendium/notes.js`, `notes.css`, `module.js`, `index.html`.
