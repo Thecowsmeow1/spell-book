@@ -53,7 +53,8 @@ Changes since v7.2 (`CHANGELOG-v7.2.md`).
 - Files: `modules/tools/tools-help.js`, `module.js`, `tools.css`, `index.html`.
 
 ### 7. Code tables
-- Six new tools: **FTP codes**, **HTTP codes**, **SMTP codes**, **Windows syslog codes**, **Windows event IDs** and **Windows Security log codes**, as tables with a search box and a Group filter.
+- Four new tools: **FTP codes**, **HTTP codes**, **SMTP codes** and **Windows events to monitor**, as tables with a search box and a filter.
+- **Windows events to monitor** is the table (381 events) from Microsoft Learn's "Appendix L: Events to Monitor", with a link to it. It replaces the earlier syslog, event ID and Security log tables.
 - Columns start as wide as their contents, and keep that width while searching.
 - Columns can be resized by dragging their dividers (or ← → on a focused divider); double-click or Home resets a table. Saved as `spellbook_code_columns_v1`, in the "Code table columns" group of Import / Export, and reset by **Clear Settings**.
 - Files: `modules/tools/tools-codes.js`, `module.js`, `tools-layout.js`, `tools.css`, `index.html`.

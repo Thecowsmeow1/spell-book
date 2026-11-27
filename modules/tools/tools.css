@@ -284,6 +284,13 @@
 .codes-controls > label:last-child {
   flex: 0 1 18rem;
 }
+.codes-source {
+  margin: -0.75rem 0 1rem;
+  font-size: 0.8rem;
+}
+.codes-source a {
+  color: var(--accent-text);
+}
 .codes-count {
   margin: 0.5rem 0;
   color: var(--muted);
