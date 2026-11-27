@@ -150,6 +150,17 @@
 <span class="form-hint">The ← and → buttons beside the logo, which go back and
                 forward through the commands, scripts, terms and notes you've viewed.</span>
 </fieldset>
+<fieldset class="layout-options">
+<legend>Page width</legend>
+<label class="form-group">Widest the page gets
+                <select id="page-width">
+<option value="full">Fill the window</option>
+<option value="1920">Standard widescreen (1920 px)</option>
+<option value="1600">Medium (1600 px)</option>
+<option value="1366">Narrow (1366 px)</option>
+</select></label>
+<span class="form-hint">On wide and ultrawide screens, keeps Spell Book in the middle at this width instead of stretching it. It changes nothing in a smaller window.</span>
+</fieldset>
 <fieldset class="layout-options tab-switches-field" id="tab-switches-section">
 <legend>Tabs</legend>
 <div class="tab-switches" id="tab-switches"></div>
@@ -382,7 +393,7 @@ From left to right:
 - **Trash:** deleted things, with a count.
 - **Settings**, then **Tutorial (?)**, which tours the tab that's open, then **About (i)**, this guide.
 
-Light or dark mode is in Settings → Layout & Theme.
+Light or dark mode is in Settings → Layout & Theme, as is **Page width**: on a wide or ultrawide screen it keeps Spell Book in the middle at 1920, 1600 or 1366 pixels instead of stretching it.
 
 ## Spells: Commands, Scripts, and Terms
 
@@ -426,7 +437,7 @@ Pick a tool in the list on the left (**↑** and **↓** move through it). Drag 
 - **Number converter** (decimal, hex, octal, binary, bytes).
 - **Crontab interpreter**: the schedule in plain English, and its next runs. The five fields are shown under the box, with help for the one your cursor is in, examples and a **Quick reference**.
 - **Regex interpreter**: the pattern explained and tested on your text. A line explains the part your cursor is in (or the flags); there are examples and a **Quick reference** whose entries can be clicked into the pattern.
-- **Code tables:** FTP, HTTP and SMTP codes, Windows syslog codes, Windows event IDs and Windows Security log codes, each with a search box (type a number to find codes starting with it) and a **Group** filter. They are short references to the common codes.
+- **Code tables:** FTP, HTTP and SMTP codes, Windows syslog codes, Windows event IDs and Windows Security log codes, each with a search box (type a number to find codes starting with it) and a **Group** filter. Columns start as wide as their contents. Drag a column divider to resize one (double-click to fit the contents again); widths you set are saved in the data file. They are short references to the common codes.
 - **Help harvester**: a script that collects a command's help, and its subcommands', into one file for the importer.
 
 ### PowerShell

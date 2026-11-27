@@ -53,4 +53,13 @@ Changes since v7.2 (`CHANGELOG-v7.2.md`).
 
 ### 7. Code tables
 - Six new tools: **FTP codes**, **HTTP codes**, **SMTP codes**, **Windows syslog codes**, **Windows event IDs** and **Windows Security log codes**, as tables with a search box and a Group filter.
+- Columns start as wide as their contents, and keep that width while searching.
+- Columns can be resized by dragging their dividers (or ← → on a focused divider); double-click or Home resets a table. Saved as `spellbook_code_columns_v1`, in the "Code table columns" group of Import / Export, and reset by **Clear Settings**.
 - Files: `modules/tools/tools-codes.js`, `module.js`, `tools-layout.js`, `tools.css`, `index.html`.
+
+## The app: page width
+
+### 8. Limit the page width
+- Settings → Layout & Theme → **Page width**: fill the window (the default), or stay at most 1920, 1600 or 1366 pixels wide, centered. For wide and ultrawide screens.
+- Saved as `spellbook_page_width_v1`, copied with the "Page width" group in Import / Export and reset by **Clear Settings**.
+- Files: `js/settings.js`, `css/base.css`, `index.html`, `modules/spells/spells.js` (redraws the table).

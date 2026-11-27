@@ -502,6 +502,48 @@ navHistoryRadios.forEach((radio) => {
 })
 applyNavHistory()
 
+// ─── Page width ───────────────────────────────────────────────────────
+// The widest the whole app gets, centered in the window (css/base.css,
+// [data-page-width]). Stored in pixels; nothing is stored for the full window.
+const PAGE_WIDTH_KEY = 'spellbook_page_width_v1'
+const PAGE_WIDTHS = ['1920', '1600', '1366']
+const pageWidthSelect = document.getElementById('page-width')
+function savedPageWidth() {
+  try {
+    const saved = localStorage.getItem(PAGE_WIDTH_KEY)
+    return PAGE_WIDTHS.includes(saved) ? saved : 'full'
+  } catch {
+    return 'full'
+  }
+}
+function applyPageWidth() {
+  const width = savedPageWidth()
+  const root = document.documentElement
+  root.toggleAttribute('data-page-width', width !== 'full')
+  if (width === 'full') root.style.removeProperty('--page-width')
+  else root.style.setProperty('--page-width', `${width}px`)
+  pageWidthSelect.value = width
+  // Panes sized to the window measure again.
+  window.dispatchEvent(new Event('resize'))
+  // Tabs that measure what they draw (Spells' table columns) draw it again.
+  document.dispatchEvent(new CustomEvent('spellbook:page-width'))
+}
+pageWidthSelect.addEventListener('change', () => {
+  try {
+    if (pageWidthSelect.value === 'full') localStorage.removeItem(PAGE_WIDTH_KEY)
+    else localStorage.setItem(PAGE_WIDTH_KEY, pageWidthSelect.value)
+  } catch {}
+  applyPageWidth()
+})
+applyPageWidth()
+window.SpellBook.settingGroup({
+  id: 'pageWidth',
+  title: 'Page width',
+  sub: 'the widest the page gets',
+  order: 12,
+  keys: [PAGE_WIDTH_KEY],
+})
+
 // ─── Tabs on and off ──────────────────────────────────────────────────
 // A checkbox per tab (js/core/pages.js setTabOn). A tab turned on that wasn't
 // loaded at start needs a reload; the Reload Now button offers it.
@@ -1381,6 +1423,8 @@ document.getElementById('btn-clear-settings').addEventListener('click', () => {
   clearSyntaxOverrides()
   localStorage.removeItem(NAV_HISTORY_KEY)
   applyNavHistory()
+  localStorage.removeItem(PAGE_WIDTH_KEY)
+  applyPageWidth()
   if (window.NoteWidth) window.NoteWidth.reset()
   window.SpellBook.setTabOrder(null)
   window.SpellBook.allTabsOn()

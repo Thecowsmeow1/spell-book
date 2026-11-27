@@ -1,8 +1,12 @@
 /*
  * Code reference tools: FTP, HTTP and SMTP reply codes, syslog codes, Windows
  * event IDs and Security log codes, each a table with a search box and a group
- * filter. Reference only; nothing is saved. Loaded after tools.js and before
- * tools-layout.js.
+ * filter. Reference only. Loaded after tools.js and before tools-layout.js.
+ *
+ * Column widths: drag the divider at a heading's right edge (or focus it and
+ * use ← →); double-click it, or press Home, to reset that table. Saved under
+ * spellbook_code_columns_v1 as { "table title": [pixels] }. A table that was
+ * never resized fits each column to its contents.
  *
  * Rows are written one per line as "cell | cell | …"; a line starting with #
  * names the group of the rows under it.
@@ -23,6 +27,125 @@
     })
     return rows
   }
+
+  // ─── Column widths ──────────────────────────────────────────────────
+  const WIDTHS_KEY = 'spellbook_code_columns_v1'
+  const MIN_WIDTH = 60
+  const resets = []
+  function readWidths() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(WIDTHS_KEY) || '{}')
+      return saved && typeof saved === 'object' ? saved : {}
+    } catch {
+      return {}
+    }
+  }
+  function saveWidths(title, widths) {
+    const all = readWidths()
+    if (widths) all[title] = widths
+    else delete all[title]
+    try {
+      if (Object.keys(all).length) localStorage.setItem(WIDTHS_KEY, JSON.stringify(all))
+      else localStorage.removeItem(WIDTHS_KEY)
+    } catch {}
+  }
+
+  function resizable(table, title) {
+    const headers = [...table.querySelectorAll('th')]
+    const group = el('colgroup')
+    const cols = headers.map(() => group.appendChild(el('col')))
+    table.prepend(group)
+    let widths = null // pixels; null while the columns size themselves
+
+    const apply = () => {
+      table.classList.toggle('sized', Boolean(widths))
+      cols.forEach((col, i) => (col.style.width = widths ? `${widths[i]}px` : ''))
+      table.style.width = widths ? `${widths.reduce((a, b) => a + b, 0)}px` : ''
+    }
+    // The widths on screen, as the start of a resize.
+    const measure = () => {
+      if (!widths) widths = headers.map((th) => Math.round(th.getBoundingClientRect().width))
+    }
+    const resize = (i, width) => {
+      widths[i] = Math.max(MIN_WIDTH, Math.round(width))
+      apply()
+    }
+    const reset = () => {
+      widths = null
+      apply()
+      saveWidths(title, null)
+    }
+    resets.push(() => {
+      widths = null
+      apply()
+    })
+
+    headers.forEach((th, i) => {
+      const handle = el('span', 'codes-resizer')
+      handle.tabIndex = 0
+      handle.setAttribute('role', 'separator')
+      handle.setAttribute('aria-orientation', 'vertical')
+      handle.setAttribute('aria-label', `Width of the ${th.textContent} column`)
+      handle.title = 'Drag to resize (double-click to fit the contents again)'
+      th.append(handle)
+      handle.addEventListener('dblclick', reset)
+      handle.addEventListener('keydown', (e) => {
+        const step = { ArrowLeft: -20, ArrowRight: 20 }[e.key]
+        if (!step && e.key !== 'Home') return
+        e.preventDefault()
+        if (!step) return reset()
+        measure()
+        resize(i, widths[i] + step)
+        saveWidths(title, widths)
+      })
+      handle.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return
+        e.preventDefault()
+        handle.setPointerCapture(e.pointerId)
+        handle.classList.add('dragging')
+        const from = e.clientX
+        let start = null
+        const move = (event) => {
+          // A click, or the first of a double-click, changes nothing.
+          if (start === null && Math.abs(event.clientX - from) < 3) return
+          if (start === null) {
+            measure()
+            start = widths[i]
+          }
+          resize(i, start + event.clientX - from)
+        }
+        const end = () => {
+          handle.removeEventListener('pointermove', move)
+          handle.removeEventListener('pointerup', end)
+          handle.removeEventListener('pointercancel', end)
+          handle.classList.remove('dragging')
+          if (start !== null) saveWidths(title, widths)
+        }
+        handle.addEventListener('pointermove', move)
+        handle.addEventListener('pointerup', end)
+        handle.addEventListener('pointercancel', end)
+      })
+    })
+
+    const saved = readWidths()[title]
+    if (Array.isArray(saved) && saved.length === headers.length && saved.every((w) => w >= MIN_WIDTH)) widths = [...saved]
+    apply()
+  }
+
+  window.SpellBook.settingGroup({
+    id: 'codeColumns',
+    title: 'Code table columns',
+    sub: 'the column widths of the code tables on Tools',
+    order: 93,
+    keys: [WIDTHS_KEY],
+  })
+  // Clear Settings: columns size themselves again.
+  document.addEventListener('spellbook:settings-reset', () => {
+    try {
+      localStorage.removeItem(WIDTHS_KEY)
+    } catch {}
+    resets.forEach((reset) => reset())
+  })
 
   function codeTable({ title, blurb, columns, rows, placeholder }) {
     const card = tool(title, blurb)
@@ -55,6 +178,7 @@
       return { tr, group: row.group, code: row.cells[0].toLowerCase(), text: [...row.cells, row.group].join(' ').toLowerCase() }
     })
     table.append(thead, body)
+    resizable(table, title)
     const scroll = el('div', 'codes-scroll')
     scroll.append(table)
     card.append(controls, count, scroll)

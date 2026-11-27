@@ -5824,10 +5824,22 @@ window.SpellBook.provide('spells', {
   notesChanged: () => renderNoteLinks(),
 })
 
+// The table's columns are sized from its width when drawn, so a new page width
+// (Settings) draws it again: now, or when this page is next shown.
+let tableWidthStale = false
+document.addEventListener('spellbook:page-width', () => {
+  if (document.getElementById('page-spellbook').hidden) tableWidthStale = true
+  else renderList()
+})
+
 // Coming back to this page: restore the pane sizes and the "linked in n
 // notes" lines, which may have changed on the Compendium.
 document.addEventListener('spellbook:page', (e) => {
   if (e.detail.page !== 'spellbook') return
+  if (tableWidthStale) {
+    tableWidthStale = false
+    renderList()
+  }
   if (window.restoreSplitHeight) window.restoreSplitHeight()
   if (window.restoreControlsWidth) window.restoreControlsWidth()
   renderNoteLinks()

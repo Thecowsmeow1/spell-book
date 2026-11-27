@@ -94,6 +94,14 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
+/* Settings → Layout & Theme → Page width: the app stays this wide at most, in
+   the middle of the window. */
+[data-page-width] body {
+  width: 100%;
+  max-width: var(--page-width);
+  margin-inline: auto;
+  box-shadow: 0 0 0 1px var(--border);
+}
 /* Header */
 header {
   font-family: var(--font-controls, var(--sans));
