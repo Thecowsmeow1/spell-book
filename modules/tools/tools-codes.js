@@ -1,6 +1,7 @@
 /*
  * Code reference tools: FTP, HTTP and SMTP reply codes and Microsoft's Windows
- * events to monitor, each a table with a search box and a group filter. Reference only. Loaded after tools.js and before tools-layout.js.
+ * Event Codes, each a table with a search box, a group filter and headings that
+ * sort it. Reference only. Loaded after tools.js and before tools-layout.js.
  *
  * Column widths: drag the divider at a heading's right edge (or focus it and
  * use ← →); double-click it, or press Home, to reset that table. Saved under
@@ -148,9 +149,10 @@
 
   // filterName: what the groups are called; groupColumn: false when a column
   // already shows them; source: { label, url } for a table taken from elsewhere.
-  function codeTable({ title, blurb, columns, rows, placeholder, source, filterName = 'Group', groupColumn = true }) {
+  function codeTable({ title, blurb, columns, rows, placeholder, source, filterName = 'Group', groupColumn = true, wide = false, ranks = {} }) {
     const card = tool(title, blurb)
     card.classList.add('tool-codes')
+    if (wide) card.classList.add('codes-wide')
     if (source) {
       const line = el('p', 'codes-source', 'Source: ')
       const link = el('a', '', source.label)
@@ -172,10 +174,16 @@
 
     const table = el('table', 'codes-table')
     const head = el('tr')
-    ;[...columns, ...(groupColumn ? [filterName] : [])].forEach((name) => {
-      const th = el('th', '', name)
+    const headings = [...columns, ...(groupColumn ? [filterName] : [])].map((name, i) => {
+      const th = el('th')
       th.scope = 'col'
+      const button = el('button', 'codes-sort', name)
+      button.type = 'button'
+      button.title = `Sort by ${name}`
+      button.addEventListener('click', () => sortBy(i))
+      th.append(button)
       head.append(th)
+      return th
     })
     const thead = el('thead')
     thead.append(head)
@@ -185,13 +193,42 @@
       columns.forEach((_, i) => tr.append(el('td', i ? '' : 'codes-code', row.cells[i] || '')))
       if (groupColumn) tr.append(el('td', 'codes-group', row.group))
       body.append(tr)
-      return { tr, group: row.group, code: row.cells[0].toLowerCase(), text: [...row.cells, row.group].join(' ').toLowerCase() }
+      return { tr, cells: [...columns.map((_, i) => row.cells[i] || ''), row.group], group: row.group, code: row.cells[0].toLowerCase(), text: [...row.cells, row.group].join(' ').toLowerCase() }
     })
     table.append(thead, body)
     resizable(table, title)
     const scroll = el('div', 'codes-scroll')
     scroll.append(table)
     card.append(controls, count, scroll)
+
+    // A heading sorts its column up, then down, then back to the first order.
+    let sorted = { column: -1, step: 0 }
+    const compare = (column) => {
+      const rank = ranks[column]
+      return (a, b) => {
+        const x = a.cells[column]
+        const y = b.cells[column]
+        if (rank) return rank.indexOf(x) - rank.indexOf(y)
+        return x.localeCompare(y, undefined, { numeric: true, sensitivity: 'base' })
+      }
+    }
+    function sortBy(column) {
+      const step = sorted.column === column ? (sorted.step + 1) % 3 : 1
+      sorted = { column, step }
+      let order = lines
+      if (step) {
+        const by = compare(column)
+        // Empty, "-" and "N/A" cells stay at the bottom in both directions.
+        const blank = (line) => ['', '-', 'N/A'].includes(line.cells[column])
+        order = [...lines].sort((a, b) => blank(a) - blank(b) || (step === 1 ? by(a, b) : by(b, a)))
+      }
+      order.forEach((line) => body.append(line.tr))
+      headings.forEach((th, i) => {
+        if (i === column && step) th.setAttribute('aria-sort', step === 1 ? 'ascending' : 'descending')
+        else th.removeAttribute('aria-sort')
+      })
+      scroll.scrollTop = 0
+    }
 
     const filter = () => {
       const words = search.value.toLowerCase().split(/\s+/).filter(Boolean)
@@ -422,11 +459,14 @@
     `),
   })
 
-  // ─── Windows events to monitor ──────────────────────────────────────
+  // ─── Windows Event Codes ──────────────────────────────────────
   // The table of Microsoft's "Appendix L: Events to Monitor", row for row
   // (page dated 2025-05-30, copied 2026-11-27).
   codeTable({
-    title: 'Windows events to monitor',
+    title: 'Windows Event Codes',
+    wide: true, // 1920 px at most, the summary wrapping
+    // Sorted by meaning rather than spelling: column number to its order.
+    ranks: { 2: ['High', 'Medium to High', 'Medium', 'Low'] },
     blurb: 'Microsoft’s recommended Active Directory and Windows security events. High: investigate a single occurrence. Medium or Low: investigate if unexpected or well above normal. Test in your own environment; some events need audit policy turned on.',
     source: { label: 'Appendix L: Events to Monitor, Microsoft Learn', url: 'https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/appendix-l--events-to-monitor' },
     columns: ['Current event ID', 'Legacy event ID', 'Potential criticality', 'Event summary'],

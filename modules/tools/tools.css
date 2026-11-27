@@ -338,6 +338,54 @@
   overflow-wrap: anywhere;
   white-space: normal;
 }
+/* A heading is the button that sorts its column. */
+.codes-sort {
+  display: block;
+  width: 100%;
+  padding: 0 0.6rem 0 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.codes-sort:hover {
+  color: var(--accent-text);
+}
+.codes-table th[aria-sort] .codes-sort::after {
+  margin-left: 0.35rem;
+  color: var(--accent-text);
+  content: '▲';
+}
+.codes-table th[aria-sort='descending'] .codes-sort::after {
+  content: '▼';
+}
+/* A wide table: up to 1920 px, its short columns fitted and the last one
+   taking the rest and wrapping. Once resized, the set widths win. */
+.codes-wide .codes-table:not(.sized) {
+  width: min(1920px, 100%);
+}
+/* Only until it is resized: then the frame, and its scrollbar, follow the
+   table's edge as they do on the other code tables. */
+.codes-wide .codes-scroll:has(> .codes-table:not(.sized)) {
+  width: min(1920px, 100%);
+}
+.codes-wide .codes-table:not(.sized) th:not(:last-child),
+.codes-wide .codes-table:not(.sized) td:not(:last-child) {
+  width: 1%;
+  white-space: nowrap;
+}
+/* In a narrow window the summary keeps room to read, and the table scrolls. */
+.codes-wide .codes-table:not(.sized) th:last-child {
+  min-width: 18rem;
+}
+.codes-wide .codes-table:not(.sized) td:last-child {
+  min-width: 18rem;
+}
+.codes-wide .codes-table td:last-child {
+  overflow-wrap: anywhere;
+}
 .codes-resizer {
   position: absolute;
   top: 0;

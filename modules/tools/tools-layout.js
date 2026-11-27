@@ -30,7 +30,7 @@
     'ftp-codes': 'FTP server replies',
     'http-codes': 'Web status codes',
     'smtp-codes': 'Mail server replies',
-    'windows-events-to-monitor': 'Security events by criticality',
+    'windows-event-codes': 'Security events by criticality',
   }
 
   const read = () => {
