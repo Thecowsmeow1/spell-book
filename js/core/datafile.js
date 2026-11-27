@@ -100,10 +100,10 @@ window.DataFile = (() => {
   // Kept in memory once loaded, so reading is instant; each write is copied
   // to IndexedDB in the background, in order.
   // The Compendium's trash holds whole notes, images and all, so it goes there
-  // too, and so do the Bash tab's imported manuals.
+  // too, and so do the manuals and help imported on the Bash and PowerShell tabs.
   const isBig = (key) =>
     typeof key === 'string' &&
-    (key.startsWith('spellbook_notes_v1') || key === 'spellbook_trash_notes_v1' || key === 'spellbook_bash_v1')
+    (key.startsWith('spellbook_notes_v1') || key === 'spellbook_trash_notes_v1' || key === 'spellbook_bash_v1' || key === 'spellbook_ps_help_v1')
   const BIG_DB = 'spellbook_data'
   const BIG_STORE = 'values'
   const big = new Map()

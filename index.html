@@ -434,8 +434,9 @@ Type a command and see what can come next, with its help beside it.
 - **Complete** cmdlets, parameters and listed values: **Tab** puts a choice in the command and each further **Tab** swaps in the next (**Shift+Tab** goes back), as in PowerShell; **Space** or **Enter** keeps it. **↓** and **↑** also move through the list, and **Esc** lets Tab leave the box.
 - The help shows the syntax, every parameter (type, aliases, values, position, default) and the examples; the parameter being typed opens by itself.
 - It can't suggest paths or other values only a running PowerShell knows, and it runs nothing.
-- Covers **Windows PowerShell 5.1** and **PowerShell 7**; the version list shows both or one. In **Both versions**, anything only one has is marked **5.1 only** or **7 only**.
-- The commands come from your own computer. Build or refresh them with `powershell -NoProfile -File modules\powershell\ps-export.ps1` for 5.1, and the same line starting with `pwsh` for 7 (if Windows blocks the script, read it, then add `-ExecutionPolicy Bypass` for that run). If descriptions are missing, run `Update-Help` as administrator first.
+- **Import help:** paste text or upload text files. In PowerShell: `Get-Help Get-ChildItem -Full > gci.txt`, or several at once with `'Get-ChildItem','Copy-Item' | ForEach-Object { Get-Help $_ -Full } > several.txt`. `Get-Command <name> -Syntax` adds allowed values and `Get-Alias` adds aliases. Importing a command again replaces it.
+- The imports are saved in the data file; Import / Export copies them with the **PowerShell help** group.
+- **Optional:** `modules/powershell/ps-export.ps1` builds every installed command at once (run it with `powershell` for 5.1 and `pwsh` for 7). With those lists, a version filter appears and anything only one version has is marked.
 
 ## Bash
 

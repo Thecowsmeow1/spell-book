@@ -8,18 +8,24 @@
  * As in PowerShell, Tab puts the marked choice in the command and each further
  * Tab (Shift+Tab to go back) swaps in the next, with the list staying up; a
  * space or Enter keeps it and lists what comes next. ↓ and ↑ move through the
- * list. Esc stops Tab from completing so it moves to the next control. The data (ps-data-5.js
+ * list. Esc stops Tab from completing so it moves to the next control.
+ *
+ * Commands come from help text you paste or upload, saved under
+ * spellbook_ps_help_v1 as { pages: { name: text }, aliases: { alias: name } }
+ * (a large value: IndexedDB, js/core/datafile.js), and from the optional data
+ * built by ps-export.ps1; an imported command replaces a built one. The data (ps-data-5.js
  * and ps-data-7.js, several MB each) is added as <script>s the first time the
  * tab is shown, which also works from file://. Its text is only ever shown as
  * text. The version filter is saved under spellbook_ps_version_v1.
  */
 ;(() => {
   const VERSION_KEY = 'spellbook_ps_version_v1'
+  const KEY = 'spellbook_ps_help_v1'
+  const PAGE_LIMIT = 1_000_000 // characters for one command's help
   const VERSIONS = [
-    { id: '5.1', name: 'Windows PowerShell 5.1', src: 'modules/powershell/ps-data-5.js', global: 'SPELLBOOK_PS5', run: 'powershell' },
-    { id: '7', name: 'PowerShell 7', src: 'modules/powershell/ps-data-7.js', global: 'SPELLBOOK_PS7', run: 'pwsh' },
+    { id: '5.1', name: 'Windows PowerShell 5.1', src: 'modules/powershell/ps-data-5.js', global: 'SPELLBOOK_PS5' },
+    { id: '7', name: 'PowerShell 7', src: 'modules/powershell/ps-data-7.js', global: 'SPELLBOOK_PS7' },
   ]
-  const buildLine = (version) => `${version.run} -NoProfile -File modules\\powershell\\ps-export.ps1`
   const $ = (id) => document.getElementById(id)
   const el = (tag, cls, text) => {
     const node = document.createElement(tag)
@@ -36,6 +42,8 @@
   let loading = null
   let state = null // what the list shows: a complete() or search() result
   let finding = false // the list shows what the Find box found
+  let stored = { pages: {}, aliases: {} } // imported help
+  let commandCount = 0
   let marked = 0
   let tabCompletes = true
   let cycling = false // Tab is swapping choices into the command
@@ -59,62 +67,157 @@
       $('ps-hint').textContent = 'Loading commands…'
       loading = Promise.all(VERSIONS.map(loadVersion)).then((found) => {
         VERSIONS.forEach((version, i) => (version.data = found[i]))
-        if (!found.some(Boolean)) {
-          loading = null
-          $('ps-hint').textContent = ''
-          help.replaceChildren(
-            el('h2', '', 'No commands yet'),
-            el('p', '', 'Build them from this computer’s PowerShell: open PowerShell in the Spell Book folder, run the line for each version you want, then reload this page.'),
-            ...VERSIONS.flatMap((version) => [el('p', '', version.name), el('pre', '', buildLine(version))]),
-            el('p', '', 'If Windows says the script can’t be loaded or isn’t signed, read the script, then add -ExecutionPolicy Bypass after -NoProfile for that one run.'),
-          )
-          throw new Error('missing')
-        }
+        stored = readStored()
         fillVersions()
         useVersion()
+        if (!commandCount) showImport(true)
       })
     }
     return loading
   }
 
-  // ─── Version filter ─────────────────────────────────────────────────
-  function fillVersions() {
-    const options = VERSIONS.map((version) => {
-      const option = new Option(version.data ? version.name : `${version.name} (not built)`, version.id)
-      option.disabled = !version.data
-      return option
+  // ─── Imported help ──────────────────────────────────────────────────
+  function readStored() {
+    try {
+      const saved = JSON.parse(window.DataFile.getItem(KEY) || '{}')
+      const strings = (map) => Object.fromEntries(Object.entries(map && typeof map === 'object' ? map : {}).filter(([, v]) => typeof v === 'string'))
+      return { pages: strings(saved.pages), aliases: strings(saved.aliases) }
+    } catch {
+      return { pages: {}, aliases: {} }
+    }
+  }
+
+  async function store(next) {
+    const any = Object.keys(next.pages).length || Object.keys(next.aliases).length
+    const saved = any ? await window.DataFile.setItem(KEY, JSON.stringify(next)) : (await window.DataFile.removeItem(KEY), true)
+    if (saved === false) throw new Error('Browser storage is full or unavailable; nothing was changed.')
+    stored = next
+    useVersion()
+  }
+
+  // The built commands (or none) with the imported ones in their place.
+  function withImports(base) {
+    const byName = new Map((base ? base.commands : []).map((c) => [c.n.toLowerCase(), c]))
+    Object.values(stored.pages).forEach((text) => {
+      const command = window.SpellBookPSParse.parse(text)
+      const built = byName.get(command.n.toLowerCase())
+      if (built) command.a = built.a
+      byName.set(command.n.toLowerCase(), command)
     })
-    if (VERSIONS.every((version) => version.data)) options.unshift(new Option('Both versions', 'both'))
+    Object.entries(stored.aliases).forEach(([alias, name]) => {
+      const command = byName.get(name.toLowerCase())
+      if (command && !command.a.includes(alias)) byName.set(name.toLowerCase(), { ...command, a: [...command.a, alias] })
+    })
+    return {
+      common: base ? base.common : window.SpellBookPSParse.COMMON,
+      commands: [...byName.values()].sort((a, b) => a.n.localeCompare(b.n)),
+    }
+  }
+
+  // sources: [{ text, from }]
+  async function add(sources) {
+    const next = { pages: { ...stored.pages }, aliases: { ...stored.aliases } }
+    const added = []
+    const problems = []
+    let aliases = 0
+    sources.forEach(({ text, from }) => {
+      const read = window.SpellBookPSParse.split(text)
+      read.pages.forEach(({ name, text: part, syntaxOnly }) => {
+        const known = Object.keys(next.pages).find((n) => n.toLowerCase() === name.toLowerCase())
+        // Syntax adds to help already imported rather than replacing it.
+        const whole = syntaxOnly && known ? `${next.pages[known]}\n\n${part}` : part
+        if (whole.length > PAGE_LIMIT) return problems.push(`${name} is too long to keep.`)
+        if (known) delete next.pages[known]
+        next.pages[name] = whole
+        added.push(`${name} (${Object.keys(window.SpellBookPSParse.parse(whole).params).length} parameters)`)
+      })
+      Object.assign(next.aliases, read.aliases)
+      aliases += Object.keys(read.aliases).length
+      if (!read.pages.length && !Object.keys(read.aliases).length) {
+        problems.push(`No PowerShell help found in ${from}. Use Get-Help <name> -Full.`)
+      }
+    })
+    const result = $('ps-result')
+    try {
+      if (added.length || aliases) await store(next)
+      result.textContent = [added.length ? `Added ${added.join(', ')}.` : '', aliases ? `Added ${aliases} aliases.` : '', ...problems].filter(Boolean).join(' ')
+    } catch (error) {
+      result.textContent = error.message
+    }
+    return (added.length > 0 || aliases > 0) && !problems.length
+  }
+
+  function renderImported() {
+    const names = Object.keys(stored.pages).sort((a, b) => a.localeCompare(b))
+    const aliases = Object.keys(stored.aliases).length
+    $('ps-count').textContent = `Imported (${names.length})${aliases ? `, ${aliases} aliases` : ''}`
+    $('ps-imported').replaceChildren(
+      ...names.map((name) => {
+        const item = el('li')
+        const remove = el('button', 'tag-x', '×')
+        remove.type = 'button'
+        remove.title = `Remove ${name}`
+        remove.setAttribute('aria-label', remove.title)
+        remove.addEventListener('click', () => {
+          if (!confirm(`Remove the imported help for ${name}?`)) return
+          const pages = { ...stored.pages }
+          delete pages[name]
+          store({ pages, aliases: stored.aliases }).catch((error) => ($('ps-result').textContent = error.message))
+        })
+        item.append(el('code', '', name), remove)
+        return item
+      }),
+    )
+  }
+
+  function showImport(open) {
+    $('ps-import').hidden = !open
+    $('ps-body').hidden = open
+    $('ps-import-toggle').setAttribute('aria-expanded', String(open))
+    $('ps-import-toggle').textContent = open ? 'Close import' : 'Import help'
+  }
+
+  // ─── Version filter ─────────────────────────────────────────────────
+  // The version list is only there for built data.
+  function fillVersions() {
+    const options = VERSIONS.filter((version) => version.data).map((version) => new Option(version.name, version.id))
+    if (options.length > 1) options.unshift(new Option('Both versions', 'both'))
     const select = $('ps-version')
     select.replaceChildren(...options)
+    select.hidden = !options.length
     let saved = null
     try {
       saved = localStorage.getItem(VERSION_KEY)
     } catch {}
-    const usable = options.find((o) => o.value === saved && !o.disabled)
-    select.value = (usable || options.find((o) => !o.disabled)).value
+    if (options.length) select.value = options.some((o) => o.value === saved) ? saved : options[0].value
   }
 
   function useVersion() {
     const chosen = $('ps-version').value
     const [five, seven] = VERSIONS
-    let data
+    let base = null
     if (chosen === 'both') {
       five.merged = five.merged || window.SpellBookPS.merge(five.data, seven.data)
-      data = five.merged
-    } else {
-      data = VERSIONS.find((version) => version.id === chosen).data
+      base = five.merged
+    } else if (chosen) {
+      base = VERSIONS.find((version) => version.id === chosen).data
     }
+    const data = withImports(base)
+    commandCount = data.commands.length
     engine = window.SpellBookPS.create(data)
     const used = VERSIONS.filter((version) => version.data && (chosen === 'both' || chosen === version.id))
-    const missing = VERSIONS.filter((version) => !version.data)
+    const imported = Object.keys(stored.pages).length
     $('ps-source').textContent = [
-      `${data.commands.length} commands: ${used.map((v) => `${v.name} (${v.data.version}, built ${v.data.built})`).join(' and ')}.`,
-      ...missing.map((v) => `To add ${v.name}, run: ${buildLine(v)}`),
-    ].join(' ')
+      `${commandCount} command${commandCount === 1 ? '' : 's'}`,
+      imported ? `, ${imported} imported` : '',
+      used.length ? `; built from ${used.map((v) => `${v.name} (${v.data.version}, ${v.data.built})`).join(' and ')}` : '',
+      '.',
+    ].join('')
+    renderImported()
     shownHelp = null
     help.replaceChildren()
-    update()
+    if (finding && finder.value.trim()) find()
+    else update()
   }
 
   const onlyChip = (version) => el('span', 'ps-chip ps-only', `${version} only`)
@@ -124,12 +227,16 @@
     if (!engine) return
     finding = false
     state = engine.complete(input.value, input.selectionStart)
-    show(state.hint, 'No fixed choices here. Type it, then a space to see what comes next.')
+    show(
+      commandCount ? state.hint : '',
+      commandCount ? 'No fixed choices here. Type it, then a space to see what comes next.' : 'Nothing imported yet. Click Import help.',
+    )
   }
 
   function find() {
     if (!engine) return
     if (!finder.value.trim()) return update()
+    showImport(false)
     finding = true
     state = engine.search(finder.value)
     show(
@@ -324,7 +431,7 @@
       if (command.only) title.append(onlyChip(command.only))
       const parts = [title]
       if (command.a.length) parts.push(el('p', 'ps-muted', `Aliases: ${engine.aliasNames(command).join(', ')}`))
-      parts.push(el('p', 'ps-synopsis', command.s || 'No help is installed for this command.'))
+      parts.push(el('p', 'ps-synopsis', command.s || 'No description for this command.'))
       if (command.d) parts.push(prose(command.d))
       if (/^https?:\/\//i.test(command.u)) {
         const link = el('a', '', 'Online help')
@@ -374,10 +481,13 @@
   // ─── Wiring ─────────────────────────────────────────────────────────
   input.addEventListener('input', () => {
     tabCompletes = true
-    load().then(update, () => {})
+    load().then(() => {
+      showImport(false)
+      update()
+    })
   })
   input.addEventListener('focus', () => finding && update())
-  finder.addEventListener('input', () => load().then(find, () => {}))
+  finder.addEventListener('input', () => load().then(find))
   finder.addEventListener('focus', () => finder.value.trim() && find())
   finder.addEventListener('keydown', (e) => {
     if (!finding || e.ctrlKey || e.altKey || e.metaKey) return
@@ -418,6 +528,55 @@
     } catch {}
     useVersion()
   })
+  $('ps-import-toggle').addEventListener('click', () => load().then(() => showImport($('ps-import').hidden)))
+  $('ps-add').addEventListener('click', async () => {
+    const text = $('ps-text').value
+    if (!text.trim()) {
+      $('ps-result').textContent = 'Paste some text first.'
+      return
+    }
+    await load()
+    if (await add([{ text, from: 'the pasted text' }])) $('ps-text').value = ''
+  })
+  $('ps-files').addEventListener('change', async (e) => {
+    const files = [...e.target.files]
+    e.target.value = ''
+    try {
+      await load()
+      const sources = await Promise.all(
+        files.map(async (file) => {
+          if (file.size > 20 * PAGE_LIMIT) throw new Error(`${file.name} is too big.`)
+          const bytes = await file.arrayBuffer()
+          const start = new Uint8Array(bytes.slice(0, 2))
+          // Windows PowerShell's > writes UTF-16.
+          const encoding = start[0] === 0xff && start[1] === 0xfe ? 'utf-16le' : 'utf-8'
+          return { text: new TextDecoder(encoding).decode(bytes), from: file.name }
+        }),
+      )
+      await add(sources)
+    } catch (error) {
+      $('ps-result').textContent = error.message
+    }
+  })
+  window.SpellBook.settingGroup({
+    id: 'powershellHelp',
+    title: 'PowerShell help',
+    sub: 'the help imported on the PowerShell tab',
+    order: 91,
+    keys: [KEY],
+  })
+  window.SpellBook.trackChanges &&
+    window.SpellBook.trackChanges({
+      key: KEY,
+      label: 'PowerShell help',
+      units: (text) => {
+        try {
+          return new Map(Object.entries(JSON.parse(text || '{}').pages || {}))
+        } catch {
+          return new Map()
+        }
+      },
+    })
   $('ps-clear').addEventListener('click', () => {
     input.value = ''
     input.focus()
@@ -434,6 +593,6 @@
 
   document.addEventListener('spellbook:page', (e) => {
     if (e.detail.page !== 'powershell') return
-    load().then(() => input.focus(), () => {})
+    load().then(() => $('ps-import').hidden && input.focus())
   })
 })()

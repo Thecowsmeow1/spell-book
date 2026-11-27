@@ -43,6 +43,89 @@
   border-color: var(--accent);
   color: var(--text);
 }
+.ps-body[hidden],
+.ps-import[hidden],
+.ps-bar select[hidden] {
+  display: none;
+}
+.ps-import {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.9rem 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.87rem;
+}
+.ps-import p {
+  margin: 0.4rem 0;
+}
+.ps-import h3 {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+.ps-import code {
+  font-family: var(--mono);
+}
+.ps-import pre {
+  margin: 0.35rem 0;
+  padding: 0.5rem 0.7rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: #e7ecf3;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+}
+.ps-import textarea {
+  width: 100%;
+  min-height: 12rem;
+  margin: 0.4rem 0;
+  padding: 0.5rem 0.7rem;
+  resize: vertical;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.ps-import-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.ps-file {
+  position: relative;
+  cursor: pointer;
+}
+.ps-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ps-file:focus-within {
+  outline: 2px solid var(--accent);
+}
+.ps-import ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ps-import li {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
 .ps-hint {
   min-height: 1.2rem;
   margin: 0.4rem 0;
