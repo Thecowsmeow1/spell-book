@@ -40,6 +40,22 @@
   text-align: left;
   cursor: pointer;
 }
+.tools-tab {
+  touch-action: manipulation;
+}
+.tools-tab.reorder-before {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+.tools-tab.reorder-after {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.tools-reset-order {
+  margin-top: 0.7rem;
+}
+.tools-reset-order[hidden],
+.tools-choose:not([open]) .tools-reset-order {
+  display: none;
+}
 .tools-tab:hover {
   background: var(--surface);
 }

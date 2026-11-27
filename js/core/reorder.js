@@ -1,7 +1,8 @@
 /*
  * Drag to reorder, by a small handle (core). Used for the tabs in the
  * navigation bar (their order is saved as spellbook_tab_order_v1, see
- * js/core/pages.js) and for the Compendium's tome tabs.
+ * js/core/pages.js), for the Compendium's tome tabs and for the Tools tab's
+ * list.
  *
  *   const grip = SpellBook.reorderHandle('Drag to move this tab')
  *     A handle to put in each item when it is drawn.
@@ -9,26 +10,29 @@
  *     items: '.nav-link',            // what can be moved
  *     id: (el) => el.dataset.page,   // each one's id
  *     move: (ids) => …,              // the new order, after a drop
+ *     vertical: false,               // true for a list down the page
  *   })
  *
  * Pointer events, not HTML drag and drop, so it doesn't mix with dragging a
  * note onto a tome's tab. A short click on the handle is an ordinary click.
- * Escape cancels a drag. Keyboard: Ctrl+Shift+Left / Right moves the focused
- * item one place.
+ * Escape cancels a drag. Keyboard: Ctrl+Shift+Left / Right (Up / Down in a
+ * vertical list) moves the focused item one place.
  */
 ;(() => {
   const SpellBook = window.SpellBook
   const KEY_HINT = 'Ctrl+Shift+← / →'
 
-  function reorderHandle(title) {
+  function reorderHandle(title, { vertical = false } = {}) {
     const grip = document.createElement('span')
     grip.className = 'reorder-handle'
     grip.setAttribute('aria-hidden', 'true')
-    grip.title = `${title} (or ${KEY_HINT})`
+    grip.title = `${title} (or ${vertical ? 'Ctrl+Shift+↑ / ↓' : KEY_HINT})`
     return grip
   }
 
-  function reorderable(container, { items, id, move }) {
+  function reorderable(container, { items, id, move, vertical = false }) {
+    const point = (e) => (vertical ? e.clientY : e.clientX)
+    const [earlier, later] = vertical ? ['ArrowUp', 'ArrowDown'] : ['ArrowLeft', 'ArrowRight']
     const all = () => [...container.querySelectorAll(items)]
     let drag = null
     let swallowClick = false
@@ -67,22 +71,22 @@
       if (!item || e.button !== 0 || !container.contains(item)) return
       e.preventDefault()
       grip.setPointerCapture(e.pointerId)
-      drag = { item, startX: e.clientX, moved: false, target: null, after: false }
+      drag = { item, start: point(e), moved: false, target: null, after: false }
       document.addEventListener('keydown', onEscape, true)
     })
     container.addEventListener('pointermove', (e) => {
       if (!drag) return
-      if (!drag.moved && Math.abs(e.clientX - drag.startX) < 4) return
+      if (!drag.moved && Math.abs(point(e) - drag.start) < 4) return
       drag.moved = true
       drag.item.classList.add('reorder-dragging')
       document.body.classList.add('reordering')
       clearMark()
-      // Before the first item whose middle is right of the pointer, or after
-      // the last one.
+      // Before the first item whose middle is past the pointer, or after the
+      // last one.
       const others = all().filter((el) => el !== drag.item)
       let target = others.find((el) => {
         const box = el.getBoundingClientRect()
-        return e.clientX < box.left + box.width / 2
+        return point(e) < (vertical ? box.top + box.height / 2 : box.left + box.width / 2)
       })
       let after = false
       if (!target && others.length) {
@@ -109,7 +113,7 @@
     container.addEventListener(
       'keydown',
       (e) => {
-        if (!e.ctrlKey || !e.shiftKey || e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return
+        if (!e.ctrlKey || !e.shiftKey || e.altKey || (e.key !== earlier && e.key !== later)) return
         const item = e.target.closest(items)
         if (!item) return
         e.preventDefault()
@@ -117,7 +121,7 @@
         const ids = all().map(id)
         const moving = id(item)
         const from = ids.indexOf(moving)
-        const to = from + (e.key === 'ArrowRight' ? 1 : -1)
+        const to = from + (e.key === later ? 1 : -1)
         if (to < 0 || to >= ids.length) return
         ids.splice(from, 1)
         ids.splice(to, 0, moving)

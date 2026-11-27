@@ -40,6 +40,7 @@ Changes since v7.2 (`CHANGELOG-v7.2.md`).
 
 ### 5. Redesigned Tools page
 - A list of tools on the left and the chosen tool on the right, in place of the grid of cards. The tool last open is remembered in the browser.
+- Drag a tool by its dotted handle, or press **Ctrl+Shift+↑/↓**, to reorder the list; **Default order** (under Choose tools) and **Clear Settings** undo it. `js/core/reorder.js` gained a `vertical` option for this.
 - **Choose tools** under the list turns tools on or off. The tutorial opens each tool and skips those that are off.
 - Saved as `spellbook_tools_v1`, copied with the "Tools tab" group in Import / Export and reset by **Clear Settings**.
 - Files: `modules/tools/tools-layout.js`, `module.js`, `tools.css`, `tools-tour.js`, `index.html`.
