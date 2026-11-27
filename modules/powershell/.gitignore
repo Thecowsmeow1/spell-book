@@ -1,0 +1,3 @@
+# Built from each computer's own PowerShell by ps-export.ps1: large, and it
+# shows which modules are installed.
+ps-data*.js

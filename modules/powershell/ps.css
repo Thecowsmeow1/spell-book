@@ -1,0 +1,189 @@
+/* The PowerShell page (modules/powershell). */
+.powershell-page:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem 1rem 0.5rem;
+}
+.ps-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ps-prompt {
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.ps-bar input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.95rem;
+}
+.ps-bar select {
+  padding: 0.5rem 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.ps-only {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.ps-hint {
+  min-height: 1.2rem;
+  margin: 0.4rem 0;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.ps-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0.75rem;
+}
+.ps-options,
+.ps-help {
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.ps-options {
+  flex: 0 0 22rem;
+  padding: 0.35rem;
+}
+.ps-option {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.ps-option[aria-selected='true'] {
+  background: var(--surface2);
+  border-color: var(--accent);
+}
+.ps-option-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.ps-option code,
+.ps-help summary code {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.ps-option-note,
+.ps-muted {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.ps-option-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ps-chip {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+.ps-required {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+.ps-help {
+  flex: 1;
+  min-width: 0;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.87rem;
+}
+.ps-help h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.4rem;
+  font-size: 1.25rem;
+}
+.ps-help h3 {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+.ps-help p {
+  margin: 0.4rem 0;
+}
+.ps-help a {
+  color: var(--accent-text);
+}
+.ps-synopsis {
+  font-weight: 600;
+}
+.ps-lines {
+  white-space: pre-wrap;
+}
+.ps-help pre {
+  margin: 0.35rem 0;
+  padding: 0.5rem 0.7rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  /* The code background is dark in both modes. */
+  color: #e7ecf3;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ps-param {
+  margin-bottom: 0.25rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.ps-param.current {
+  border-color: var(--accent);
+  background: var(--surface2);
+}
+.ps-param summary {
+  cursor: pointer;
+}
+.ps-param summary > * {
+  margin-right: 0.5rem;
+}
+.ps-param dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.8rem;
+  margin: 0.5rem 0;
+}
+.ps-param dt {
+  color: var(--muted);
+}
+.ps-param dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.powershell-page > .ps-muted {
+  margin: 0.4rem 0 0;
+}
+@media (max-width: 800px) {
+  .ps-body {
+    flex-direction: column;
+  }
+  .ps-options {
+    flex: 0 0 12rem;
+  }
+}

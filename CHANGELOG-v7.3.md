@@ -15,3 +15,12 @@ Changes since v7.2 (`CHANGELOG-v7.2.md`).
 ### 2. Browser-tab icon
 - The tab icon is now `favicon.png`.
 - Files: `index.html`, `favicon.png`.
+
+## PowerShell
+
+### 3. The PowerShell tab
+- A new tab between Tools and ATT&CK: type a command and a list shows what can come next (cmdlets, parameters that still fit, listed values), with the command's help beside it.
+- Follows pipelines, brackets, `$x = …`, aliases, shortened parameter names, positional values and parameter sets. A version list shows both (marking what only one has) or one; the choice is saved as `spellbook_ps_version_v1`. It runs nothing and can't suggest paths or other live values.
+- `ps-export.ps1` builds `ps-data-5.js` (Windows PowerShell 5.1) and `ps-data-7.js` (PowerShell 7) from the computer's installed modules and help, one file for each version it is run in. Those files are not committed (`modules/powershell/.gitignore`), so each computer builds its own.
+- No tutorial yet.
+- Files: `modules/powershell/`, `modules/modules.js`, `index.html`.

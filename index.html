@@ -369,7 +369,7 @@ Spell Book is a local-first reference for commands, scripts and technical terms,
 1. Keep the whole Spell Book folder together: `index.html`, `css/`, `js/`, `modules/`, `data/` and `icons/`.
 2. Open `index.html` in your browser.
 3. Click **Link a Data File** in the top bar to keep your data in a JSON file you choose. From then on that button is **Save**. Without a data file, everything stays in this browser only.
-4. Pick a tab: **Spells** (commands, scripts and terms), **Compendium** (notes), **Tools**, **ATT&CK** or **Games**. Each tab offers its tutorial the first time you open it. Don't need one right now? Turn it off in **Settings → Layout & Theme → Tabs**.
+4. Pick a tab: **Spells** (commands, scripts and terms), **Compendium** (notes), **Tools**, **PowerShell**, **ATT&CK** or **Games**. Each tab offers its tutorial the first time you open it. Don't need one right now? Turn it off in **Settings → Layout & Theme → Tabs**.
 
 ## The Top Bar
 
@@ -424,6 +424,17 @@ Notes in trees, CherryTree style: a tree of nodes on the left and an editor on t
 - **Crontab interpreter**: the schedule in plain English, and its next runs.
 - **Regex interpreter**: the pattern explained and tested on your text.
 - **Help harvester**: a script that collects a command's help, and its subcommands', into one file for the importer.
+
+## PowerShell
+
+Type a command and see what can come next, with its help beside it.
+
+- **Find a command** by name, alias or words about what it does.
+- **Complete** cmdlets, parameters and listed values: **↓** and **↑** to move, **Tab** or **Enter** to take one, **Esc** to let Tab leave the box.
+- The help shows the syntax, every parameter (type, aliases, values, position, default) and the examples; the parameter being typed opens by itself.
+- It can't suggest paths or other values only a running PowerShell knows, and it runs nothing.
+- Covers **Windows PowerShell 5.1** and **PowerShell 7**; the version list shows both or one. In **Both versions**, anything only one has is marked **5.1 only** or **7 only**.
+- The commands come from your own computer. Build or refresh them with `powershell -NoProfile -File modules\powershell\ps-export.ps1` for 5.1, and the same line starting with `pwsh` for 7 (if Windows blocks the script, read it, then add `-ExecutionPolicy Bypass` for that run). If descriptions are missing, run `Update-Help` as administrator first.
 
 ## ATT&CK
 
@@ -533,6 +544,7 @@ spell-book-experimental-v7.3/
 │   ├── spells/                Commands, scripts, terms
 │   ├── compendium/            Notes, templates, presets, variables, the archive, Markdown export
 │   ├── tools/                 Man page importer and other tools
+│   ├── powershell/            PowerShell help and completion (ps-export.ps1 builds the data)
 │   ├── attack/                The ATT&CK matrix (attack.py rebuilds its data)
 │   └── games/                 The Games tab; each game is a folder (tic-tac-toe/)
 ├── remote-db/                 The optional database server (see its README.md)
@@ -548,6 +560,7 @@ This guide is built into `index.html`, in `<script id="readme-source" type="text
 
 **Version 7.3 — 20261126**
 
+- **New tab:** **PowerShell**, with autocompletion and help for the commands installed on your computer.
 - **Long text in the table** (Settings → Spells): cut off at one line, or wrap to show all of it. Applies to the table view, not the card list.
 - **New browser-tab icon:** `favicon.png`.
 - **Details:** in `CHANGELOG-v7.3.md`.
