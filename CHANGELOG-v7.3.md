@@ -43,3 +43,9 @@ Changes since v7.2 (`CHANGELOG-v7.2.md`).
 - **Choose tools** under the list turns tools on or off. The tutorial opens each tool and skips those that are off.
 - Saved as `spellbook_tools_v1`, copied with the "Tools tab" group in Import / Export and reset by **Clear Settings**.
 - Files: `modules/tools/tools-layout.js`, `module.js`, `tools.css`, `tools-tour.js`, `index.html`.
+
+### 6. Context help in the crontab and regex interpreters
+- Crontab: the five fields under the box with their ranges, the current one highlighted and explained; click a field to select it.
+- Regex: a line explaining the part of the pattern at the cursor, or the flags.
+- Both have examples to try and a quick reference whose entries can be clicked into the box.
+- Files: `modules/tools/tools-help.js`, `module.js`, `tools.css`, `index.html`.

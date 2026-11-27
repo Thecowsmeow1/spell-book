@@ -17,6 +17,7 @@ SpellBook.module({
   css: ['tools.css', 'powershell/ps.css', 'bash/bash.css'],
   scripts: [
     'tools.js',
+    'tools-help.js',
     'man-import.js',
     // Each card goes to the top of the list, so Bash's is made first.
     'bash/bash-card.js',

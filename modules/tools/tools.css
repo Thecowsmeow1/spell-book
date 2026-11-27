@@ -132,6 +132,125 @@
   color: var(--muted);
   font-size: 0.87rem;
 }
+/* Context help on the crontab and regex interpreters (tools-help.js). */
+.cron-fields {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.cron-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.45rem 0.3rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.cron-field:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.cron-field.current {
+  background: var(--surface2);
+  border-color: var(--accent);
+}
+.cron-field code {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cron-field-name {
+  font-size: 0.78rem;
+}
+.cron-field-range,
+.tool-help-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.tool-context {
+  min-height: 2.6em;
+  margin: 0.6rem 0 0.4rem;
+  padding: 0.45rem 0.7rem;
+  background: var(--surface2);
+  border-radius: 6px;
+  font-size: 0.83rem;
+}
+.tool-context code {
+  font-family: var(--mono);
+  font-weight: 700;
+}
+.tool-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+.tool-chip {
+  padding: 0.15rem 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.tool-chip:hover {
+  border-color: var(--accent);
+}
+.tool-reference {
+  margin-top: 0.9rem;
+  font-size: 0.82rem;
+}
+.tool-reference summary {
+  cursor: pointer;
+}
+.tool-reference-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.5rem 1.5rem;
+}
+.tool-reference h3 {
+  margin: 0.7rem 0 0.4rem;
+  font-size: 0.85rem;
+}
+.tool-reference dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: baseline;
+  gap: 0.3rem 0.7rem;
+  margin: 0;
+}
+.tool-reference dd {
+  margin: 0;
+  color: var(--muted);
+}
+.tool-reference .tool-chip,
+.tool-reference code {
+  font-family: var(--mono);
+  border-radius: 6px;
+}
+@media (max-width: 700px) {
+  .cron-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.tool-output .usage-list {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+}
 .tool .form-group {
   margin-bottom: 0.6rem;
 }
